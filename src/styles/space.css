@@ -343,10 +343,6 @@ kbd {
   0%, 48% { opacity: 1; }
   49%, 100% { opacity: 0; }
 }
-@keyframes hotspotFloat {
-  0%, 100% { transform: translate(-50%, -100%) translateY(0); }
-  50% { transform: translate(-50%, -100%) translateY(-4px); }
-}
 @keyframes toastIn {
   from { opacity: 0; transform: translate(-50%, -8px); }
   to { opacity: 1; transform: translate(-50%, 0); }
@@ -366,7 +362,7 @@ kbd {
   z-index: 20;
   pointer-events: none;
   max-width: min(420px, 58vw);
-  text-shadow: 0 2px 18px rgba(3, 8, 18, 0.45);
+  text-shadow: 0 1px 2px rgba(3, 8, 18, 0.72);
 }
 .hud-brand {
   display: flex;
@@ -431,11 +427,10 @@ kbd {
   padding: 4px 9px;
   border: 1px solid rgba(107, 197, 248, 0.28);
   border-radius: 99px;
-  background: rgba(26, 52, 82, 0.65);
+  background: rgba(24, 47, 75, 0.92);
   color: #cdeaff;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
-  backdrop-filter: blur(8px);
 }
 .hud-badge-muted {
   border-color: rgba(255, 255, 255, 0.1);
@@ -464,9 +459,8 @@ kbd {
   padding: 5px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: rgba(15, 26, 44, 0.72);
+  background: rgba(12, 23, 40, 0.94);
   box-shadow: 0 12px 36px rgba(2, 7, 18, 0.36);
-  backdrop-filter: blur(16px);
   pointer-events: auto;
 }
 .icon-btn {
@@ -510,7 +504,7 @@ kbd {
 }
 .hud-clock {
   text-align: right;
-  text-shadow: 0 2px 20px rgba(3, 8, 18, 0.8);
+  text-shadow: 0 1px 2px rgba(3, 8, 18, 0.8);
 }
 .hud-clock-label {
   color: var(--dim);
@@ -555,7 +549,7 @@ kbd {
   color: rgba(168, 188, 214, 0.68);
   font-size: 10px;
   letter-spacing: 0.02em;
-  text-shadow: 0 1px 12px #050b16;
+  text-shadow: 0 1px 2px rgba(3, 8, 18, 0.75);
 }
 .hud-hint-line kbd {
   font-size: 9px;
@@ -573,10 +567,8 @@ kbd {
   padding: 10px 14px;
   border: 1px solid var(--line);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(20, 33, 54, 0.88), rgba(12, 22, 38, 0.9));
+  background: linear-gradient(180deg, rgba(17, 30, 49, 0.97), rgba(10, 19, 33, 0.97));
   box-shadow: 0 18px 50px rgba(3, 8, 18, 0.45);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   pointer-events: auto;
 }
 .dock-group {
@@ -659,14 +651,13 @@ kbd {
   padding: 8px 12px 8px 9px;
   border: 1px solid rgba(107, 197, 248, 0.3);
   border-radius: 14px;
-  background: rgba(12, 24, 42, 0.9);
+  background: rgba(10, 21, 37, 0.96);
   box-shadow: 0 16px 38px rgba(2, 8, 18, 0.48);
   color: #eaf6ff;
   opacity: 0;
   visibility: hidden;
   transform: translate(-50%, 8px);
   transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s ease;
-  backdrop-filter: blur(16px);
 }
 .interaction-hint.is-visible {
   opacity: 1;
@@ -737,6 +728,8 @@ kbd {
 }
 .hotspot-marker {
   position: absolute;
+  top: 0;
+  left: 0;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -744,7 +737,7 @@ kbd {
   padding: 5px 8px;
   border: 1px solid rgba(255, 255, 255, 0.13);
   border-radius: 999px;
-  background: rgba(12, 22, 38, 0.84);
+  background: rgba(9, 19, 33, 0.96);
   box-shadow: 0 8px 24px rgba(3, 8, 18, 0.38);
   color: #dfeaf8;
   font-size: 10px;
@@ -752,23 +745,23 @@ kbd {
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, -100%);
+  transform: translate3d(-200px, -200px, 0) translate(-50%, -100%);
   transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, opacity 0.18s ease;
-  backdrop-filter: blur(10px);
+  contain: layout style paint;
 }
 .hotspot-marker.is-visible {
   opacity: 1;
   pointer-events: auto;
-  animation: hotspotFloat 3.2s ease-in-out infinite;
+  will-change: transform;
 }
 .hotspot-marker:hover {
   border-color: rgba(107, 197, 248, 0.65);
-  background: rgba(29, 66, 100, 0.94);
+  background: rgba(25, 57, 88, 0.98);
   color: #fff;
 }
 .hotspot-marker.is-near {
   border-color: rgba(123, 214, 177, 0.8);
-  background: rgba(25, 65, 59, 0.92);
+  background: rgba(20, 53, 49, 0.98);
   color: #eafff8;
 }
 .hotspot-icon {
@@ -884,13 +877,12 @@ kbd {
   padding: 11px 12px;
   border: 1px solid rgba(107, 197, 248, 0.25);
   border-radius: 16px;
-  background: rgba(13, 25, 43, 0.92);
+  background: rgba(11, 22, 39, 0.97);
   box-shadow: 0 22px 54px rgba(2, 7, 18, 0.5);
   opacity: 0;
   transform: translate(-50%, -10px);
   pointer-events: none;
   transition: opacity 0.25s ease, transform 0.25s ease;
-  backdrop-filter: blur(18px);
 }
 .world-toast.is-visible {
   opacity: 1;
@@ -954,13 +946,12 @@ kbd {
   padding: 10px 14px;
   border: 1px solid rgba(255, 255, 255, 0.13);
   border-radius: 12px;
-  background: rgba(13, 25, 43, 0.96);
+  background: rgba(11, 22, 39, 0.98);
   box-shadow: 0 18px 44px rgba(2, 7, 18, 0.55);
   color: #e3eefb;
   font-size: 11px;
   line-height: 1.5;
   transform: translateX(-50%);
-  backdrop-filter: blur(18px);
 }
 .content-toast[data-tone='success'] {
   border-color: rgba(123, 214, 177, 0.35);
@@ -1002,13 +993,12 @@ kbd {
   justify-content: center;
   padding: 20px;
   background:
-    radial-gradient(circle at 25% 0%, rgba(39, 82, 132, 0.27), transparent 42%),
-    radial-gradient(circle at 80% 100%, rgba(90, 62, 117, 0.18), transparent 45%),
-    rgba(7, 13, 24, 0.84);
+    radial-gradient(circle at 25% 0%, rgba(39, 82, 132, 0.2), transparent 42%),
+    radial-gradient(circle at 80% 100%, rgba(90, 62, 117, 0.14), transparent 45%),
+    rgba(7, 13, 24, 0.96);
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.4s ease, visibility 0.4s ease;
-  backdrop-filter: blur(16px);
 }
 #ide-intro-overlay[hidden] {
   display: none !important;
@@ -2930,7 +2920,6 @@ kbd {
     box-shadow: 0 10px 26px rgba(15, 47, 111, 0.48);
     color: #fff;
     transform: translateX(-50%);
-    backdrop-filter: blur(10px);
   }
   .hud-bottom {
     bottom: max(10px, env(safe-area-inset-bottom));
@@ -3057,7 +3046,6 @@ kbd {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
-  .hotspot-marker.is-visible { animation: none; }
   .loading-orbit::after { animation: none; border-top-color: var(--sky); }
   .code-cursor { animation: none; }
 }

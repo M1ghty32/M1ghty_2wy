@@ -49,6 +49,7 @@ import {
   createGardenArch
 } from './assets/props.js';
 import { createEnvironment } from './environment.js';
+import { batchStaticMeshes } from './static-batcher.js';
 
 function makeAnchor(parent, position) {
   const anchor = new THREE.Object3D();
@@ -349,6 +350,7 @@ function buildStudio({ scene, f, quality, hotspots }) {
     lights,
     hotspots: [],
     animated: { desk, coffeeBar, cat, server, portal, pendant, neon, dust },
+    dynamicRoots: [pendant.root, neon.root, leftWindow.group, rightWindow.group, rightWindow2.group],
     effects: { coder: 0, coffee: 0, cat: 0, server: 0, portal: 0 }
   };
 
@@ -622,15 +624,27 @@ function buildCourtyard({ scene, f, quality, hotspots }) {
   const roofRight = f.rounded(5.4, 0.22, 7.25, 0.04, roofMat, [2.35, 4.0, -3.85], { rotation: [0, 0, -roofAngle] });
   roofGroup.add(roofLeft, roofRight);
   roofGroup.add(f.rounded(0.36, 0.18, 7.35, 0.06, roofEdge, [0, 4.82, -3.85]));
-  // 瓦片线条
-  for (let i = 0; i < 6; i++) {
-    const offset = -(i + 1) * 0.62;
-    const y = 4.74 + offset * Math.tan(roofAngle) * 1.35;
-    const xL = -Math.abs(offset);
-    const xR = Math.abs(offset);
-    roofGroup.add(f.box(0.06, 0.045, 7.1, roofEdge, [xL, y, -3.85], { rotation: [0, 0, roofAngle] }));
-    roofGroup.add(f.box(0.06, 0.045, 7.1, roofEdge, [xR, y, -3.85], { rotation: [0, 0, -roofAngle] }));
+  // 瓦垄：用 InstancedMesh 保留更细的屋顶细节，同时只占一次 draw call。
+  const roofTileMaterial = f.material(0x3a4151, { roughness: 0.78 });
+  const roofTileGeometry = new THREE.BoxGeometry(0.055, 0.045, 7.1);
+  const roofTileCount = 16;
+  const roofTiles = new THREE.InstancedMesh(roofTileGeometry, roofTileMaterial, roofTileCount);
+  const roofTileDummy = new THREE.Object3D();
+  let roofTileIndex = 0;
+  for (let side = -1; side <= 1; side += 2) {
+    for (let i = 0; i < roofTileCount / 2; i++) {
+      const x = side * (0.55 + i * 0.54);
+      const y = 4.78 - Math.abs(x) * 0.34;
+      roofTileDummy.position.set(x, y, -3.85);
+      roofTileDummy.rotation.set(0, 0, side < 0 ? roofAngle : -roofAngle);
+      roofTileDummy.updateMatrix();
+      roofTiles.setMatrixAt(roofTileIndex, roofTileDummy.matrix);
+      roofTileIndex += 1;
+    }
   }
+  roofTiles.castShadow = false;
+  roofTiles.receiveShadow = true;
+  roofGroup.add(roofTiles);
   // 屋脊端头与烟囱
   roofGroup.add(f.rounded(0.62, 1.25, 0.62, 0.07, f.material(0x7b5d4a, { roughness: 0.9 }), [2.8, 4.75, -4.45]));
   roofGroup.add(f.rounded(0.82, 0.16, 0.82, 0.03, f.material(0x5c4440, { roughness: 0.85 }), [2.8, 5.4, -4.45]));
@@ -911,6 +925,7 @@ function buildCourtyard({ scene, f, quality, hotspots }) {
       return roofGroup.visible;
     },
     animated: { desk: null, trees, pond, coffeeCart, cat, portal, smokePuffs, fireflies, lantern, benches: [bench] },
+    dynamicRoots: [roofGroup, ...trees.map((tree) => tree.root), pond.root],
     effects: { coder: 0, coffee: 0, cat: 0, server: 0, portal: 0 }
   };
 
@@ -1089,6 +1104,18 @@ export function buildWorld({ scene, factory, quality, registry }) {
     zones[def.zone].hotspots.push(entry);
   }
 
+  // 先标记需要逐帧更新/可切换的子树，再把其余静态小物合并成少量 Mesh。
+  for (const zone of Object.values(zones)) {
+    for (const dynamicRoot of zone.dynamicRoots || []) {
+      dynamicRoot.traverse((object) => { object.userData.dynamic = true; });
+    }
+  }
+  const batchStats = {};
+  for (const zone of Object.values(zones)) {
+    batchStats[zone.id] = batchStaticMeshes(zone.root);
+    zone.root.updateMatrixWorld(true);
+  }
+
   const effects = { coder: 0, coffee: 0, cat: 0, server: 0, portal: 0 };
   let activeZone = 'courtyard';
   let reducedMotion = false;
@@ -1144,6 +1171,7 @@ export function buildWorld({ scene, factory, quality, registry }) {
     getActiveZone: () => activeZone,
     triggerEgg,
     toggleRoof,
+    batchStats,
     getEffects: () => ({ ...effects }),
     update,
     setReducedMotion,

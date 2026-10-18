@@ -80,9 +80,13 @@ function detectQuality() {
       antialias: false,
       shadows: false,
       shadowMapSize: 512,
+      shadowUpdateFPS: 0,
       pixelRatio: 1,
       maxPixelRatio: 1,
       maxFPS: 30,
+      adaptiveResolution: false,
+      minRenderScale: 1,
+      adaptiveTarget: 30,
       detail: 0,
       roundedSegments: 1,
       cylinderSegments: 7,
@@ -94,10 +98,14 @@ function detectQuality() {
       tier,
       antialias: true,
       shadows: true,
-      shadowMapSize: 1024,
-      pixelRatio: Math.min(window.devicePixelRatio || 1, 1.4),
-      maxPixelRatio: 1.6,
+      shadowMapSize: 512,
+      shadowUpdateFPS: 4,
+      pixelRatio: Math.min(window.devicePixelRatio || 1, 1.2),
+      maxPixelRatio: 1.2,
       maxFPS: 45,
+      adaptiveResolution: true,
+      minRenderScale: 0.8,
+      adaptiveTarget: 38,
       detail: 1,
       roundedSegments: 2,
       cylinderSegments: 10,
@@ -108,10 +116,14 @@ function detectQuality() {
     tier,
     antialias: true,
     shadows: true,
-    shadowMapSize: 2048,
-    pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
-    maxPixelRatio: 2,
+    shadowMapSize: 1024,
+    shadowUpdateFPS: 8,
+    pixelRatio: Math.min(window.devicePixelRatio || 1, 1.6),
+    maxPixelRatio: 1.6,
     maxFPS: 60,
+    adaptiveResolution: true,
+    minRenderScale: 0.72,
+    adaptiveTarget: 50,
     detail: 2,
     roundedSegments: 3,
     cylinderSegments: 14,
@@ -190,9 +202,11 @@ async function boot() {
 
   const params = new URLSearchParams(window.location.search);
   const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const quality = detectQuality();
+  if (params.get('adaptive') === '0') quality.adaptiveResolution = false;
   const state = {
     ready: false,
-    quality: detectQuality(),
+    quality,
     reducedMotion: reducedMotionQuery.matches || params.get('reduced') === '1',
     zone: 'courtyard',
     timeOfDay: 'night',
@@ -396,7 +410,7 @@ async function boot() {
         duration: 3000
       });
     }
-    runtime.renderOnce();
+    runtime.refreshShadows();
   }
 
   function triggerEgg(eggKey, entry) {
@@ -480,9 +494,12 @@ async function boot() {
     if (!zone || !player) return { x: target.x, z: target.z + 1.8, heading: Math.PI };
     const spawn = zone.spawn;
     const preferred = Math.atan2(spawn.x - target.x, spawn.z - target.z);
-    const radii = [1.25, 1.5, 1.75, 2.0].filter((radius) => radius <= maxRadius);
+    const radii = [1.25, 1.5, 1.75, 2.0, 2.15].filter((radius) => radius <= maxRadius);
     if (!radii.length) radii.push(Math.max(0.9, maxRadius));
-    const offsets = [0, 0.35, -0.35, 0.7, -0.7, 1.05, -1.05, Math.PI];
+    const offsets = [
+      0, 0.3, -0.3, 0.6, -0.6, 0.9, -0.9, 1.2, -1.2,
+      1.5, -1.5, 1.8, -1.8, 2.1, -2.1, 2.4, -2.4, Math.PI
+    ];
     for (const radius of radii) {
       for (const offset of offsets) {
         const angle = preferred + offset;
@@ -505,7 +522,7 @@ async function boot() {
     spaceModal.close();
     if (state.zone !== zoneId) switchZone(zoneId, { navigate: false, announce: false });
     const target = registry.getCameraTarget(entry);
-    const approach = findApproach(zoneId, target, Math.max(1.25, entry.radius - 0.2));
+    const approach = findApproach(zoneId, target, Math.max(1.3, entry.radius - 0.05));
     player.placeAt(approach.x, approach.z, approach.heading);
     preferredHotspotId = id;
     preferredUntil = performance.now() + 6000;
@@ -700,7 +717,7 @@ async function boot() {
     state.ready = true;
     world.update(0, 0);
     runtime.cameraRig.update(0.016, player.getPosition(), state.reducedMotion);
-    runtime.renderOnce();
+    runtime.refreshShadows();
     hideLoading();
     clearTimeout(loadingFallbackTimer);
     runtime.resume('boot');
@@ -954,6 +971,7 @@ async function boot() {
         return;
       }
       const open = world.toggleRoof();
+      runtime.refreshShadows();
       toast.showContent(open ? '屋顶已展开。' : '屋顶已收起，方便观察小屋剖面。', 'info', 2200);
     });
     document.getElementById('btn-open-personal-space')?.addEventListener('click', () => openSpace('about', '入口按钮'));

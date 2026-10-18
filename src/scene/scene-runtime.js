@@ -104,6 +104,7 @@ export class ThirdPersonCamera {
       this.target.z + Math.cos(this.azimuth) * cos * this.distance
     );
     this.camera.lookAt(this.target);
+    this.camera.updateMatrixWorld();
   }
 
   rotate(dx, dy) {
@@ -171,6 +172,8 @@ export class ThirdPersonCamera {
     this.camera.position.lerp(this._desiredPosition, posEase);
     this._lookAt.copy(this.target);
     this.camera.lookAt(this._lookAt);
+    // 在 hotspot 投影前更新相机矩阵，避免标签比 3D 画面慢一帧，产生移动拖影。
+    this.camera.updateMatrixWorld();
   }
 
   getAzimuth() {
@@ -189,6 +192,9 @@ export function createSceneRuntime({ container, quality, onFrame, onContextLost 
   renderer.setPixelRatio(quality.pixelRatio);
   renderer.shadowMap.enabled = quality.shadows;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // 阴影贴图不在每个主循环帧重绘。静态庭院只需要偶发更新，
+  // 移动角色的接触阴影交给 blob shadow，避免拖影与重复 shadow pass。
+  renderer.shadowMap.autoUpdate = false;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -207,10 +213,58 @@ export function createSceneRuntime({ container, quality, onFrame, onContextLost 
   let started = false;
   let destroyed = false;
   let frameCount = 0;
+  const basePixelRatio = quality.pixelRatio;
+  let renderScale = 1;
+  let lastShadowUpdate = 0;
+  let perfWindowStart = 0;
+  let perfFrames = 0;
+
+  function applyResolution() {
+    const ratio = Math.max(0.65, basePixelRatio * renderScale);
+    renderer.setPixelRatio(ratio);
+    const width = container.clientWidth || window.innerWidth;
+    const height = container.clientHeight || window.innerHeight;
+    renderer.setSize(width, height);
+  }
 
   function renderOnce() {
     renderer.render(scene, camera);
     frameCount += 1;
+  }
+
+  function refreshShadows() {
+    if (quality.shadows) {
+      renderer.shadowMap.needsUpdate = true;
+      lastShadowUpdate = performance.now();
+    }
+    renderOnce();
+  }
+
+  function updateAdaptiveResolution(now) {
+    if (!quality.adaptiveResolution) return;
+    if (!perfWindowStart) {
+      perfWindowStart = now;
+      perfFrames = 0;
+      return;
+    }
+    perfFrames += 1;
+    const span = now - perfWindowStart;
+    if (span < 3200) return;
+    const fps = perfFrames * 1000 / span;
+    const minScale = quality.minRenderScale ?? 0.8;
+    const target = quality.adaptiveTarget ?? 45;
+    let next = renderScale;
+    if (fps < target && renderScale > minScale) {
+      next = Math.max(minScale, renderScale - 0.1);
+    } else if (fps > Math.min(quality.maxFPS - 4, target + 12) && renderScale < 1) {
+      next = Math.min(1, renderScale + 0.05);
+    }
+    if (next !== renderScale) {
+      renderScale = next;
+      applyResolution();
+    }
+    perfWindowStart = now;
+    perfFrames = 0;
   }
 
   function frameLoop(now) {
@@ -233,7 +287,15 @@ export function createSceneRuntime({ container, quality, onFrame, onContextLost 
     } catch (error) {
       console.error('[scene] frame error', error);
     }
+    if (quality.shadows && quality.shadowUpdateFPS > 0) {
+      const interval = 1000 / quality.shadowUpdateFPS;
+      if (!lastShadowUpdate || now - lastShadowUpdate >= interval) {
+        renderer.shadowMap.needsUpdate = true;
+        lastShadowUpdate = now;
+      }
+    }
     renderOnce();
+    updateAdaptiveResolution(now);
   }
 
   function start() {
@@ -242,6 +304,8 @@ export function createSceneRuntime({ container, quality, onFrame, onContextLost 
     const now = performance.now();
     lastTime = now;
     lastRender = 0;
+    perfWindowStart = now;
+    perfFrames = 0;
     // 立即画一帧，避免暂停期间 resize 后出现空画布
     if (pauseReasons.size) renderOnce();
     rafId = requestAnimationFrame(frameLoop);
@@ -278,8 +342,7 @@ export function createSceneRuntime({ container, quality, onFrame, onContextLost 
     const height = container.clientHeight || window.innerHeight;
     camera.aspect = width / Math.max(1, height);
     camera.updateProjectionMatrix();
-    renderer.setPixelRatio(quality.pixelRatio);
-    renderer.setSize(width, height);
+    applyResolution();
     if (!started || pauseReasons.size) renderOnce();
   }
 
@@ -321,9 +384,17 @@ export function createSceneRuntime({ container, quality, onFrame, onContextLost 
     resume,
     resize,
     renderOnce,
+    refreshShadows,
     isPaused: () => pauseReasons.size > 0,
     getPauseReasons: () => Array.from(pauseReasons),
-    getStats: () => ({ frameCount, elapsed, paused: pauseReasons.size > 0, reasons: Array.from(pauseReasons) }),
+    getStats: () => ({
+      frameCount,
+      elapsed,
+      paused: pauseReasons.size > 0,
+      reasons: Array.from(pauseReasons),
+      renderScale: Number(renderScale.toFixed(2)),
+      pixelRatio: Number((basePixelRatio * renderScale).toFixed(2))
+    }),
     dispose() {
       destroyed = true;
       stop();

@@ -69,6 +69,7 @@ python -m http.server 4173
 直接打开 `#/space/projects` 这类深链接会跳过开场并直接打开面板。内容面板关闭时路由回到当前场景。也支持 URL 参数：
 
 - `?quality=low|medium|high`：强制画质等级，便于测试。
+- `?adaptive=0`：关闭自适应分辨率（截图/性能对照时有用）。
 - `?zone=studio`：无 hash 时从工作室开始。
 - `?skipintro=1`：跳过开场（不会写入“已看过”标记）。
 - `?nomarkers=1`：启动时隐藏物件标签。
@@ -186,6 +187,7 @@ src/scene/world-builder.js     庭院与工作室的世界组合、碰撞体、�
 src/scene/interaction-registry.js  统一热点、接近检测、E / 点击交互
 src/scene/player-controller.js 键鼠 / 触屏移动、角色动画、相机相对移动、碰撞
 src/scene/environment.js       天空、昼夜、天气、星空、雾和粒子
+src/scene/static-batcher.js    静态陈设按材质合批，减少 draw call
 src/scene/assets/              程序化人物、家具、设备、植物、猫、标识、道具
 src/ui/ide-intro.js            IDE 打字开场与重播
 src/ui/hotspots.js             3D 热点 → 可访问 DOM 标签
@@ -201,15 +203,17 @@ tailwind.config.cjs            只用于生成 assets/styles.css
 
 ## 性能与 LOD
 
-- **高**：抗锯齿、2048 阴影贴图、像素比上限 2、60fps 上限、完整细节。
-- **中**：1024 阴影贴图、像素比上限 1.4、45fps 上限、较少书籍 / 花朵 / 粒子、部分点光源关闭。
+- **高**：抗锯齿、1024 阴影贴图、像素比上限 1.6、60fps 上限、完整细节；移动/低端设备会自动降分辨率。
+- **中**：512 阴影贴图、像素比上限 1.2、45fps 上限、较少书籍 / 花朵 / 粒子、部分点光源关闭。
 - **低**（窄屏 / 触摸设备默认）：无阴影、像素比 1、30fps 上限、更少圆角细段 / 花朵 / 草簇 / 粒子、最多两个点光源。
 
-额外限制：
+额外限制与优化：
 
-- 空洞板孔、花朵花瓣使用 `InstancedMesh`，避免大量小 draw call；
-- 阴影预算只让中大件、非透明物件进入 shadow pass；
-- 粒子数按设备收敛；
+- 静态陈设合批：庭院约 490 个、工作室约 160 个不合批的静态小网格被合并到 50 多个按材质分组的 Mesh；高画质 draw call 从约 1,200 降到约 520。
+- 逐颗键帽、书本、栅栏条、灯串灯泡、屋顶瓦垄、花瓣和洞洞板孔都用 `InstancedMesh` / Points 聚合；细节保留，draw call 明显下降。
+- 阴影贴图不再每帧重绘，静态阴影以 8fps（高）/ 4fps（中）刷新；角色使用脚下 blob shadow，避免移动阴影拖影。
+- 自适应分辨率：实时帧率不足时逐步降低 3D 画布像素比（最低约 0.72 倍），HUD/DOM 文字保持原生清晰度。
+- 热点标签使用 `translate3d` 合成移动并缓存尺寸，不再每帧读 `offsetWidth`、不再做 backdrop blur 或浮动动画；相机投影前同步 `camera.matrixWorld`，避免标签比 3D 画面慢一帧产生移动拖影。
 - 页面不可见、IDE 打开、内容面板打开时暂停渲染循环；
 - 低性能设备降低像素比和最大帧率；
 - `prefers-reduced-motion` / `?reduced=1` 会关闭或减弱树木摆动、花瓣、蒸汽、风扇、传送门旋转、镜头缓动等非必要动态；

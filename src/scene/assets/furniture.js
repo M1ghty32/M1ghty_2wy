@@ -3,7 +3,7 @@
  * 每个工厂函数都返回一个带动画句柄的 Group，位置由 world-builder 安排。
  */
 import * as THREE from 'three';
-import { makeSignTexture, makeBulletinTexture, makePaintingTexture, makeRugTexture } from './materials.js';
+import { makeSignTexture, makeBulletinTexture, makePaintingTexture, makeRugTexture, PALETTE } from './materials.js';
 
 function addTube(factory, points, radius, material, parent) {
   const curve = new THREE.CatmullRomCurve3(points.map((p) => new THREE.Vector3(...p)));
@@ -84,7 +84,8 @@ export function createDeskStation(factory) {
     [12, 1],
     [11, 2]
   ];
-  const keyMeshes = [];
+  const keyPalette = [0xd8d2c8, 0x94a3b8, 0x6bc5f8, 0xf4a6c1];
+  const keyData = [];
   let keyCount = 0;
   rows.forEach(([count], row) => {
     for (let col = 0; col < count; col++) {
@@ -93,12 +94,30 @@ export function createDeskStation(factory) {
         continue;
       }
       const matIndex = (row + col) % 17 === 0 ? 2 : (row === 0 && col === 12 ? 3 : (row + col) % 11 === 0 ? 1 : 0);
-      const key = f.box(0.041, 0.02, 0.041, keyMaterials[matIndex], [-0.315 + col * 0.051, 0.038, -0.075 + row * 0.051]);
-      keyboard.add(key);
-      keyMeshes.push(key);
+      keyData.push({
+        position: [-0.315 + col * 0.051, 0.038, -0.075 + row * 0.051],
+        color: keyPalette[matIndex]
+      });
       keyCount += 1;
     }
   });
+  // 所有独立键帽合并为一个 InstancedMesh；配色仍逐颗不同。
+  const keycapGeometry = new THREE.BoxGeometry(0.041, 0.02, 0.041);
+  const keycapMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5, metalness: 0.05 });
+  const keycaps = new THREE.InstancedMesh(keycapGeometry, keycapMaterial, keyData.length);
+  const keyDummy = new THREE.Object3D();
+  const keyColor = new THREE.Color();
+  keyData.forEach((key, index) => {
+    keyDummy.position.set(...key.position);
+    keyDummy.updateMatrix();
+    keycaps.setMatrixAt(index, keyDummy.matrix);
+    keycaps.setColorAt(index, keyColor.setHex(key.color));
+  });
+  keycaps.instanceColor.needsUpdate = true;
+  keycaps.castShadow = false;
+  keycaps.receiveShadow = true;
+  keyboard.add(keycaps);
+  const keyMeshes = [keycaps];
   keyboard.add(f.box(0.2, 0.018, 0.045, keyMaterials[1], [-0.06, 0.04, 0.125]));
   keyboard.add(f.box(0.06, 0.016, 0.045, keyMaterials[2], [0.25, 0.04, 0.125]));
   root.add(keyboard);
@@ -425,23 +444,60 @@ export function createBookshelf(factory) {
     root.add(f.rounded(width - 0.16, 0.055, depth - 0.03, 0.02, wood, [0, y, 0.01]));
   }
 
-  // 书：逐本摆放，颜色/高度/倾斜略有变化
+  // 书：逐本配色，但用一个 InstancedMesh 承载，避免 40+ 个独立 draw call。
   let bookIndex = 0;
   const bookRows = [0.48, 0.9, 1.32, 1.74, 2.02];
+  const bookData = [];
   bookRows.forEach((baseY, row) => {
     const count = f.quality.tier === 'low' ? 5 : 8;
     let x = -width / 2 + 0.18;
     for (let i = 0; i < count; i++) {
       const w = 0.075 + ((bookIndex * 7) % 5) * 0.014;
       const h = 0.21 + ((bookIndex * 3) % 6) * 0.026;
-      const book = f.box(w, h, 0.25 + ((bookIndex * 5) % 4) * 0.012, f.material(colors[bookIndex % colors.length], { roughness: 0.7 }), [x + w / 2, baseY + h / 2, 0.03]);
-      if (bookIndex % 9 === 0) book.rotation.z = -0.12;
-      root.add(book);
-      root.add(f.box(w * 0.8, 0.012, 0.018, f.material(0xfff8ea), [x + w / 2, baseY + h * 0.6, 0.17]));
-      root.add(f.box(w * 0.82, 0.006, 0.016, f.material(0xd6c8b6), [x + w / 2, baseY + h * 0.75, 0.17]));
+      const d = 0.25 + ((bookIndex * 5) % 4) * 0.012;
+      bookData.push({
+        x: x + w / 2,
+        y: baseY + h / 2,
+        z: 0.03,
+        w,
+        h,
+        d,
+        tilt: bookIndex % 9 === 0 ? -0.12 : 0,
+        color: PALETTE[colors[bookIndex % colors.length]] || 0x999999
+      });
       x += w + 0.018;
       bookIndex += 1;
     }
+  });
+  const bookGeometry = new THREE.BoxGeometry(1, 1, 1);
+  const bookMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 });
+  const books = new THREE.InstancedMesh(bookGeometry, bookMaterial, bookData.length);
+  const pageGeometry = new THREE.BoxGeometry(1, 1, 1);
+  const pageMaterial = f.material(0xfff8ea, { roughness: 0.7 });
+  const pages = new THREE.InstancedMesh(pageGeometry, pageMaterial, bookData.length);
+  const bookDummy = new THREE.Object3D();
+  const bookColor = new THREE.Color();
+  bookData.forEach((book, index) => {
+    bookDummy.position.set(book.x, book.y, book.z);
+    bookDummy.scale.set(book.w, book.h, book.d);
+    bookDummy.rotation.set(0, 0, book.tilt);
+    bookDummy.updateMatrix();
+    books.setMatrixAt(index, bookDummy.matrix);
+    books.setColorAt(index, bookColor.setHex(book.color));
+    // 薄薄的书口/书签细节，仍合并为一次 draw call。
+    bookDummy.position.set(book.x, book.y - book.h * 0.1, 0.17);
+    bookDummy.scale.set(book.w * 0.82, 0.012, 0.018);
+    bookDummy.rotation.set(0, 0, book.tilt);
+    bookDummy.updateMatrix();
+    pages.setMatrixAt(index, bookDummy.matrix);
+  });
+  books.instanceColor.needsUpdate = true;
+  books.castShadow = false;
+  books.receiveShadow = true;
+  pages.castShadow = false;
+  pages.receiveShadow = true;
+  root.add(books, pages);
+  bookRows.forEach((baseY, row) => {
     if (row < 3) {
       // 横放书堆
       for (let i = 0; i < 2; i++) {

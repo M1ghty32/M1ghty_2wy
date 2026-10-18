@@ -5,6 +5,7 @@ import { h } from './dom.js';
 
 export function createHotspotLayer({ container, registry, onActivate }) {
   let buttons = new Map();
+  const sizes = new Map();
   let activeZone = null;
   let suspended = false;
   let visible = true;
@@ -34,13 +35,25 @@ export function createHotspotLayer({ container, registry, onActivate }) {
     activeZone = zoneId;
     container.replaceChildren();
     buttons = new Map();
+    sizes.clear();
     const entries = registry.getZoneEntries(zoneId);
     for (const entry of entries) {
       const node = makeButton(entry);
       buttons.set(entry.id, node);
       container.appendChild(node);
+      // 只在重建时测量一次；每帧读取 offsetWidth 会强制布局，造成移动时文字拖影。
+      sizes.set(entry.id, { w: node.offsetWidth || 120, h: node.offsetHeight || 24 });
     }
     container.classList.add('is-hidden');
+  }
+
+  function sizeOf(id, node) {
+    let size = sizes.get(id);
+    if (!size) {
+      size = { w: node.offsetWidth || 120, h: node.offsetHeight || 24 };
+      sizes.set(id, size);
+    }
+    return size;
   }
 
   function update(camera, { highlightedId = null, introOpen = false, modalOpen = false } = {}) {
@@ -67,8 +80,9 @@ export function createHotspotLayer({ container, registry, onActivate }) {
     for (const anchor of ordered) {
       const node = buttons.get(anchor.entry.id);
       if (!node) continue;
-      const buttonWidth = node.offsetWidth || 120;
-      const buttonHeight = node.offsetHeight || 24;
+      const size = sizeOf(anchor.entry.id, node);
+      const buttonWidth = size.w;
+      const buttonHeight = size.h;
       const centerX = Math.min(width - buttonWidth / 2 - 8, Math.max(buttonWidth / 2 + 8, anchor.x));
       let top = Math.min(height - bottomSafe, Math.max(topSafe + buttonHeight, anchor.y));
       let candidate = {
@@ -100,8 +114,9 @@ export function createHotspotLayer({ container, registry, onActivate }) {
       }
       seen.add(anchor.entry.id);
       placed.push(candidate);
-      node.style.left = `${centerX}px`;
-      node.style.top = `${top}px`;
+      // 使用 transform 而不是 left/top，避免每帧触发布局与文字重绘；
+      // 这也是移动时标签“虚影/拖尾”的主要来源。
+      node.style.transform = `translate3d(${centerX}px, ${top}px, 0) translate(-50%, -100%)`;
       node.classList.add('is-visible');
       node.tabIndex = 0;
       node.classList.toggle('is-near', highlightedId === anchor.entry.id);
@@ -137,6 +152,7 @@ export function createHotspotLayer({ container, registry, onActivate }) {
 
   function handleResize() {
     isNarrow = window.matchMedia('(max-width: 820px)').matches;
+    sizes.clear();
   }
 
   window.addEventListener('resize', handleResize);

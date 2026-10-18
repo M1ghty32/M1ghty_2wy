@@ -29,11 +29,19 @@ export function createFence(factory, length = 5.4, { color = 'cream' } = {}) {
   }
   root.add(f.box(length, 0.08, 0.08, mat, [0, 0.58, 0]));
   root.add(f.box(length, 0.06, 0.06, mat, [0, 0.28, 0]));
-  const pickets = Math.floor(length / (f.quality.tier === 'low' ? 0.42 : 0.24));
+  const picketSpacing = f.quality.tier === 'low' ? 0.42 : 0.24;
+  const pickets = Math.floor(length / picketSpacing);
+  const picketGeometry = new THREE.BoxGeometry(0.07, 0.55, 0.035);
+  const picketInstances = new THREE.InstancedMesh(picketGeometry, mat, pickets);
+  const picketDummy = new THREE.Object3D();
   for (let i = 0; i < pickets; i++) {
-    const x = -length / 2 + 0.12 + i * (f.quality.tier === 'low' ? 0.42 : 0.24);
-    root.add(f.box(0.07, 0.55, 0.035, mat, [x, 0.48, 0.045]));
+    picketDummy.position.set(-length / 2 + 0.12 + i * picketSpacing, 0.48, 0.045);
+    picketDummy.updateMatrix();
+    picketInstances.setMatrixAt(i, picketDummy.matrix);
   }
+  picketInstances.castShadow = false;
+  picketInstances.receiveShadow = true;
+  root.add(picketInstances);
   root.traverse((child) => {
     if (child.isMesh) {
       child.castShadow = f.quality.shadows;
@@ -280,19 +288,46 @@ export function createStringLights(factory, { start = [-4, 3.1, 2.6], end = [4, 
     f.material(0x213042, { roughness: 0.8 })
   );
   root.add(cable);
+
+  const bulbGeometry = new THREE.SphereGeometry(0.055, 8, 6);
+  const capGeometry = new THREE.CylinderGeometry(0.035, 0.035, 0.035, 6);
+  const bulbs = new THREE.InstancedMesh(bulbGeometry, f.basic(0xffd48a), count);
+  const caps = new THREE.InstancedMesh(capGeometry, f.material(0x26354b), count);
+  const glowPositions = new Float32Array(count * 3);
+  const dummy = new THREE.Object3D();
   for (let i = 0; i < count; i++) {
     const t = (i + 1) / (count + 1);
     const pos = curve.getPoint(t);
-    const bulb = f.sphere(0.055, f.basic(0xffd48a), [pos.x, pos.y - 0.08, pos.z], 8);
-    root.add(bulb);
-    const cap = f.cylinder(0.035, 0.035, 0.035, f.material(0x26354b), [pos.x, pos.y - 0.03, pos.z], 6);
-    root.add(cap);
-    if (f.quality.tier !== 'low') {
-      const glow = f.glowSprite('#ffd48a', 0.52, 0.14);
-      glow.position.set(pos.x, pos.y - 0.08, pos.z);
-      root.add(glow);
-    }
+    dummy.position.set(pos.x, pos.y - 0.08, pos.z);
+    dummy.updateMatrix();
+    bulbs.setMatrixAt(i, dummy.matrix);
+    dummy.position.set(pos.x, pos.y - 0.03, pos.z);
+    dummy.updateMatrix();
+    caps.setMatrixAt(i, dummy.matrix);
+    glowPositions[i * 3] = pos.x;
+    glowPositions[i * 3 + 1] = pos.y - 0.08;
+    glowPositions[i * 3 + 2] = pos.z;
   }
+  bulbs.castShadow = false;
+  bulbs.receiveShadow = false;
+  caps.castShadow = false;
+  caps.receiveShadow = false;
+  root.add(bulbs, caps);
+
+  // 单个 Points 取代每颗灯泡一个 Sprite，光晕仍然存在但不再产生额外 draw call。
+  const glowGeometry = new THREE.BufferGeometry();
+  glowGeometry.setAttribute('position', new THREE.BufferAttribute(glowPositions, 3));
+  const glowMaterial = new THREE.PointsMaterial({
+    color: 0xffd48a,
+    size: 0.5,
+    map: f.textures.star,
+    transparent: true,
+    opacity: f.quality.tier === 'low' ? 0.22 : 0.34,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true
+  });
+  root.add(new THREE.Points(glowGeometry, glowMaterial));
   return { root, curve };
 }
 

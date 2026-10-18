@@ -7,6 +7,8 @@ import * as THREE from 'three';
 
 const tempWorld = new THREE.Vector3();
 const tempProject = new THREE.Vector3();
+const tempAnchor = new THREE.Vector3();
+const tempRing = new THREE.Vector3();
 
 export function createInteractionRegistry({ scene, camera, onTrigger } = {}) {
   const entries = new Map();
@@ -114,7 +116,7 @@ export function createInteractionRegistry({ scene, camera, onTrigger } = {}) {
     let bestScore = Infinity;
     for (const entry of list) {
       if (entry.interaction && entry.interaction.disabled) continue;
-      const pos = getWorldPosition(entry, new THREE.Vector3());
+      const pos = getWorldPosition(entry, tempWorld);
       const distance = Math.hypot(pos.x - playerPosition.x, pos.z - playerPosition.z);
       if (distance > entry.radius) continue;
       const score = distance - entry.priority * 0.18;
@@ -131,7 +133,7 @@ export function createInteractionRegistry({ scene, camera, onTrigger } = {}) {
       ringGroup.visible = false;
       return;
     }
-    const pos = getWorldPosition(entry, new THREE.Vector3());
+    const pos = getWorldPosition(entry, tempRing);
     ringGroup.visible = true;
     ringGroup.position.set(pos.x, 0, pos.z);
     const isIndoor = activeZone === 'studio';
@@ -167,7 +169,7 @@ export function createInteractionRegistry({ scene, camera, onTrigger } = {}) {
     if (!camera) return [];
     const result = [];
     for (const entry of getActiveEntries()) {
-      const pos = getWorldPosition(entry, new THREE.Vector3());
+      const pos = getWorldPosition(entry, tempAnchor);
       const project = tempProject.copy(pos).project(camera);
       const visible = project.z > -1 && project.z < 1 && project.x > -1.25 && project.x < 1.25 && project.y > -1.25 && project.y < 1.25;
       if (!visible) continue;

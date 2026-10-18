@@ -145,7 +145,9 @@ export function createExplorer(factory) {
 
   root.traverse((child) => {
     if (child.isMesh) {
-      child.castShadow = f.quality.shadows;
+      // 角色使用脚下的 blob shadow；实时阴影由低频 shadow map 负责静态陈设，
+      // 避免移动时角色阴影滞后或产生拖影。
+      child.castShadow = false;
       child.receiveShadow = false;
     }
   });
