@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#111a2d" />
+  <meta name="description" content="M1ghty_2wy 的可探索 3D 庭院与极客工作室，个人作品、文章、工具箱和随记。" />
+  <meta property="og:title" content="转角的 M1ghty_2wy · 可探索 3D 个人空间" />
+  <meta property="og:description" content="推开院门，走进一座可以探索、阅读和互动的 Three.js 数字工作室。" />
+  <meta property="og:type" content="website" />
+  <title>转角的 M1ghty_2wy // 3D 极客代码屋与个人空间</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <noscript>
+    <div class="noscript-panel">
+      <h1>转角的 M1ghty_2wy</h1>
+      <p>这个 3D 个人空间需要启用 JavaScript。你仍然可以在 GitHub 上阅读本项目的源码与 README。</p>
+    </div>
+  </noscript>
+
+  <div id="app" class="app-shell">
+    <!-- ================================================================= -->
+    <!-- 3D WORLD CANVAS                                                   -->
+    <!-- ================================================================= -->
+    <div id="webgl-container" aria-label="可探索的 M1ghty_2wy 3D 庭院与工作室"></div>
+
+    <div id="webgl-fallback" role="status" aria-live="polite">
+      <div class="fallback-card">
+        <div class="fallback-symbol">▣</div>
+        <h2>3D 场景暂不可用</h2>
+        <p>当前浏览器无法创建 WebGL 画布。你仍然可以打开个人空间，阅读项目、文章、工具箱和留言。</p>
+        <button id="btn-fallback-space" type="button" class="btn btn-primary">打开个人空间</button>
+      </div>
+    </div>
+
+    <div id="scene-loading" role="status" aria-live="polite">
+      <div class="loading-card">
+        <span class="loading-orbit" aria-hidden="true"></span>
+        <div>
+          <div class="loading-title">正在布置转角的房间</div>
+          <div class="loading-sub" id="world-loading-status">加载内容与程序化模型…</div>
+        </div>
+      </div>
+    </div>
+    <div id="scene-transition" aria-hidden="true"></div>
+    <div class="world-vignette" aria-hidden="true"></div>
+    <div id="a11y-live" class="sr-only" aria-live="polite"></div>
+
+    <!-- Projected DOM hotspot labels get generated here by src/ui/hotspots.js. -->
+    <div id="hotspots-layer" aria-label="场景互动热点"></div>
+
+    <!-- ================================================================= -->
+    <!-- IDE INTRO                                                         -->
+    <!-- ================================================================= -->
+    <section id="ide-intro-overlay" aria-label="程序员代码开场" role="dialog" aria-modal="true">
+      <div class="ide-shell">
+        <header class="ide-window-bar">
+          <div class="ide-dots" aria-hidden="true"><i class="dot dot-red"></i><i class="dot dot-amber"></i><i class="dot dot-green"></i></div>
+          <div class="ide-window-title"><span aria-hidden="true">☕</span> IntelliJ IDEA <span class="ide-slash">//</span> M1ghty_2wy_DailyLife.java</div>
+          <div class="ide-window-actions">
+            <button id="btn-ide-instant" type="button" class="ide-tool-btn">⚡ 瞬间敲完</button>
+            <button id="btn-ide-skip" type="button" class="ide-tool-btn ide-tool-btn-sky">跳过代码直达小站 ⏭</button>
+          </div>
+        </header>
+
+        <div class="ide-tabbar">
+          <span class="ide-tab is-active">M1ghty_2wy_DailyLife.java</span>
+          <span class="ide-tab">HairLossException.java</span>
+          <span class="ide-tab">CoffeeInjector.java</span>
+          <span id="ide-stage-badge" class="ide-stage-badge">STEP 1/2 · 程序员段子自检中</span>
+        </div>
+
+        <div id="ide-scroll-box" class="ide-code-box custom-scroll">
+          <div class="ide-code-gutter">
+            <div id="ide-line-nums" aria-hidden="true">1</div>
+            <div class="ide-code-area">
+              <pre id="ide-code-display" tabindex="0" aria-label="自动输入的程序员代码"></pre><span class="code-cursor" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ide-status-bar">
+          <div id="ide-console-status" class="ide-console" role="status">&gt; [JVM] 正在检测 M1ghty_2wy 血液咖啡因浓度: 99.8% (安全)</div>
+          <div class="ide-quick-actions">
+            <button id="btn-ide-coffee" type="button" class="ide-chip ide-chip-amber">☕ 喝口冰美式 (+Bug免疫)</button>
+            <button id="btn-ide-hair" type="button" class="ide-chip ide-chip-purple">💇 try { 保住头发 }</button>
+          </div>
+        </div>
+
+        <div class="ide-runbar">
+          <form id="ide-input-form" class="ide-terminal-form">
+            <label for="ide-terminal-input" class="sr-only">输入任意内容并继续</label>
+            <span class="ide-prompt">M1ghty_2wy@jvm:~$</span>
+            <input id="ide-terminal-input" type="text" autocomplete="off" spellcheck="false" placeholder="输入任意内容按 Enter 继续（第 1 段段子 → 第 2 段进入小站）" />
+          </form>
+          <button id="btn-ide-next" type="button" class="btn btn-primary ide-next">▶ 编译下一段段子 (Enter)</button>
+        </div>
+        <div class="ide-footer-note">这是一个可以走进去的个人网站。代码只是入口，庭院和工作室才是正片。</div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- WORLD HUD                                                         -->
+    <!-- ================================================================= -->
+    <header id="miniworld-hud-top-left" class="hud-top-left">
+      <div class="hud-brand">
+        <span class="hud-brand-rule" aria-hidden="true"></span>
+        <div>
+          <h1 class="hud-title">转角的 M1ghty_2wy<span class="accent-dot">。</span></h1>
+          <p class="hud-kicker">M1GHTY_2WY · EXPLORABLE MINI WORLD</p>
+        </div>
+      </div>
+      <div class="hud-context">
+        <div id="hud-scene-label" class="hud-scene-label">01 / 庭院入口 · COURTYARD</div>
+        <div id="hud-env-status" class="hud-env-status"><span>🌙 夜晚</span><span class="sep">·</span><span>🌤️ 晴天</span></div>
+        <div class="hud-badges">
+          <span id="hud-egg-counter" class="hud-badge">🎁 彩蛋 0 / 5</span>
+          <span id="hud-save-badge" class="hud-badge hud-badge-muted">本机草稿 0</span>
+        </div>
+        <div id="hud-objective" class="hud-objective">从院门出发，靠近发光物件按 <kbd>E</kbd> 探索。</div>
+      </div>
+    </header>
+
+    <div id="miniworld-hud-top-right" class="hud-top-right">
+      <div class="hud-toolbar">
+        <button id="btn-top-audio" type="button" class="icon-btn" title="切换环境音效" aria-label="切换环境音效" aria-pressed="false">🔇</button>
+        <button id="btn-top-reset-cam" type="button" class="icon-btn" title="复位镜头" aria-label="复位镜头">📷</button>
+        <button id="btn-top-follow" type="button" class="icon-btn" title="切换镜头跟随/自由观察" aria-label="切换镜头跟随与自由观察" aria-pressed="true">🎯</button>
+        <button id="btn-top-markers" type="button" class="icon-btn" title="显示或隐藏物件标签" aria-label="显示或隐藏物件标签" aria-pressed="true">🏷️</button>
+        <button id="btn-top-ide" type="button" class="code-replay-btn" title="重新播放代码开场">☕ 代码开场</button>
+      </div>
+      <div class="hud-clock">
+        <div class="hud-clock-label">敲代码中 · 24 / 7</div>
+        <div id="hud-clock">23:48</div>
+      </div>
+    </div>
+
+    <button id="world-interaction-hint" type="button" class="interaction-hint" aria-label="与附近物件互动">
+      <span class="interaction-key">E</span>
+      <span id="world-interaction-icon" class="interaction-icon" aria-hidden="true">⌘</span>
+      <span class="interaction-copy">
+        <span class="interaction-small">附近可互动</span>
+        <span id="world-interaction-label">靠近物件并按 E 互动</span>
+      </span>
+      <span class="interaction-go">互动 →</span>
+    </button>
+
+    <div class="mobile-controls" aria-label="触屏移动控制">
+      <div class="dpad" role="group" aria-label="方向控制">
+        <button type="button" data-move="up" aria-label="向前">▲</button>
+        <button type="button" data-move="left" aria-label="向左">◀</button>
+        <button type="button" data-move="down" aria-label="向后">▼</button>
+        <button type="button" data-move="right" aria-label="向右">▶</button>
+      </div>
+      <button id="btn-mobile-interact" type="button" class="mobile-interact" aria-label="与附近物件互动">
+        <span>E</span>
+        <small>互动</small>
+      </button>
+    </div>
+    <button id="btn-mobile-space" type="button" class="mobile-space-cta" aria-label="进入个人空间">
+      <span aria-hidden="true">🚀</span><span>个人空间</span>
+    </button>
+
+    <div id="room-easter-toast" class="world-toast" role="status" aria-live="polite">
+      <div id="toast-icon" class="toast-icon">✨</div>
+      <div class="toast-copy">
+        <div id="toast-title" class="toast-title">触发房间彩蛋</div>
+        <div id="toast-desc" class="toast-desc">靠近或点击房间里的物件，会有一些程序员式的小惊喜。</div>
+      </div>
+      <button id="toast-close" type="button" class="toast-close" aria-label="关闭提示">×</button>
+    </div>
+
+    <div id="miniworld-hud-bottom" class="hud-bottom">
+      <div class="hud-hint-line">
+        <span class="desktop-hint"><kbd>WASD</kbd> / <kbd>方向键</kbd> 移动</span>
+        <span class="desktop-hint">拖动旋转 · 滚轮缩放</span>
+        <span class="desktop-hint">靠近物件按 <kbd>E</kbd></span>
+        <span class="mobile-hint">左侧方向盘移动 · 拖动转视角</span>
+        <span class="mobile-hint">点物件或按「互动」探索</span>
+      </div>
+      <div class="hud-dock">
+        <div class="dock-group">
+          <span class="dock-label">昼夜</span>
+          <div class="dock-buttons">
+            <button type="button" data-time="night" class="dock-btn time-btn">🌙 夜晚</button>
+            <button type="button" data-time="dusk" class="dock-btn time-btn">🌅 黄昏</button>
+            <button type="button" data-time="day" class="dock-btn time-btn">☀️ 白天</button>
+          </div>
+        </div>
+        <div class="dock-group">
+          <span class="dock-label">天气</span>
+          <div class="dock-buttons">
+            <button type="button" data-weather="clear" class="dock-btn weather-btn">🌤️ 晴</button>
+            <button type="button" data-weather="rain" class="dock-btn weather-btn">🌧️ 雨</button>
+            <button type="button" data-weather="snow" class="dock-btn weather-btn">❄️ 雪</button>
+          </div>
+        </div>
+        <div class="dock-group dock-group-scene">
+          <span class="dock-label">场景</span>
+          <div class="dock-buttons">
+            <button id="btn-switch-zone" type="button" class="dock-btn">🚪 室内 / 室外</button>
+            <button id="btn-toggle-roof" type="button" class="dock-btn">🏠 屋顶</button>
+            <button id="btn-rainy-night" type="button" class="dock-btn">🌧️ 一键雨夜</button>
+            <button id="btn-toggle-follow" type="button" class="dock-btn is-active" aria-pressed="true">🎥 跟随镜头</button>
+          </div>
+        </div>
+        <button id="btn-open-personal-space" type="button" class="btn btn-primary dock-enter">
+          <span class="dock-enter-icon">🚀</span>
+          <span class="dock-enter-copy"><strong>进入个人空间</strong><small>M1GHTY_2WY SPACE</small></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- PERSONAL SPACE MODAL                                              -->
+    <!-- ================================================================= -->
+    <section id="personal-space-modal" class="space-modal" role="dialog" aria-modal="true" aria-labelledby="profile-name" hidden>
+      <div class="space-panel">
+        <header class="space-header">
+          <div class="space-identity">
+            <div class="space-avatar" aria-hidden="true">M1</div>
+            <div class="space-identity-copy">
+              <div class="space-name-row">
+                <h2 id="profile-name">M1ghty_2wy 的个人数字空间</h2>
+                <span class="online-pill"><i></i>ONLINE</span>
+              </div>
+              <p id="profile-tagline">独立开发者 · Java 与 3D 创意玩家 · 欢迎探索我的项目与文章</p>
+              <p id="modal-context-label" class="modal-context">从「工作台」进入 · 全站静态内容</p>
+            </div>
+          </div>
+          <div class="space-header-actions">
+            <span class="space-boundary-pill">本机草稿 · 静态发布</span>
+            <button id="btn-back-to-room" type="button" class="btn btn-ghost">← 返回 3D 场景</button>
+            <button id="btn-close-space" type="button" class="icon-btn space-close" aria-label="关闭个人空间">×</button>
+          </div>
+        </header>
+
+        <nav class="space-tabs" aria-label="个人空间栏目">
+          <button type="button" data-space-tab="about" class="space-tab-btn is-active">👋 介绍</button>
+          <button type="button" data-space-tab="projects" class="space-tab-btn">🚀 项目</button>
+          <button type="button" data-space-tab="articles" class="space-tab-btn">📝 文章</button>
+          <button type="button" data-space-tab="notes" class="space-tab-btn">📌 随记 · 留言</button>
+          <button type="button" data-space-tab="toolbox" class="space-tab-btn">🧰 工具箱</button>
+          <button type="button" data-space-tab="library" class="space-tab-btn">📚 素材库</button>
+          <button type="button" data-space-tab="studio" class="space-tab-btn">🗂️ 控制台</button>
+        </nav>
+
+        <div class="space-body custom-scroll">
+          <!-- ABOUT -->
+          <div id="space-tab-about" class="space-tab-panel">
+            <div class="about-grid">
+              <article class="panel-card about-hero">
+                <div class="eyebrow sky">ABOUT // M1GHTY_2WY</div>
+                <h3 id="about-heading" class="about-title">你好，我是 M1ghty_2wy 👋</h3>
+                <p id="about-bio" class="about-bio"></p>
+                <div class="chip-row" id="about-focus-chips"></div>
+                <div id="about-hero-terminal" class="hero-terminal" aria-hidden="true"></div>
+                <div class="about-links" id="about-links"></div>
+              </article>
+              <aside class="panel-card about-status-card">
+                <div class="eyebrow amber">ROOM TELEMETRY // 世界状态</div>
+                <div class="status-grid">
+                  <div><span>所在位置</span><strong id="about-location">中国 · 远程工作</strong></div>
+                  <div><span>正在专注</span><strong id="about-status">正在构建可探索的个人空间</strong></div>
+                  <div class="wide"><span>座右铭</span><strong id="about-motto">“代码会过期，但好奇心不会”</strong></div>
+                </div>
+                <div class="mini-divider"></div>
+                <div class="egg-heading"><span>程序员彩蛋</span><span id="about-egg-count">0 / 5</span></div>
+                <div id="about-eggs-badges" class="egg-grid"></div>
+              </aside>
+            </div>
+
+            <div class="about-grid-2">
+              <article class="panel-card">
+                <div class="panel-heading"><div><div class="eyebrow emerald">FOCUS // 当前专注</div><h4>正在构建的能力</h4></div><span class="tiny-label">LIVE PROFILE</span></div>
+                <div id="focus-list" class="focus-list"></div>
+                <div id="skills-list" class="skills-list"></div>
+              </article>
+              <article class="panel-card">
+                <div class="eyebrow purple">TIMELINE // 进度条</div>
+                <div id="timeline-list" class="timeline-list"></div>
+              </article>
+            </div>
+
+            <article class="panel-card">
+              <div class="panel-heading"><div><div class="eyebrow sky">WORLD GUIDE // 场景导览</div><h4>每一件家具都能打开一点内容</h4></div><span class="tiny-label">点击可定位</span></div>
+              <div id="world-guide" class="world-guide"></div>
+            </article>
+          </div>
+
+          <!-- PROJECTS -->
+          <div id="space-tab-projects" class="space-tab-panel" hidden>
+            <div class="panel-toolbar">
+              <div><div class="eyebrow sky">PROJECTS // LAB NOTES</div><h3>项目更新与实验室动态</h3><p>近期作品、开源仓库与版本迭代日志。电脑屏幕里展示的就是它们。</p></div>
+              <button id="btn-toggle-new-project" type="button" class="btn btn-primary btn-sm">+ 发布项目更新</button>
+            </div>
+            <form id="form-new-project" class="inline-form" hidden>
+              <div class="form-grid-3">
+                <label><span>版本 / 标签</span><input id="inp-proj-ver" type="text" maxlength="80" placeholder="v1.2.0 / 开源" /></label>
+                <label class="span-2"><span>项目名称 *</span><input id="inp-proj-name" type="text" maxlength="120" required placeholder="项目名称…" /></label>
+              </div>
+              <label><span>更新内容 *</span><input id="inp-proj-desc" type="text" maxlength="800" required placeholder="一句话描述这次更新的内容…" /></label>
+              <div class="form-actions"><button type="button" id="btn-cancel-project" class="btn btn-ghost btn-sm">取消</button><button type="submit" class="btn btn-primary btn-sm">保存为本机草稿</button></div>
+            </form>
+            <div id="projects-container" class="card-grid projects-grid"></div>
+          </div>
+
+          <!-- ARTICLES -->
+          <div id="space-tab-articles" class="space-tab-panel" hidden>
+            <div class="panel-toolbar">
+              <div><div class="eyebrow amber">ARTICLES // FIELD NOTES</div><h3>技术分享与极客随笔</h3><p>点击文章卡片展开全文。留言板则留给路过的朋友。</p></div>
+              <button id="btn-toggle-new-article" type="button" class="btn btn-amber btn-sm">+ 撰写新文章</button>
+            </div>
+            <form id="form-new-article" class="inline-form" hidden>
+              <div class="form-grid-3">
+                <label><span>分类</span><input id="inp-art-cat" type="text" maxlength="80" placeholder="Java 架构 / 3D 前端" /></label>
+                <label class="span-2"><span>标题 *</span><input id="inp-art-title" type="text" maxlength="180" required placeholder="文章标题…" /></label>
+              </div>
+              <label><span>正文 *</span><textarea id="inp-art-body" rows="4" maxlength="6000" required placeholder="写点什么…"></textarea></label>
+              <div class="form-actions"><button type="button" id="btn-cancel-article" class="btn btn-ghost btn-sm">取消</button><button type="submit" class="btn btn-amber btn-sm">保存为本机草稿</button></div>
+            </form>
+            <div id="article-reader-box" class="reader-box" hidden>
+              <div class="reader-head"><span id="reader-cat" class="reader-cat"></span><button id="btn-close-reader" type="button" class="btn btn-ghost btn-xs">✕ 收起阅读</button></div>
+              <h4 id="reader-title"></h4>
+              <p id="reader-body"></p>
+            </div>
+            <div id="articles-container" class="article-list"></div>
+          </div>
+
+          <!-- NOTES + GUESTBOOK -->
+          <div id="space-tab-notes" class="space-tab-panel" hidden>
+            <div class="panel-toolbar">
+              <div><div class="eyebrow amber">NOTES &amp; GUESTBOOK</div><h3>房间里的随记与留言板</h3><p>随记记录正在发生的事；留言板是一个静态的个人贴吧，写入只保存到这台浏览器。</p></div>
+              <span class="static-pill">静态站 · 不接收跨访客实时写入</span>
+            </div>
+            <div class="cross-nav">
+              <span>也想看看：</span>
+              <button type="button" data-goto-tab="articles">📝 技术文章</button>
+              <button type="button" data-goto-tab="projects">🚀 项目</button>
+              <button type="button" data-goto-tab="library">📚 素材库</button>
+            </div>
+
+            <div class="notes-layout">
+              <section>
+                <div class="section-title"><h4>📌 随记</h4><span id="notes-wall-count" class="tiny-label"></span></div>
+                <div id="notes-wall-container" class="note-wall"></div>
+                <form id="form-public-note" class="inline-form note-form">
+                  <div class="form-grid-3">
+                    <label class="span-2"><span>随记标题 *</span><input id="inp-public-note-title" type="text" maxlength="120" required placeholder="今天的灵感…" /></label>
+                    <label><span>状态标签</span><input id="inp-public-note-mood" type="text" maxlength="32" placeholder="BUILD MODE" /></label>
+                  </div>
+                  <label><span>内容 *</span><textarea id="inp-public-note-body" rows="3" maxlength="1200" required placeholder="记录一点今天的想法…"></textarea></label>
+                  <div class="form-actions"><span class="form-note">保存后可通过控制台导出并发布到 data/notes.json</span><button type="submit" class="btn btn-amber btn-sm">保存到本机随记</button></div>
+                </form>
+              </section>
+
+              <section>
+                <div class="section-title"><h4>💬 留言板</h4><span id="guestbook-count" class="tiny-label"></span></div>
+                <div id="guestbook-container" class="guestbook-list"></div>
+                <form id="form-guestbook" class="inline-form guestbook-form">
+                  <div class="form-grid-3">
+                    <label class="span-2"><span>留言标题 *</span><input id="inp-guestbook-title" type="text" maxlength="120" required placeholder="给转角留一句话…" /></label>
+                    <label><span>昵称</span><input id="inp-guestbook-author" type="text" maxlength="40" placeholder="匿名访客" /></label>
+                  </div>
+                  <label><span>留言内容 *</span><textarea id="inp-guestbook-body" rows="3" maxlength="1200" required placeholder="路过、打招呼，或者分享一个 bug…"></textarea></label>
+                  <div class="form-actions"><span class="form-note">仅保存到本机草稿；公开留言需要未来独立后端。</span><button type="submit" class="btn btn-primary btn-sm">贴到本机留言板</button></div>
+                </form>
+              </section>
+            </div>
+          </div>
+
+          <!-- TOOLBOX -->
+          <div id="space-tab-toolbox" class="space-tab-panel" hidden>
+            <div class="panel-toolbar">
+              <div><div class="eyebrow emerald">TOOLBOX // WORKBENCH</div><h3>我的工具箱</h3><p>收藏、搜索并直接使用一些每天会用到的小工具。工具箱里的东西，都可以从房间里打开。</p></div>
+              <label class="search-field"><span>⌕</span><input id="tool-search" type="search" placeholder="搜索工具、分类或标签…" /></label>
+            </div>
+            <div id="tool-category-bar" class="filter-row"></div>
+            <div id="tools-container" class="card-grid tools-grid"></div>
+
+            <div class="soft-divider"></div>
+            <section class="utility-section">
+              <div class="panel-heading"><div><div class="eyebrow amber">LOCAL UTILITIES // 站内工具</div><h4>不用离开小站的快速处理器</h4></div><span class="tiny-label">所有输入只在本机处理</span></div>
+              <div id="utility-tabs" class="utility-tabs">
+                <button type="button" data-util="json" class="utility-btn is-active">JSON</button>
+                <button type="button" data-util="base64" class="utility-btn">Base64</button>
+                <button type="button" data-util="timestamp" class="utility-btn">时间戳</button>
+                <button type="button" data-util="color" class="utility-btn">颜色</button>
+                <button type="button" data-util="regex" class="utility-btn">正则</button>
+              </div>
+              <div class="utility-grid">
+                <textarea id="utility-input" rows="7" placeholder="在这里输入内容…" aria-label="工具输入"></textarea>
+                <div class="utility-output-col">
+                  <div id="utility-options" class="utility-options"></div>
+                  <textarea id="utility-output" rows="7" readonly placeholder="处理结果会显示在这里" aria-label="工具输出"></textarea>
+                  <div id="utility-status" class="utility-status">选择工具后输入内容即可处理。</div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- LIBRARY -->
+          <div id="space-tab-library" class="space-tab-panel" hidden>
+            <div class="panel-toolbar">
+              <div><div class="eyebrow pink">LIBRARY // SHELF</div><h3>灵感、书签与收藏素材</h3><p>书架上的装帧和标本盒不是装饰：每一格都对应一条可打开的素材记录。</p></div>
+              <label class="select-field"><span>类型</span><select id="library-filter"><option value="all">全部类型</option><option value="bookmark">书签</option><option value="model">模型</option><option value="idea">灵感</option></select></label>
+            </div>
+            <div class="cross-nav">
+              <span>相关：</span>
+              <button type="button" data-goto-tab="projects">🚀 项目</button>
+              <button type="button" data-goto-tab="toolbox">🧰 工具</button>
+            </div>
+            <div id="library-container" class="card-grid library-grid"></div>
+            <div class="permission-note">新增素材与书签在「控制台」中保存为本机草稿，也可以导入 JSON 后发布到 <code>data/library.json</code>。</div>
+          </div>
+
+          <!-- STUDIO -->
+          <div id="space-tab-studio" class="space-tab-panel" hidden>
+            <div class="panel-toolbar">
+              <div><div class="eyebrow sky">CONTENT STUDIO // 本机控制台</div><h3>管理我的内容</h3><p>网页编辑只写入当前浏览器。导出 JSON、写回 <code>data/</code> 并提交仓库后，访客才能看到更新。</p></div>
+              <div class="toolbar-actions">
+                <button id="btn-export-content" type="button" class="btn btn-emerald btn-sm">导出内容 JSON</button>
+                <button id="btn-reset-drafts" type="button" class="btn btn-ghost btn-sm">重置本机草稿</button>
+              </div>
+            </div>
+
+            <div id="draft-status" class="boundary-banner">当前显示公共数据。网页中的编辑只保存到本机。</div>
+            <div id="content-feedback" class="content-feedback" role="status" hidden></div>
+
+            <div class="studio-grid">
+              <article class="panel-card">
+                <div class="panel-heading"><div><div class="eyebrow emerald">PUBLISHING BOUNDARY // 发布边界</div><h4>这是一个静态站</h4></div></div>
+                <ul class="boundary-list">
+                  <li><strong>只读公共数据</strong><span>访客看到的是仓库里的 <code>data/*.json</code>，网页不会自动改仓库。</span></li>
+                  <li><strong>集合级草稿</strong><span>每个集合单独保存在 localStorage，不会因为保存项目而覆盖文章或素材。</span></li>
+                  <li><strong>发布流程</strong><span>导出 → 对照数组写入 <code>data/</code> → 本地检查 → 提交并推送 → GitHub Pages 自动更新。</span></li>
+                  <li><strong>权限边界</strong><span>没有账号系统，也没有跨访客实时留言；需要公开留言或后台时再独立接入服务端。</span></li>
+                </ul>
+                <div class="import-zone">
+                  <label class="btn btn-ghost btn-sm file-label">导入内容 JSON<input id="content-import-input" type="file" accept="application/json,.json" /></label>
+                  <span>支持导出对象或集合数组，只更新文件里提供的集合。</span>
+                </div>
+              </article>
+
+              <article class="panel-card">
+                <div class="panel-heading"><div><div class="eyebrow amber">LOCAL DRAFTS // 本机草稿</div><h4>待发布的改动</h4></div><button id="btn-copy-export" type="button" class="btn btn-ghost btn-xs">复制导出 JSON</button></div>
+                <div id="draft-overview" class="draft-overview"></div>
+                <div class="mini-divider"></div>
+                <div class="section-title"><h4>随记草稿</h4><span id="notes-count" class="tiny-label"></span></div>
+                <div id="notes-container" class="draft-list"></div>
+                <div class="section-title"><h4>素材草稿</h4><span id="draft-library-count" class="tiny-label"></span></div>
+                <div id="draft-library-container" class="draft-list"></div>
+                <div class="section-title"><h4>工具草稿</h4><span id="draft-tools-count" class="tiny-label"></span></div>
+                <div id="draft-tools-container" class="draft-list"></div>
+              </article>
+            </div>
+
+            <div class="studio-forms">
+              <form id="form-new-note" class="inline-form">
+                <div class="eyebrow sky">QUICK NOTE</div>
+                <h4>新增一条随记草稿</h4>
+                <label><span>标题 *</span><input id="inp-note-title" type="text" maxlength="120" required placeholder="标题…" /></label>
+                <label><span>内容 *</span><textarea id="inp-note-body" rows="3" maxlength="1200" required placeholder="记录一个想法、命令或待办…"></textarea></label>
+                <button type="submit" class="btn btn-primary btn-sm">保存到本机草稿</button>
+              </form>
+              <form id="form-new-library" class="inline-form">
+                <div class="eyebrow pink">LIBRARY ITEM</div>
+                <h4>新增素材 / 书签</h4>
+                <div class="form-grid-2">
+                  <label><span>名称 *</span><input id="inp-lib-title" type="text" maxlength="120" required placeholder="名称…" /></label>
+                  <label><span>类型</span><select id="inp-lib-type"><option value="bookmark">书签</option><option value="model">模型</option><option value="idea">灵感</option></select></label>
+                </div>
+                <label><span>链接（可选）</span><input id="inp-lib-url" type="url" maxlength="2000" placeholder="https://…" /></label>
+                <label><span>描述 *</span><textarea id="inp-lib-desc" rows="2" maxlength="500" required placeholder="描述…"></textarea></label>
+                <button type="submit" class="btn btn-pink btn-sm">保存到本机草稿</button>
+              </form>
+              <form id="form-new-tool" class="inline-form">
+                <div class="eyebrow emerald">TOOL FAVORITE</div>
+                <h4>新增工具收藏</h4>
+                <div class="form-grid-2">
+                  <label><span>名称 *</span><input id="inp-tool-name" type="text" maxlength="100" required placeholder="工具名称…" /></label>
+                  <label><span>分类 *</span><input id="inp-tool-category" type="text" maxlength="48" required placeholder="分类…" /></label>
+                </div>
+                <label><span>链接 *</span><input id="inp-tool-url" type="url" maxlength="2000" required placeholder="https://…" /></label>
+                <label><span>用途 *</span><textarea id="inp-tool-desc" rows="2" maxlength="500" required placeholder="用途说明…"></textarea></label>
+                <button type="submit" class="btn btn-emerald btn-sm">保存到本机草稿</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <footer class="space-footer">
+          <span>所有动态文本使用安全 DOM 写入 · <code>schemaVersion 2</code></span>
+          <span>Designed &amp; built by <strong>M1ghty_2wy</strong> · Three.js / 手工程序化模型</span>
+        </footer>
+      </div>
+    </section>
+
+    <div id="content-toast" class="content-toast" role="status" aria-live="polite" hidden></div>
+  </div>
+
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,2380 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>转角的 M1ghty_2wy // 3D 极客代码屋与个人空间</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #162238;
+      color: #f1f5f9;
+      font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    #webgl-container {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      cursor: grab;
+    }
+    #webgl-container:active {
+      cursor: grabbing;
+    }
+    /* Glass UI Panels */
+    .lawson-dock {
+      background: rgba(20, 32, 52, 0.78);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 50px rgba(5, 10, 22, 0.55);
+    }
+    .ide-shell {
+      background: rgba(13, 17, 26, 0.92);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), 0 0 40px rgba(56, 189, 248, 0.12);
+    }
+    .space-panel {
+      background: rgba(13, 21, 36, 0.88);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.75);
+    }
+    /* Syntax Highlighting */
+    .tok-kw { color: #fb923c; font-weight: 600; }
+    .tok-type { color: #38bdf8; font-weight: 600; }
+    .tok-str { color: #4ade80; }
+    .tok-ann { color: #facc15; }
+    .tok-cmt { color: #64748b; font-style: italic; }
+
+    @keyframes blinkCursor {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+    .code-cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.15em;
+      background-color: #38bdf8;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+      animation: blinkCursor 0.85s infinite;
+    }
+    @keyframes floatBob {
+      0%, 100% { transform: translate(-50%, -100%) translateY(0px); }
+      50% { transform: translate(-50%, -100%) translateY(-5px); }
+    }
+    .hotspot-marker {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      animation: floatBob 2.8s ease-in-out infinite;
+      pointer-events: auto;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.35);
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="relative select-none">
+
+  <!-- ===================================================================== -->
+  <!-- 3D DIORAMA CANVAS (ISOMETRIC MINIATURE PROGRAMMER ROOM)               -->
+  <!-- ===================================================================== -->
+  <div id="webgl-container" aria-label="M1ghty_2wy 3D Programmer Room Diorama"></div>
+
+  <!-- 2D Floating Interactive Hotspot Markers (Projected from 3D Room Objects) -->
+  <div id="hotspots-layer" class="fixed inset-0 z-10 pointer-events-none overflow-hidden">
+    <!-- 1. Programmer & Triple Monitor Desk -->
+    <button id="marker-coder" data-hotspot="coder" class="hotspot-marker px-2.5 py-1 rounded-full bg-slate-900/85 hover:bg-sky-500 text-white border border-sky-400/50 text-[11px] font-medium shadow-lg flex items-center gap-1.5 group">
+      <span>👨‍💻</span>
+      <span>M1ghty_2wy 敲代码</span>
+    </button>
+    <!-- 2. Coffee Bar -->
+    <button id="marker-coffee" data-hotspot="coffee" class="hotspot-marker px-2.5 py-1 rounded-full bg-slate-900/85 hover:bg-amber-500 hover:text-slate-950 text-amber-200 border border-amber-400/50 text-[11px] font-medium shadow-lg flex items-center gap-1.5">
+      <span>☕</span>
+      <span>续命冰美式机</span>
+    </button>
+    <!-- 3. Orange Cat -->
+    <button id="marker-cat" data-hotspot="cat" class="hotspot-marker px-2.5 py-1 rounded-full bg-slate-900/85 hover:bg-pink-500 text-pink-200 border border-pink-400/50 text-[11px] font-medium shadow-lg flex items-center gap-1.5">
+      <span>🐱</span>
+      <span>橘猫 NullPointer</span>
+    </button>
+    <!-- 4. Server Rack / Vending / Guitar -->
+    <button id="marker-server" data-hotspot="server" class="hotspot-marker px-2.5 py-1 rounded-full bg-slate-900/85 hover:bg-emerald-500 hover:text-slate-950 text-emerald-200 border border-emerald-400/50 text-[11px] font-medium shadow-lg flex items-center gap-1.5">
+      <span>🖥️</span>
+      <span>深夜家庭服务器</span>
+    </button>
+    <!-- 5. MAIN PORTAL TO PERSONAL SPACE -->
+    <button id="marker-portal" data-hotspot="portal" class="hotspot-marker px-3.5 py-1.5 rounded-full bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-500 text-white font-semibold border border-white/60 text-xs shadow-xl shadow-sky-500/40 flex items-center gap-1.5 hover:scale-105">
+      <span>🚪✨</span>
+      <span>点击进入个人空间</span>
+    </button>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- STAGE 1: CREATIVE PROGRAMMER HUMOR JAVA IDE INTRO OVERLAY             -->
+  <!-- ===================================================================== -->
+  <div id="ide-intro-overlay" class="fixed inset-0 z-40 flex items-center justify-center bg-[#09101d]/80 backdrop-blur-md p-3 sm:p-6 transition-opacity duration-500">
+    <div class="ide-shell w-full max-w-3xl rounded-2xl overflow-hidden flex flex-col max-h-[88vh]">
+
+      <!-- Window Header -->
+      <div class="bg-[#080b12] px-4 py-2.5 border-b border-white/10 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
+          <span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span>
+          <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+          <span class="ml-2 text-xs font-mono-code text-slate-300 flex items-center gap-1.5">
+            <span class="text-sky-400">☕</span>
+            <span>IntelliJ IDEA // M1ghty_2wy_DailyLife.java</span>
+          </span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-ide-instant" class="text-[11px] font-mono-code px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-slate-300 transition">
+            ⚡ 瞬间敲完
+          </button>
+          <button id="btn-ide-skip" class="text-[11px] font-mono-code px-2.5 py-1 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-400/30 transition">
+            跳过代码直达小站 ⏭
+          </button>
+        </div>
+      </div>
+
+      <!-- Editor Tab Bar -->
+      <div class="bg-[#0e1422] px-4 py-1.5 border-b border-white/5 flex items-center justify-between text-[11px] font-mono-code text-slate-400">
+        <div class="flex items-center gap-4">
+          <span class="text-sky-300 border-b-2 border-sky-400 pb-0.5">M1ghty_2wy_DailyLife.java</span>
+          <span class="text-slate-500 hidden sm:inline">HairLossException.java</span>
+          <span class="text-slate-500 hidden md:inline">CoffeeInjector.java</span>
+        </div>
+        <span id="ide-stage-badge" class="text-amber-300">STEP 1/2 · 程序员段子自检中</span>
+      </div>
+
+      <!-- Code Body -->
+      <div id="ide-scroll-box" class="p-4 sm:p-5 overflow-y-auto custom-scroll flex-1 bg-[#0a0e17] font-mono-code text-xs sm:text-sm leading-relaxed select-text">
+        <div class="flex gap-3 sm:gap-4">
+          <div id="ide-line-nums" class="text-slate-600 text-right select-none shrink-0 leading-relaxed">1</div>
+          <div class="flex-1 min-w-0">
+            <pre id="ide-code-display" class="whitespace-pre-wrap break-words m-0 font-mono-code leading-relaxed"></pre><span class="code-cursor"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fun Interactive Debug Actions Bar -->
+      <div class="bg-[#0d1320] px-4 py-2.5 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs font-mono-code">
+        <div id="ide-console-status" class="text-emerald-400 truncate">
+          &gt; [JVM] 正在检测 M1ghty_2wy 血液咖啡因浓度: 99.8% (安全)
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button id="btn-ide-coffee" type="button" class="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 text-amber-300 text-[11px] transition">
+            ☕ 喝口冰美式 (+Bug免疫)
+          </button>
+          <button id="btn-ide-hair" type="button" class="px-2.5 py-1 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 border border-purple-400/30 text-purple-300 text-[11px] transition">
+            💇‍♂️ try { 保住头发 }
+          </button>
+        </div>
+      </div>
+
+      <!-- Bottom Input / Run Trigger -->
+      <div class="bg-[#11192b] p-3 sm:p-4 border-t border-sky-400/30 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+        <form id="ide-input-form" class="flex-1 flex items-center gap-2 bg-black/60 border border-white/15 focus-within:border-sky-400 rounded-xl px-3 py-2">
+          <span class="text-sky-400 font-mono-code text-xs font-bold">M1ghty_2wy@jvm:~$</span>
+          <input
+            id="ide-terminal-input"
+            type="text"
+            autocomplete="off"
+            placeholder="输入任意内容按 Enter 或点击右侧按钮继续 (第1段段子 -> 第2段启动3D小站)..."
+            class="w-full bg-transparent text-xs sm:text-sm font-mono-code text-white focus:outline-none"
+          />
+        </form>
+        <button
+          id="btn-ide-next"
+          type="button"
+          class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-400 to-blue-600 text-white font-mono-code font-bold text-xs sm:text-sm tracking-wider hover:brightness-110 active:scale-95 transition shadow-lg shadow-sky-500/30 shrink-0"
+        >
+          ▶ 编译下一段段子 (Enter)
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- STAGE 2: "转角的 M1ghty_2wy" 3D MINI WORLD HUD (LIKE UPLOADED IMAGE)   -->
+  <!-- ===================================================================== -->
+
+  <!-- Top-Left Header -->
+  <div id="miniworld-hud-top-left" class="fixed top-6 left-6 sm:top-8 sm:left-10 z-20 pointer-events-none">
+    <div class="flex items-stretch gap-3">
+      <div class="w-1 bg-sky-400 rounded-full shadow-[0_0_12px_rgba(56,189,248,0.8)]"></div>
+      <div>
+        <h1 class="text-xl sm:text-2xl font-bold tracking-wider text-white flex items-center gap-1">
+          <span>转角的 M1ghty_2wy</span><span class="text-sky-400">。</span>
+        </h1>
+        <p class="text-[10px] font-mono-code tracking-[0.22em] text-slate-400 uppercase mt-0.5">
+          M1GHTY_2WY MINI CODING WORLD
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-5 space-y-1.5 text-xs text-slate-300">
+      <div class="text-slate-400 font-mono-code text-[11px]">01 / 极客深夜日常 · 精雕微缩版</div>
+      <div id="hud-env-status" class="flex items-center gap-2 text-sm font-medium text-slate-100">
+        <span>🌙 夜晚</span>
+        <span class="text-slate-500">·</span>
+        <span>🌤️ 晴天</span>
+      </div>
+      <div class="pt-1">
+        <span id="hud-egg-counter" class="inline-block px-2.5 py-0.5 rounded-full bg-sky-500/20 border border-sky-400/40 text-sky-300 text-[11px] font-mono-code">
+          🎁 房间彩蛋已触发: 0 / 5
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top-Right Pill & Status -->
+  <div id="miniworld-hud-top-right" class="fixed top-6 right-6 sm:top-8 sm:right-10 z-20 flex flex-col items-end gap-4 pointer-events-none">
+    <div class="lawson-dock rounded-full px-3 py-1.5 flex items-center gap-1.5 pointer-events-auto">
+      <button id="btn-top-audio" title="切换环境音效与合成器" class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-sm transition">
+        🔊
+      </button>
+      <button id="btn-top-reset-cam" title="重置等轴测相机视角" class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-sm transition">
+        📷
+      </button>
+      <button id="btn-top-markers" title="显示/隐藏 3D 房间可点击标签" class="w-8 h-8 rounded-full bg-sky-500/20 text-sky-300 hover:bg-white/10 flex items-center justify-center text-sm transition">
+        🎯
+      </button>
+      <button id="btn-top-ide" title="重新打开开头程序员段子 IDE" class="px-2.5 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-xs font-mono-code text-amber-300 transition">
+        ☕ 代码开场
+      </button>
+    </div>
+
+    <div class="text-right">
+      <div class="text-xs text-slate-400">敲代码中</div>
+      <div class="text-lg sm:text-xl font-mono-code font-semibold text-slate-100 tracking-wider mt-0.5">
+        24 <span class="text-slate-500 text-sm">/</span> 7
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Toast Notification for 3D Room Click Easter Eggs -->
+  <div id="room-easter-toast" class="fixed top-24 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-all duration-300 opacity-0 -translate-y-2 max-w-md w-[92%]">
+    <div class="lawson-dock rounded-2xl px-4 py-3 border border-sky-400/40 flex items-center gap-3 shadow-2xl">
+      <div id="toast-icon" class="w-9 h-9 rounded-xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-lg shrink-0">
+        ✨
+      </div>
+      <div class="min-w-0 flex-1">
+        <div id="toast-title" class="text-xs font-bold text-sky-300 uppercase tracking-wider">触发房间彩蛋</div>
+        <div id="toast-desc" class="text-xs text-slate-200 mt-0.5 leading-relaxed">
+          点击房间内的不同家具可触发专属动画与程序员彩蛋！
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Control Bar -->
+  <div id="miniworld-hud-bottom" class="fixed inset-x-0 bottom-5 z-20 flex flex-col items-center px-3 pointer-events-none">
+    <!-- Instruction Hint Line -->
+    <div class="text-[11px] text-slate-400/90 mb-2.5 flex flex-wrap items-center justify-center gap-2 sm:gap-4 tracking-wider">
+      <span>⟳ 拖动旋转</span>
+      <span class="text-slate-600">/</span>
+      <span>滚轮缩放</span>
+      <span class="text-slate-600">/</span>
+      <span class="text-sky-300">👆 点击房内人物、橘猫、咖啡机、贩卖机触发彩蛋</span>
+      <span class="text-600">/</span>
+      <span class="text-amber-300">🚪 点击传送门进入个人空间</span>
+    </div>
+
+    <!-- Main Dock Container -->
+    <div class="lawson-dock rounded-2xl p-2.5 sm:px-5 sm:py-3 flex flex-wrap items-center justify-center gap-3 sm:gap-6 pointer-events-auto max-w-4xl w-full">
+
+      <!-- Time of Day Group -->
+      <div class="flex flex-col gap-1">
+        <span class="text-[10px] text-slate-400 pl-1">昼夜</span>
+        <div class="flex items-center gap-1">
+          <button data-time="night" class="time-btn px-2.5 py-1 rounded-lg text-xs transition bg-sky-500/25 text-sky-200 border border-sky-400/40">
+            🌙 夜晚
+          </button>
+          <button data-time="dusk" class="time-btn px-2.5 py-1 rounded-lg text-xs transition text-slate-400 hover:text-white">
+            🌅 黄昏
+          </button>
+          <button data-time="day" class="time-btn px-2.5 py-1 rounded-lg text-xs transition text-slate-400 hover:text-white">
+            ☀️ 白天
+          </button>
+        </div>
+      </div>
+
+      <!-- Weather Group -->
+      <div class="flex flex-col gap-1">
+        <span class="text-[10px] text-slate-400 pl-1">天气</span>
+        <div class="flex items-center gap-1">
+          <button data-weather="clear" class="weather-btn px-2.5 py-1 rounded-lg text-xs transition bg-sky-500/25 text-sky-200 border border-sky-400/40">
+            🌤️ 晴天
+          </button>
+          <button data-weather="rain" class="weather-btn px-2.5 py-1 rounded-lg text-xs transition text-slate-400 hover:text-white">
+            🌧️ 雨天
+          </button>
+          <button data-weather="snow" class="weather-btn px-2.5 py-1 rounded-lg text-xs transition text-slate-400 hover:text-white">
+            ❄️ 雪天
+          </button>
+        </div>
+      </div>
+
+      <!-- Exploration / Cutaway Roof Toggle -->
+      <div class="flex flex-col gap-1">
+        <span class="text-[10px] text-slate-400 pl-1">探索</span>
+        <div class="flex items-center gap-1">
+          <button id="btn-toggle-roof" class="px-2.5 py-1 rounded-lg text-xs transition text-slate-300 hover:text-white border border-white/10 bg-white/5">
+            🏠 展开/合上屋顶
+          </button>
+          <button id="btn-rainy-night" class="px-2.5 py-1 rounded-lg text-xs transition text-sky-300 hover:bg-sky-500/20 border border-sky-400/30">
+            🌧️ 一键雨夜
+          </button>
+        </div>
+      </div>
+
+      <!-- Enter Personal Space Primary Button -->
+      <button id="btn-open-personal-space" class="ml-auto px-5 py-2.5 rounded-xl bg-[#2563eb] hover:bg-[#3b82f6] text-white font-medium text-xs sm:text-sm transition shadow-lg shadow-blue-600/35 flex items-center gap-2">
+        <span>🚀</span>
+        <div class="text-left leading-tight">
+          <div class="font-semibold">进入个人空间</div>
+          <div class="text-[9px] font-mono-code opacity-80">M1GHTY_2WY SPACE</div>
+        </div>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- STAGE 3: M1GHTY_2WY PERSONAL SPACE (ABOUT, PROJECTS, ARTICLES)        -->
+  <!-- ===================================================================== -->
+  <section id="personal-space-modal" class="hidden fixed inset-0 z-30 flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-3 sm:p-6">
+    <div class="space-panel w-full max-w-5xl rounded-3xl overflow-hidden flex flex-col max-h-[88vh]">
+
+      <!-- Space Top Navigation -->
+      <div class="bg-slate-900/90 px-5 py-4 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center font-mono-code font-bold text-white text-sm shadow-lg shadow-sky-500/25">
+            M1
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-base sm:text-lg font-bold text-white">M1ghty_2wy 的个人数字空间</h2>
+              <span class="text-[10px] font-mono-code px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                ONLINE
+              </span>
+            </div>
+            <p class="text-xs text-slate-400">独立开发者 · Java 与 3D 创意玩家 · 欢迎探索我的项目与文章</p>
+          </div>
+        </div>
+
+        <!-- Section Tabs inside Personal Space -->
+        <div class="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-white/10">
+          <button data-space-tab="about" class="space-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-medium transition bg-sky-500 text-white">
+            👋 个人介绍
+          </button>
+          <button data-space-tab="projects" class="space-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white">
+            🚀 项目更新
+          </button>
+          <button data-space-tab="articles" class="space-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white">
+            📝 分享文章
+          </button>
+        </div>
+
+        <button id="btn-back-to-room" class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-xs text-slate-200 flex items-center gap-1.5 transition">
+          <span>← 返回 3D 代码屋</span>
+        </button>
+      </div>
+
+      <!-- Space Body Content -->
+      <div class="p-5 sm:p-6 overflow-y-auto custom-scroll flex-1">
+
+        <!-- TAB 1: ABOUT ME (个人介绍) -->
+        <div id="space-tab-about" class="space-y-5">
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div class="md:col-span-7 p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+              <div class="text-xs font-mono-code text-sky-400 uppercase tracking-widest">ABOUT // M1GHTY_2WY</div>
+              <h3 class="text-xl font-bold text-white">你好，我是 M1ghty_2wy 👋</h3>
+              <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                一名热爱折腾底层架构与三维交互美学的全栈开发者。白天与 JVM、分布式微服务和高并发斗智斗勇，深夜在转角的小房间里泡上一杯冰美式，用代码搭建属于自己的数字微缩世界。
+              </p>
+              <div class="pt-2 flex flex-wrap gap-2">
+                <span class="px-3 py-1 rounded-full bg-sky-500/15 border border-sky-400/30 text-xs text-sky-300 font-mono-code">☕ Java / Spring Boot / JVM</span>
+                <span class="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-xs text-amber-300 font-mono-code">🎨 Three.js / WebGL 3D</span>
+                <span class="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-xs text-emerald-300 font-mono-code">⚡ React / TypeScript</span>
+                <span class="px-3 py-1 rounded-full bg-purple-500/15 border border-purple-400/30 text-xs text-purple-300 font-mono-code">🛠️ 架构设计与自动化工具</span>
+              </div>
+            </div>
+
+            <div class="md:col-span-5 p-5 rounded-2xl bg-white/5 border border-white/10 flex flex-col justify-between space-y-3">
+              <div>
+                <div class="text-xs font-mono-code text-amber-400 uppercase tracking-widest">ROOM TELEMETRY // 小站状态</div>
+                <h4 class="text-sm font-semibold text-white mt-1">3D 房间彩蛋探索进度</h4>
+                <p class="text-xs text-slate-400 mt-1">回到 3D 房间点击不同物品（程序员、咖啡机、橘猫、服务器、传送门）可解锁全部互动彩蛋：</p>
+              </div>
+              <div id="about-eggs-badges" class="grid grid-cols-2 gap-2 text-xs font-mono-code">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Highlights Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div class="text-xs text-slate-400">代表身份</div>
+              <div class="text-base font-bold text-white mt-1">M1ghty_2wy</div>
+              <div class="text-xs text-sky-400 mt-1">全栈开发 / 创意编程玩家</div>
+            </div>
+            <div class="p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div class="text-xs text-slate-400">当前状态</div>
+              <div class="text-base font-bold text-white mt-1">持续构建个人宇宙</div>
+              <div class="text-xs text-emerald-400 mt-1">支持随时新增项目与技术文章</div>
+            </div>
+            <div class="p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div class="text-xs text-slate-400">座右铭</div>
+              <div class="text-base font-bold text-white mt-1">“代码会过期，但好奇心不会”</div>
+              <div class="text-xs text-amber-300 mt-1">Stay Hungry, Keep Shipping</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: PROJECT UPDATES (项目更新) -->
+        <div id="space-tab-projects" class="hidden space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-base font-bold text-white">🚀 M1ghty_2wy 项目更新与实验室动态</h3>
+              <p class="text-xs text-slate-400">记录近期正在开发的个人作品、开源仓库与版本迭代日志</p>
+            </div>
+            <button id="btn-toggle-new-project" class="px-3.5 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-xs font-semibold transition">
+              + 发布项目更新
+            </button>
+          </div>
+
+          <!-- New Project Form -->
+          <form id="form-new-project" class="hidden p-4 rounded-2xl bg-slate-900/90 border border-sky-400/40 space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <input id="inp-proj-ver" type="text" placeholder="版本号/标签 (如 v1.2.0 / 开源)" required class="px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs font-mono-code text-white focus:outline-none focus:border-sky-400" />
+              <input id="inp-proj-name" type="text" placeholder="项目名称..." required class="sm:col-span-2 px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-sky-400" />
+            </div>
+            <input id="inp-proj-desc" type="text" placeholder="项目更新内容描述..." required class="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-sky-400" />
+            <div class="flex justify-end gap-2">
+              <button type="button" id="btn-cancel-project" class="px-3 py-1.5 rounded-lg bg-white/10 text-xs text-slate-300">取消</button>
+              <button type="submit" class="px-4 py-1.5 rounded-lg bg-sky-500 text-white text-xs font-semibold">保存发布</button>
+            </div>
+          </form>
+
+          <div id="projects-container" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- TAB 3: SHARED ARTICLES (分享文章) -->
+        <div id="space-tab-articles" class="hidden space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-base font-bold text-white">📝 技术分享与极客随笔</h3>
+              <p class="text-xs text-slate-400">点击任意文章卡片即可展开阅读全文，也支持随时撰写新笔记</p>
+            </div>
+            <button id="btn-toggle-new-article" class="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-semibold transition">
+              + 撰写新文章
+            </button>
+          </div>
+
+          <!-- New Article Form -->
+          <form id="form-new-article" class="hidden p-4 rounded-2xl bg-slate-900/90 border border-amber-400/40 space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <input id="inp-art-cat" type="text" placeholder="专栏分类 (如 Java架构 / 3D前端)" required class="px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs font-mono-code text-white focus:outline-none focus:border-amber-400" />
+              <input id="inp-art-title" type="text" placeholder="文章标题..." required class="sm:col-span-2 px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-amber-400" />
+            </div>
+            <textarea id="inp-art-body" rows="3" placeholder="输入文章正文内容..." required class="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-amber-400"></textarea>
+            <div class="flex justify-end gap-2">
+              <button type="button" id="btn-cancel-article" class="px-3 py-1.5 rounded-lg bg-white/10 text-xs text-slate-300">取消</button>
+              <button type="submit" class="px-4 py-1.5 rounded-lg bg-amber-400 text-slate-950 text-xs font-semibold">发布文章</button>
+            </div>
+          </form>
+
+          <!-- Article Reader Drawer (When an article is selected) -->
+          <div id="article-reader-box" class="hidden p-5 rounded-2xl bg-slate-900 border border-sky-400/40 space-y-3">
+            <div class="flex items-center justify-between">
+              <span id="reader-cat" class="text-[11px] font-mono-code text-sky-400"></span>
+              <button id="btn-close-reader" class="text-xs text-slate-400 hover:text-white">✕ 收起阅读</button>
+            </div>
+            <h4 id="reader-title" class="text-lg font-bold text-white"></h4>
+            <p id="reader-body" class="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line"></p>
+          </div>
+
+          <div id="articles-container" class="space-y-3">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- APPLICATION LOGIC                                                     -->
+  <!-- ===================================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      // -------------------------------------------------------------------
+      // 1. WITTY PROGRAMMER HUMOR JAVA CODE STAGES
+      // -------------------------------------------------------------------
+      var IDE_STAGES = [
+        {
+          badge: 'STEP 1/2 · 程序员日常防秃自检中',
+          buttonText: '▶ 没毛病！编译并加载 3D 代码屋 (Enter)',
+          consoleText: '> [WARNING] HairLossException: 检测到发际线正在尝试向后逃逸，已靠冰美式强行镇压！',
+          code: [
+            '// ================================================================',
+            '// FILE: M1ghty_2wy_DailyLife.java — 祖传屎山与防秃指南',
+            '// ================================================================',
+            'package dev.m1ghty2wy.sanctuary;',
+            '',
+            'public class M1ghty_2wy extends Programmer {',
+            '',
+            '    private int hairCount           = Integer.MAX_VALUE; // WARNING: 每次改需求发量自动 -1024',
+            '    private double bloodCaffeine    = 0.99;              // 血管里流淌的不是血，是冰美式',
+            '    private boolean worksOnMyPC     = true;              // “奇怪，在我电脑上明明是好的啊！”',
+            '',
+            '    public String handleBug(String bugReport) {',
+            '        if (bugReport.contains("紧急")) {',
+            '            // 只要我不看报错日志，Bug 就处于薛定谔的修复状态',
+            '            return "这不是 Bug，这是我精心设计的隐藏 Feature！";',
+            '        }',
+            '        return "重启试试？清下缓存？换个姿势点？";',
+            '    }'
+          ].join('\n')
+        },
+        {
+          badge: 'STEP 2/2 · 正在唤醒【转角的 M1ghty_2wy】3D 房间',
+          buttonText: '🚀 推开房门！进入 M1ghty_2wy 的 3D 小站 (Enter)',
+          consoleText: '> [BUILD SUCCESS] 3D 程序员房间、三联屏、咖啡机与橘猫 NullPointer 已全部就位！',
+          code: [
+            '    // [STAGE 02] 启动转角的 M1ghty_2wy 深夜代码屋 3D 微缩世界',
+            '    public static void main(String[] args) {',
+            '        M1ghty_2wy me = new M1ghty_2wy();',
+            '        MiniRoom3D room = new MiniRoom3D("转角的 M1ghty_2wy · 极客代码屋");',
+            '',
+            '        room.putProgrammer(me, "三联屏前疯狂输出代码中...");',
+            '        room.brewCoffee("特浓冰美式", 999);',
+            '        room.spawnCat("橘猫·NullPointer", "正在机箱上取暖顺便踩键盘");',
+            '',
+            '        // 点击下方按钮或按 Enter，正式进入半开放式 3D 极客房间！',
+            '        room.launchInteractiveWorld();',
+            '    }',
+            '}'
+          ].join('\n')
+        }
+      ];
+
+      var DEFAULT_PROJECTS = [
+        {
+          id: 'p1',
+          ver: 'v2.6.0 · LIVE',
+          name: '转角的 M1ghty_2wy · 精雕 3D 等轴测极客小站',
+          desc: '基于 Three.js 打造的半开放式程序员微缩工作室，包含三联屏水冷主机、洞洞板外设墙、街角单车、自动贩卖机、樱花树与互动橘猫。',
+          date: '2026-10'
+        },
+        {
+          id: 'p2',
+          ver: 'v1.8.2 · BACKEND',
+          name: 'M1-Core 高并发微服务脚手架',
+          desc: '基于 Java 21 虚拟线程与 Spring Cloud 打造的轻量级分布式核心底座，内置全链路追踪与自动化压测模块。',
+          date: '2026-09'
+        },
+        {
+          id: 'p3',
+          ver: 'v1.4.0 · TOOLKIT',
+          name: 'AutoBugShield 智能代码审查助手',
+          desc: '自动识别潜在空指针、并发竞态与祖传坏味道代码，让每一次 git push 都稳如泰山。',
+          date: '2026-08'
+        },
+        {
+          id: 'p4',
+          ver: 'LAB · WIP',
+          name: '后续个人新项目预留槽位',
+          desc: '随时点击右上角「+ 发布项目更新」即可在此添加你的新作品与实验项目。',
+          date: 'UPCOMING'
+        }
+      ];
+
+      var DEFAULT_ARTICLES = [
+        {
+          id: 'a1',
+          cat: '3D 前端与创意编程',
+          title: '如何用 Three.js 打造一座有温度的「转角程序员代码屋」微缩世界',
+          date: '2026-10-17',
+          body: '静态的个人主页往往看一眼就会关掉，而一座可以拖拽旋转、切换雨夜、还能点击咖啡机和橘猫触发彩蛋的半开放式 3D 房间，却能让每位访客会心一笑。\n\n在这个项目里，我用参数化几何体与 Canvas 动态纹理搭建了三联屏升降桌、RGB 透视水冷主机、极客洞洞板、手冲咖啡角、街边自动贩卖机、单车以及全息传送门。希望你在逛房间的时候也能找到属于程序员的快乐！'
+        },
+        {
+          id: 'a2',
+          cat: 'Java 与架构笔记',
+          title: '从 JDK 8 到 JDK 21 虚拟线程：深夜重构祖传代码的踩坑实录',
+          date: '2026-10-05',
+          body: '每个 Java 程序员都面对过那句灵魂拷问：“这段代码是谁写的？居然还能跑！”然后 git blame 一看——原来是半年前的自己。\n\n本文总结了在高吞吐 I/O 场景下迁移至虚拟线程（Virtual Threads）的核心注意事项，包括 synchronized 块导致的载体线程固定（Pinning）排查与连接池调优方案。'
+        },
+        {
+          id: 'a3',
+          cat: '极客日常随笔',
+          title: '论冰美式浓度与代码 Bug 率之间的非线性关系',
+          date: '2026-09-21',
+          body: '经过长达三年的非正式抽样统计，当血液中的冰美式浓度低于 30% 时，写出死循环的概率提升 240%；而当右手边有一只橘猫趴在沙发上呼噜呼噜时，Debug 效率将获得神秘玄学加成。'
+        }
+      ];
+
+      // -------------------------------------------------------------------
+      // 2. STATE
+      // -------------------------------------------------------------------
+      var state = {
+        ideStage: 0,
+        isIdeOpen: true,
+        typingIdx: 0,
+        targetCode: '',
+        isTyping: true,
+        audioOn: true,
+        showMarkers: true,
+        roofOpen: false,
+        timeOfDay: 'night',   // 'night' | 'dusk' | 'day'
+        weather: 'clear',     // 'clear' | 'rain' | 'snow'
+        overdriveTimer: 0,
+        coffeeBoostTimer: 0,
+        catJumpTimer: 0,
+        serverHologramTimer: 0,
+        unlockedEggs: {
+          coder: false,
+          coffee: false,
+          cat: false,
+          server: false,
+          portal: false
+        },
+        projects: [],
+        articles: []
+      };
+
+      function loadUserData() {
+        try {
+          var p = localStorage.getItem('m1ghty_2wy_room_projects_v1');
+          var a = localStorage.getItem('m1ghty_2wy_room_articles_v1');
+          state.projects = p ? JSON.parse(p) : DEFAULT_PROJECTS.slice();
+          state.articles = a ? JSON.parse(a) : DEFAULT_ARTICLES.slice();
+        } catch (e) {
+          state.projects = DEFAULT_PROJECTS.slice();
+          state.articles = DEFAULT_ARTICLES.slice();
+        }
+      }
+
+      function saveUserData() {
+        try {
+          localStorage.setItem('m1ghty_2wy_room_projects_v1', JSON.stringify(state.projects));
+          localStorage.setItem('m1ghty_2wy_room_articles_v1', JSON.stringify(state.articles));
+        } catch (e) {}
+      }
+
+      loadUserData();
+
+      // -------------------------------------------------------------------
+      // 3. WEB AUDIO SYNTHESIZER
+      // -------------------------------------------------------------------
+      var audioCtx = null;
+      var masterGain = null;
+
+      function ensureAudio() {
+        if (!state.audioOn) return null;
+        if (!audioCtx) {
+          try {
+            var AC = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AC();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.setValueAtTime(0.22, audioCtx.currentTime);
+            masterGain.connect(audioCtx.destination);
+          } catch (e) {
+            return null;
+          }
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        return audioCtx;
+      }
+
+      var lastKeyTick = 0;
+      function playKeyTick() {
+        if (!state.audioOn || !audioCtx || audioCtx.state !== 'running') return;
+        var now = audioCtx.currentTime;
+        if (now - lastKeyTick < 0.045) return;
+        lastKeyTick = now;
+
+        var osc = audioCtx.createOscillator();
+        var g = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(580 + Math.random() * 240, now);
+        g.gain.setValueAtTime(0.022, now);
+        g.gain.exponentialRampToValueAtTime(0.0005, now + 0.025);
+        osc.connect(g);
+        g.connect(masterGain);
+        osc.start(now);
+        osc.stop(now + 0.03);
+      }
+
+      function playChimeSfx(freqs) {
+        var ctx = ensureAudio();
+        if (!ctx) return;
+        var now = ctx.currentTime;
+        freqs.forEach(function (f, idx) {
+          var osc = ctx.createOscillator();
+          var g = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, now + idx * 0.07);
+          g.gain.setValueAtTime(0.001, now + idx * 0.07);
+          g.gain.linearRampToValueAtTime(0.11, now + idx * 0.07 + 0.03);
+          g.gain.exponentialRampToValueAtTime(0.0008, now + idx * 0.07 + 0.65);
+          osc.connect(g);
+          g.connect(masterGain);
+          osc.start(now + idx * 0.07);
+          osc.stop(now + idx * 0.07 + 0.7);
+        });
+      }
+
+      // -------------------------------------------------------------------
+      // 4. JAVA IDE SYNTAX HIGHLIGHTING & STEP FLOW
+      // -------------------------------------------------------------------
+      function highlightJava(raw) {
+        var esc = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return esc.split('\n').map(function (line) {
+          if (line.trim().indexOf('//') === 0) {
+            return '<span class="tok-cmt">' + line + '</span>';
+          }
+          var strs = [];
+          var p = line.replace(/"([^"]*)"/g, function (m) {
+            strs.push(m);
+            return '___S' + (strs.length - 1) + '___';
+          });
+          p = p.replace(/\b(package|public|private|class|extends|static|void|int|double|boolean|if|return|new|true|false)\b/g, '<span class="tok-kw">$1</span>');
+          p = p.replace(/\b(String|M1ghty_2wy|Programmer|Integer|MiniRoom3D)\b/g, '<span class="tok-type">$1</span>');
+          p = p.replace(/___S(\d+)___/g, function (_, idx) {
+            return '<span class="tok-str">' + strs[parseInt(idx, 10)] + '</span>';
+          });
+          return p;
+        }).join('\n');
+      }
+
+      function renderIdeText(txt) {
+        var codeEl = document.getElementById('ide-code-display');
+        var numEl = document.getElementById('ide-line-nums');
+        var box = document.getElementById('ide-scroll-box');
+        codeEl.innerHTML = highlightJava(txt);
+
+        var count = Math.max(1, txt.split('\n').length);
+        var nums = [];
+        for (var i = 1; i <= count; i++) nums.push(i);
+        numEl.innerHTML = nums.join('<br/>');
+        box.scrollTop = box.scrollHeight;
+      }
+
+      function loadIdeStage(idx) {
+        state.ideStage = idx;
+        var stg = IDE_STAGES[idx];
+        document.getElementById('ide-stage-badge').textContent = stg.badge;
+        document.getElementById('btn-ide-next').textContent = stg.buttonText;
+        document.getElementById('ide-console-status').textContent = stg.consoleText;
+
+        var prev = '';
+        for (var i = 0; i < idx; i++) {
+          prev += IDE_STAGES[i].code + '\n\n';
+        }
+        state.targetCode = prev + stg.code;
+        state.typingIdx = prev.length;
+        state.isTyping = true;
+      }
+
+      function closeIdeAndEnterRoom() {
+        ensureAudio();
+        state.isIdeOpen = false;
+        var overlay = document.getElementById('ide-intro-overlay');
+        overlay.style.opacity = '0';
+        setTimeout(function () {
+          overlay.classList.add('hidden');
+        }, 450);
+        playChimeSfx([293.66, 369.99, 440.0, 587.33]);
+        showRoomToast('🏠', '欢迎来到转角的 M1ghty_2wy 深夜代码屋', '建模已全面精雕升级！点击房内的程序员、咖啡机、橘猫、服务器或贩卖机触发彩蛋，点击传送门进入个人空间！');
+      }
+
+      function advanceIdeStage() {
+        ensureAudio();
+        if (state.ideStage === 0) {
+          state.isTyping = false;
+          renderIdeText(state.targetCode);
+          loadIdeStage(1);
+          playChimeSfx([261.63, 329.63, 392.0]);
+        } else {
+          closeIdeAndEnterRoom();
+        }
+      }
+
+      // -------------------------------------------------------------------
+      // 5. PROCEDURAL CANVAS TEXTURES FOR ULTRA-DETAILED 3D DIORAMA
+      // -------------------------------------------------------------------
+      function makeFasciaSignTexture(textStr) {
+        var c = document.createElement('canvas');
+        c.width = 1024;
+        c.height = 128;
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = '#2563eb';
+        ctx.fillRect(0, 0, 1024, 128);
+        // White top & bottom Lawson-style stripes
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(0, 8, 1024, 10);
+        ctx.fillRect(0, 110, 1024, 10);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(0, 22, 1024, 4);
+        // Crisp store lettering
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 54px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(textStr, 512, 65);
+        var tex = new THREE.CanvasTexture(c);
+        tex.needsUpdate = true;
+        return tex;
+      }
+
+      function makePoleSignTexture() {
+        var c = document.createElement('canvas');
+        c.width = 256;
+        c.height = 256;
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(0, 0, 256, 256);
+        ctx.fillStyle = '#1d4ed8';
+        ctx.fillRect(14, 14, 228, 228);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 6;
+        ctx.strokeRect(24, 24, 208, 208);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 34px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('M1GHTY', 128, 86);
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 42px "JetBrains Mono", monospace';
+        ctx.fillText('_2WY', 128, 138);
+        ctx.fillStyle = '#fde047';
+        ctx.font = 'bold 26px "JetBrains Mono", monospace';
+        ctx.fillText('CODE 24/7', 128, 198);
+        return new THREE.CanvasTexture(c);
+      }
+
+      function makeCodeMonitorTexture(themeColor) {
+        var c = document.createElement('canvas');
+        c.width = 512;
+        c.height = 256;
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = '#070b14';
+        ctx.fillRect(0, 0, 512, 256);
+        // Sidebar
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, 76, 256);
+        ctx.fillStyle = '#334155';
+        for (var s = 0; s < 8; s++) {
+          ctx.fillRect(12, 18 + s * 22, 48, 8);
+        }
+        // Code lines
+        var colors = ['#fb923c', '#38bdf8', '#4ade80', '#facc15', '#c084fc', '#e2e8f0'];
+        for (var row = 0; row < 11; row++) {
+          var indent = (row % 3) * 18;
+          ctx.fillStyle = colors[row % colors.length];
+          ctx.fillRect(92 + indent, 16 + row * 19, 65 + ((row * 37) % 120), 9);
+          ctx.fillStyle = colors[(row + 2) % colors.length];
+          ctx.fillRect(240 + indent, 16 + row * 19, 50 + ((row * 29) % 90), 9);
+        }
+        // Accent border
+        ctx.strokeStyle = themeColor || '#38bdf8';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(2, 2, 508, 252);
+        return new THREE.CanvasTexture(c);
+      }
+
+      function makeWoodFloorTexture() {
+        var c = document.createElement('canvas');
+        c.width = 512;
+        c.height = 512;
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = '#b98b56';
+        ctx.fillRect(0, 0, 512, 512);
+        var plankTones = ['#b5854f', '#c49660', '#a97a46', '#be8f58'];
+        for (var y = 0; y < 16; y++) {
+          for (var x = 0; x < 4; x++) {
+            ctx.fillStyle = plankTones[(x + y) % plankTones.length];
+            var px = x * 128 + ((y % 2) * 64) - 64;
+            var py = y * 32;
+            ctx.fillRect(px, py, 126, 30);
+          }
+        }
+        var tex = new THREE.CanvasTexture(c);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(2, 2);
+        return tex;
+      }
+
+      // -------------------------------------------------------------------
+      // 6. THREE.JS HIGH-DETAIL ISOMETRIC PROGRAMMER ROOM DIORAMA
+      // -------------------------------------------------------------------
+      var container = document.getElementById('webgl-container');
+      var scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x162238);
+      scene.fog = new THREE.FogExp2(0x162238, 0.012);
+
+      var camera = new THREE.PerspectiveCamera(32, window.innerWidth / window.innerHeight, 0.1, 300);
+
+      var renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.1;
+      container.appendChild(renderer.domElement);
+
+      // Lighting Setup
+      var ambientLight = new THREE.AmbientLight(0x9bb4d6, 0.85);
+      scene.add(ambientLight);
+
+      var dirLight = new THREE.DirectionalLight(0xfff4e0, 1.18);
+      dirLight.position.set(15, 24, 18);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.near = 2;
+      dirLight.shadow.camera.far = 60;
+      var dCam = 10;
+      dirLight.shadow.camera.left = -dCam;
+      dirLight.shadow.camera.right = dCam;
+      dirLight.shadow.camera.top = dCam;
+      dirLight.shadow.camera.bottom = -dCam;
+      scene.add(dirLight);
+
+      var deskGlowLight = new THREE.PointLight(0x38bdf8, 1.9, 12);
+      deskGlowLight.position.set(-1.3, 2.4, -1.5);
+      scene.add(deskGlowLight);
+
+      var warmRoomLight = new THREE.PointLight(0xffb74d, 1.4, 18);
+      warmRoomLight.position.set(1.0, 4.2, 0.8);
+      scene.add(warmRoomLight);
+
+      var portalLight = new THREE.PointLight(0x60a5fa, 2.1, 10);
+      portalLight.position.set(-3.2, 2.4, 1.7);
+      scene.add(portalLight);
+
+      var dioramaGroup = new THREE.Group();
+      scene.add(dioramaGroup);
+
+      var interactivePickables = [];
+      var hotspotAnchors = {
+        coder: new THREE.Vector3(-1.2, 3.4, -1.2),
+        coffee: new THREE.Vector3(2.6, 3.1, -2.5),
+        cat: new THREE.Vector3(1.8, 2.1, 1.1),
+        server: new THREE.Vector3(-3.1, 3.7, -2.5),
+        portal: new THREE.Vector3(-3.3, 3.9, 1.7)
+      };
+
+      function addPickable(mesh, key) {
+        mesh.userData.hotspotKey = key;
+        interactivePickables.push(mesh);
+      }
+
+      // Shared Materials
+      var matAsphalt = new THREE.MeshStandardMaterial({ color: 0x293548, roughness: 0.85 });
+      var matCurb = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.65 });
+      var matSidewalk = new THREE.MeshStandardMaterial({ color: 0xd6d3d1, roughness: 0.6 });
+      var matTactileYellow = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.5 });
+      var matFloorWood = new THREE.MeshStandardMaterial({ map: makeWoodFloorTexture(), roughness: 0.45 });
+      var matWallExterior = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.45 });
+      var matWallInterior = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.5 });
+      var matMetalSilver = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.75, roughness: 0.25 });
+      var matDarkMetal = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6, roughness: 0.35 });
+      var matGlassPane = new THREE.MeshStandardMaterial({
+        color: 0xbae6fd,
+        transparent: true,
+        opacity: 0.24,
+        roughness: 0.1,
+        metalness: 0.2
+      });
+
+      // -------------------------------------------------------------------
+      // A. MULTI-LAYER ARCHITECTURAL BASE, ROAD, SIDEWALK & TACTILE PAVING
+      // -------------------------------------------------------------------
+      var subBase = new THREE.Mesh(
+        new THREE.BoxGeometry(13.2, 0.35, 12.2),
+        new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 })
+      );
+      subBase.position.set(0.4, -0.65, 0.4);
+      dioramaGroup.add(subBase);
+
+      var roadSlab = new THREE.Mesh(new THREE.BoxGeometry(12.8, 0.45, 11.8), matAsphalt);
+      roadSlab.position.set(0.4, -0.28, 0.4);
+      roadSlab.receiveShadow = true;
+      dioramaGroup.add(roadSlab);
+
+      // Curb & Sidewalk Platform
+      var curbSlab = new THREE.Mesh(new THREE.BoxGeometry(11.1, 0.26, 10.1), matCurb);
+      curbSlab.position.set(-0.05, 0.02, -0.05);
+      curbSlab.receiveShadow = true;
+      dioramaGroup.add(curbSlab);
+
+      var sidewalkSlab = new THREE.Mesh(new THREE.BoxGeometry(10.8, 0.28, 9.8), matSidewalk);
+      sidewalkSlab.position.set(-0.05, 0.08, -0.05);
+      sidewalkSlab.receiveShadow = true;
+      dioramaGroup.add(sidewalkSlab);
+
+      // Yellow Tactile Paving Line (盲道) along the front & right sidewalk
+      for (var tp = 0; tp < 18; tp++) {
+        var tile = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.03, 0.34), matTactileYellow);
+        tile.position.set(-4.2 + tp * 0.52, 0.23, 4.15);
+        dioramaGroup.add(tile);
+      }
+      for (var tpR = 0; tpR < 14; tpR++) {
+        var tileR = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.03, 0.46), matTactileYellow);
+        tileR.position.set(4.65, 0.23, -3.2 + tpR * 0.52);
+        dioramaGroup.add(tileR);
+      }
+
+      // Crosswalk White Stripes on both front & right street corners (Just like Lawson image!)
+      var matStripe = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
+      for (var cw = 0; cw < 4; cw++) {
+        var stFront = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.02, 0.18), matStripe);
+        stFront.position.set(-0.8, -0.04, 5.15 + cw * 0.26);
+        dioramaGroup.add(stFront);
+
+        var stRight = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.02, 1.05), matStripe);
+        stRight.position.set(5.45 + cw * 0.26, -0.04, 3.6);
+        dioramaGroup.add(stRight);
+      }
+
+      // 4 Silver Pedestrian Guardrails along the front sidewalk edge
+      function createGuardrail(x, z, rotY) {
+        var railGrp = new THREE.Group();
+        railGrp.position.set(x, 0.22, z);
+        railGrp.rotation.y = rotY || 0;
+        var postL = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.58, 10), matMetalSilver);
+        postL.position.set(-0.55, 0.29, 0);
+        var postR = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.58, 10), matMetalSilver);
+        postR.position.set(0.55, 0.29, 0);
+        var barTop = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.12, 10), matMetalSilver);
+        barTop.rotation.z = Math.PI / 2;
+        barTop.position.set(0, 0.56, 0);
+        var barMid = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.12, 10), matMetalSilver);
+        barMid.rotation.z = Math.PI / 2;
+        barMid.position.set(0, 0.32, 0);
+        railGrp.add(postL, postR, barTop, barMid);
+        dioramaGroup.add(railGrp);
+      }
+      createGuardrail(-3.2, 4.55, 0);
+      createGuardrail(-1.4, 4.55, 0);
+      createGuardrail(0.6, 4.55, 0);
+      createGuardrail(2.4, 4.55, 0);
+
+      // -------------------------------------------------------------------
+      // B. STUDIO BUILDING SHELL, FASCIA SIGNBOARDS, WINDOWS & STREET PROPS
+      // -------------------------------------------------------------------
+      // Interior Wood Floor
+      var roomFloor = new THREE.Mesh(new THREE.BoxGeometry(8.2, 0.16, 7.2), matFloorWood);
+      roomFloor.position.set(-0.55, 0.28, -0.45);
+      roomFloor.receiveShadow = true;
+      dioramaGroup.add(roomFloor);
+
+      // Multi-ring Woven Rug under Sofa/Center
+      var rugOuter = new THREE.Mesh(
+        new THREE.CylinderGeometry(2.05, 2.05, 0.03, 36),
+        new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.85 })
+      );
+      rugOuter.position.set(0.25, 0.37, 0.55);
+      dioramaGroup.add(rugOuter);
+
+      var rugInner = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.45, 1.45, 0.035, 36),
+        new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.85 })
+      );
+      rugInner.position.set(0.25, 0.375, 0.55);
+      dioramaGroup.add(rugInner);
+
+      // Back Wall & Left Wall with Baseboards (踢脚线) & Window Cutouts
+      var backWall = new THREE.Mesh(new THREE.BoxGeometry(8.2, 4.5, 0.28), matWallInterior);
+      backWall.position.set(-0.55, 2.6, -3.95);
+      backWall.castShadow = true;
+      backWall.receiveShadow = true;
+      dioramaGroup.add(backWall);
+
+      var leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.28, 4.5, 7.2), matWallExterior);
+      leftWall.position.set(-4.55, 2.6, -0.45);
+      leftWall.castShadow = true;
+      leftWall.receiveShadow = true;
+      dioramaGroup.add(leftWall);
+
+      // Partial Right-Back Pillar & Glass Curtain Wall (Like the Lawson storefront!)
+      var rightCornerPillar = new THREE.Mesh(new THREE.BoxGeometry(0.28, 4.5, 0.28), matWallExterior);
+      rightCornerPillar.position.set(3.45, 2.6, -3.95);
+      dioramaGroup.add(rightCornerPillar);
+
+      var frontRightPillar = new THREE.Mesh(new THREE.BoxGeometry(0.24, 4.5, 0.24), matMetalSilver);
+      frontRightPillar.position.set(3.45, 2.6, 3.05);
+      dioramaGroup.add(frontRightPillar);
+
+      var frontLeftPillar = new THREE.Mesh(new THREE.BoxGeometry(0.24, 4.5, 0.24), matMetalSilver);
+      frontLeftPillar.position.set(-4.55, 2.6, 3.05);
+      dioramaGroup.add(frontLeftPillar);
+
+      // Subtle Frameless Glass Storefront Strip on Right Side
+      var rightGlassWall = new THREE.Mesh(new THREE.BoxGeometry(0.06, 3.8, 6.8), matGlassPane);
+      rightGlassWall.position.set(3.45, 2.25, -0.45);
+      dioramaGroup.add(rightGlassWall);
+
+      // Illuminated Lawson-Style Blue Fascia Signboards with Custom Canvas Textures
+      var fasciaTexMain = makeFasciaSignTexture('M1GHTY_2WY // CODE STUDIO 24/7');
+      var matFasciaMain = new THREE.MeshStandardMaterial({
+        map: fasciaTexMain,
+        emissive: 0x1d4ed8,
+        emissiveMap: fasciaTexMain,
+        emissiveIntensity: 0.45,
+        roughness: 0.3
+      });
+
+      var fasciaFront = new THREE.Mesh(new THREE.BoxGeometry(8.32, 0.68, 0.36), matFasciaMain);
+      fasciaFront.position.set(-0.55, 4.52, 3.05);
+      dioramaGroup.add(fasciaFront);
+
+      var fasciaRight = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.68, 7.32), matFasciaMain);
+      fasciaRight.position.set(3.45, 4.52, -0.45);
+      dioramaGroup.add(fasciaRight);
+
+      var fasciaBack = new THREE.Mesh(
+        new THREE.BoxGeometry(8.32, 0.68, 0.34),
+        new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.35 })
+      );
+      fasciaBack.position.set(-0.55, 4.52, -3.95);
+      dioramaGroup.add(fasciaBack);
+
+      var fasciaLeft = new THREE.Mesh(
+        new THREE.BoxGeometry(0.34, 0.68, 7.32),
+        new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.35 })
+      );
+      fasciaLeft.position.set(-4.55, 4.52, -0.45);
+      dioramaGroup.add(fasciaLeft);
+
+      // Tall Street-Corner Lawson-Style Pole Sign ("M1GHTY_2WY 24/7")
+      var poleSignGroup = new THREE.Group();
+      poleSignGroup.position.set(-4.85, 0.22, 3.75);
+      var mainPole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 5.4, 16), matMetalSilver);
+      mainPole.position.y = 2.7;
+      poleSignGroup.add(mainPole);
+
+      var poleArm = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), matMetalSilver);
+      poleArm.position.set(0.2, 4.9, 0);
+      poleSignGroup.add(poleArm);
+
+      var poleTex = makePoleSignTexture();
+      var signBox = new THREE.Mesh(
+        new THREE.BoxGeometry(1.25, 1.35, 0.2),
+        new THREE.MeshStandardMaterial({
+          map: poleTex,
+          emissive: 0xffffff,
+          emissiveMap: poleTex,
+          emissiveIntensity: 0.55
+        })
+      );
+      signBox.position.set(0.35, 5.15, 0);
+      poleSignGroup.add(signBox);
+      dioramaGroup.add(poleSignGroup);
+
+      // Outdoor Slatted Wooden Bench + Potted Plants + Sidewalk A-Frame Sign
+      var benchGroup = new THREE.Group();
+      benchGroup.position.set(-2.55, 0.22, 3.65);
+      var benchSeat = new THREE.Mesh(
+        new THREE.BoxGeometry(1.55, 0.08, 0.48),
+        new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.6 })
+      );
+      benchSeat.position.y = 0.38;
+      var bLegL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.36, 0.44), matDarkMetal);
+      bLegL.position.set(-0.62, 0.18, 0);
+      var bLegR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.36, 0.44), matDarkMetal);
+      bLegR.position.set(0.62, 0.18, 0);
+      benchGroup.add(benchSeat, bLegL, bLegR);
+      dioramaGroup.add(benchGroup);
+
+      // Potted Monstera Plants flanking the front entrance
+      function createPottedPlant(px, pz) {
+        var pg = new THREE.Group();
+        pg.position.set(px, 0.22, pz);
+        var pot = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.24, 0.18, 0.42, 14),
+          new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.7 })
+        );
+        pot.position.y = 0.21;
+        pg.add(pot);
+        var leafMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.5 });
+        for (var l = 0; l < 6; l++) {
+          var leaf = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.68, 5), leafMat);
+          var ang = (l / 6) * Math.PI * 2;
+          leaf.position.set(Math.cos(ang) * 0.08, 0.62, Math.sin(ang) * 0.08);
+          leaf.rotation.z = Math.cos(ang) * 0.28;
+          leaf.rotation.x = Math.sin(ang) * 0.28;
+          pg.add(leaf);
+        }
+        dioramaGroup.add(pg);
+      }
+      createPottedPlant(-3.8, 3.62);
+      createPottedPlant(1.4, 3.62);
+
+      // Detailed 24H Cyber Beverage Vending Machine on the Front-Right Exterior
+      var vendingGroup = new THREE.Group();
+      vendingGroup.position.set(2.95, 0.22, 3.58);
+      var vendBody = new THREE.Mesh(
+        new THREE.BoxGeometry(1.05, 2.15, 0.72),
+        new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.35, metalness: 0.3 })
+      );
+      vendBody.position.y = 1.08;
+      vendBody.castShadow = true;
+      vendingGroup.add(vendBody);
+      addPickable(vendBody, 'coffee');
+
+      var vendWindow = new THREE.Mesh(
+        new THREE.BoxGeometry(0.76, 1.15, 0.06),
+        new THREE.MeshStandardMaterial({ color: 0xe0f2fe, emissive: 0x38bdf8, emissiveIntensity: 0.75 })
+      );
+      vendWindow.position.set(-0.06, 1.38, 0.35);
+      vendingGroup.add(vendWindow);
+      addPickable(vendWindow, 'coffee');
+
+      var vendPickup = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.26, 0.06), matDarkMetal);
+      vendPickup.position.set(-0.06, 0.42, 0.35);
+      vendingGroup.add(vendPickup);
+      dioramaGroup.add(vendingGroup);
+
+      // Detailed 3D Bicycle Parked on the Front-Right Corner (Just like the Lawson reference image!)
+      var bikeGroup = new THREE.Group();
+      bikeGroup.position.set(3.25, 0.22, 4.35);
+      bikeGroup.rotation.y = -0.35;
+      var matBikeFrame = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.2 });
+      var wheelBack = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.035, 10, 24), matBikeFrame);
+      wheelBack.position.set(-0.48, 0.34, 0);
+      var wheelFront = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.035, 10, 24), matBikeFrame);
+      wheelFront.position.set(0.48, 0.34, 0);
+      var frameBar1 = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.95, 8), matMetalSilver);
+      frameBar1.rotation.z = Math.PI / 2.2;
+      frameBar1.position.set(0, 0.52, 0);
+      var handleStem = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.65, 8), matMetalSilver);
+      handleStem.position.set(0.42, 0.62, 0);
+      handleStem.rotation.z = 0.2;
+      var bikeBasket = new THREE.Mesh(
+        new THREE.BoxGeometry(0.26, 0.22, 0.32),
+        new THREE.MeshStandardMaterial({ color: 0x94a3b8, wireframe: true })
+      );
+      bikeBasket.position.set(0.56, 0.72, 0);
+      bikeGroup.add(wheelBack, wheelFront, frameBar1, handleStem, bikeBasket);
+      dioramaGroup.add(bikeGroup);
+
+      // Lush Multi-Branch Sakura Tree on the Back-Right Sidewalk
+      var sakuraGroup = new THREE.Group();
+      sakuraGroup.position.set(4.15, 0.22, -2.35);
+      var treeGrate = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 0.04, 16), matDarkMetal);
+      sakuraGroup.add(treeGrate);
+
+      var matBark = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.88 });
+      var mainTrunk = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.28, 3.6, 12), matBark);
+      mainTrunk.position.y = 1.8;
+      mainTrunk.castShadow = true;
+      sakuraGroup.add(mainTrunk);
+
+      // Sub-branches
+      var branchL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.13, 1.6, 8), matBark);
+      branchL.position.set(-0.45, 3.4, 0.25);
+      branchL.rotation.z = 0.55;
+      var branchR = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.13, 1.5, 8), matBark);
+      branchR.position.set(0.48, 3.5, -0.2);
+      branchR.rotation.z = -0.5;
+      sakuraGroup.add(branchL, branchR);
+
+      var sakuraShades = [
+        new THREE.MeshStandardMaterial({ color: 0xf9a8d4, roughness: 0.55 }),
+        new THREE.MeshStandardMaterial({ color: 0xf472b6, roughness: 0.55 }),
+        new THREE.MeshStandardMaterial({ color: 0xfbcfe8, roughness: 0.55 })
+      ];
+      var blossomNodes = [
+        [0, 4.3, 0, 1.15], [-0.85, 3.85, 0.45, 0.88], [0.88, 3.95, -0.35, 0.92],
+        [0.3, 4.75, 0.55, 0.82], [-0.55, 4.55, -0.6, 0.85], [0.65, 4.35, 0.65, 0.76],
+        [-0.95, 4.25, -0.2, 0.74], [0.1, 3.75, 0.95, 0.78], [-0.2, 3.9, -0.95, 0.8],
+        [1.15, 4.2, 0.2, 0.68], [-0.4, 4.95, 0.1, 0.72], [0.45, 4.85, -0.45, 0.7]
+      ];
+      blossomNodes.forEach(function (b, idx) {
+        var puff = new THREE.Mesh(new THREE.IcosahedronGeometry(b[3], 1), sakuraShades[idx % 3]);
+        puff.position.set(b[0], b[1], b[2]);
+        puff.castShadow = true;
+        sakuraGroup.add(puff);
+      });
+      dioramaGroup.add(sakuraGroup);
+
+      // Detailed Retractable Roof with Parapet, 2 Spinning-Fan HVAC Units & Vent Pipe
+      var roofGroup = new THREE.Group();
+      var roofDeck = new THREE.Mesh(
+        new THREE.BoxGeometry(8.35, 0.22, 7.35),
+        new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.5 })
+      );
+      roofDeck.position.set(-0.55, 4.95, -0.45);
+      roofGroup.add(roofDeck);
+
+      var acFans = [];
+      for (var ac = 0; ac < 2; ac++) {
+        var acUnit = new THREE.Group();
+        acUnit.position.set(-2.2 + ac * 2.7, 5.32, -1.25);
+        var acHousing = new THREE.Mesh(
+          new THREE.BoxGeometry(1.55, 0.54, 1.15),
+          new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.4 })
+        );
+        var fanRing = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.56, 20), matDarkMetal);
+        var fanBlade = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.58, 0.08), matMetalSilver);
+        acUnit.add(acHousing, fanRing, fanBlade);
+        acFans.push(fanBlade);
+        roofGroup.add(acUnit);
+      }
+      roofGroup.position.y = 6.5;
+      roofGroup.visible = false;
+      dioramaGroup.add(roofGroup);
+
+      // -------------------------------------------------------------------
+      // C. HOTSPOT 1: ULTRA-DETAILED PROGRAMMER M1GHTY_2WY & TRIPLE-MONITOR DESK
+      // -------------------------------------------------------------------
+      var coderStation = new THREE.Group();
+      coderStation.position.set(-1.25, 0.35, -1.65);
+
+      // Motorized Sit-Stand Desk + RGB Desk Mat
+      var deskSurface = new THREE.Mesh(
+        new THREE.BoxGeometry(3.6, 0.12, 1.55),
+        new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.35 })
+      );
+      deskSurface.position.set(0, 1.15, 0);
+      deskSurface.castShadow = true;
+      coderStation.add(deskSurface);
+      addPickable(deskSurface, 'coder');
+
+      var deskMatRGB = new THREE.Mesh(
+        new THREE.BoxGeometry(2.15, 0.02, 0.72),
+        new THREE.MeshStandardMaterial({ color: 0x0f172a, emissive: 0x0284c7, emissiveIntensity: 0.35 })
+      );
+      deskMatRGB.position.set(-0.2, 1.22, 0.22);
+      coderStation.add(deskMatRGB);
+
+      var deskLegL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.15, 1.3), matDarkMetal);
+      deskLegL.position.set(-1.62, 0.57, 0);
+      var deskLegR = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.15, 1.3), matDarkMetal);
+      deskLegR.position.set(1.62, 0.57, 0);
+      coderStation.add(deskLegL, deskLegR);
+
+      // Triple Monitors with Real Code Canvas Textures + Monitor Arms
+      var texCodeMain = makeCodeMonitorTexture('#38bdf8');
+      var texCodeSide = makeCodeMonitorTexture('#f59e0b');
+      var matMonMain = new THREE.MeshStandardMaterial({
+        map: texCodeMain,
+        emissive: 0xffffff,
+        emissiveMap: texCodeMain,
+        emissiveIntensity: 0.75
+      });
+      var matMonSide = new THREE.MeshStandardMaterial({
+        map: texCodeSide,
+        emissive: 0xffffff,
+        emissiveMap: texCodeSide,
+        emissiveIntensity: 0.7
+      });
+
+      var monCenter = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.82, 0.07), matMonMain);
+      monCenter.position.set(-0.2, 1.78, -0.36);
+      coderStation.add(monCenter);
+      addPickable(monCenter, 'coder');
+
+      var monLeft = new THREE.Mesh(new THREE.BoxGeometry(0.58, 1.05, 0.07), matMonSide);
+      monLeft.position.set(-1.26, 1.82, -0.16);
+      monLeft.rotation.y = 0.38;
+      coderStation.add(monLeft);
+      addPickable(monLeft, 'coder');
+
+      var monRight = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.68, 0.07), matMonSide);
+      monRight.position.set(0.88, 1.74, -0.18);
+      monRight.rotation.y = -0.35;
+      coderStation.add(monRight);
+      addPickable(monRight, 'coder');
+
+      // Custom Glass Water-Cooled RGB PC Tower on Right Edge of Desk
+      var pcTower = new THREE.Group();
+      pcTower.position.set(1.48, 1.62, -0.1);
+      var pcCase = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.82, 0.82), matDarkMetal);
+      var pcGlass = new THREE.Mesh(
+        new THREE.BoxGeometry(0.48, 0.72, 0.72),
+        new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0xa855f7, emissiveIntensity: 0.65, transparent: true, opacity: 0.55 })
+      );
+      pcTower.add(pcCase, pcGlass);
+      coderStation.add(pcTower);
+      addPickable(pcCase, 'coder');
+
+      // 65% Mechanical Keyboard with Keycap Rows & Gaming Mouse
+      var kbBase = new THREE.Mesh(
+        new THREE.BoxGeometry(0.72, 0.045, 0.26),
+        new THREE.MeshStandardMaterial({ color: 0xe2e8f0 })
+      );
+      kbBase.position.set(-0.25, 1.24, 0.24);
+      var kbKeys = new THREE.Mesh(
+        new THREE.BoxGeometry(0.66, 0.03, 0.2),
+        new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0xec4899, emissiveIntensity: 0.65 })
+      );
+      kbKeys.position.set(-0.25, 1.265, 0.24);
+      var mouseMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.14, 0.045, 0.22),
+        new THREE.MeshStandardMaterial({ color: 0xf8fafc, emissive: 0x38bdf8, emissiveIntensity: 0.4 })
+      );
+      mouseMesh.position.set(0.32, 1.24, 0.24);
+      coderStation.add(kbBase, kbKeys, mouseMesh);
+
+      // Geek Pegboard (洞洞板) & GitHub Commit Wall on the Back Wall behind Desk
+      var pegboard = new THREE.Mesh(
+        new THREE.BoxGeometry(3.2, 1.55, 0.06),
+        new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.6 })
+      );
+      pegboard.position.set(-1.25, 3.35, -3.76);
+      dioramaGroup.add(pegboard);
+
+      // GitHub Green Contribution Grid on Pegboard
+      for (var gx = 0; gx < 8; gx++) {
+        for (var gy = 0; gy < 3; gy++) {
+          var commitTile = new THREE.Mesh(
+            new THREE.BoxGeometry(0.16, 0.16, 0.04),
+            new THREE.MeshStandardMaterial({
+              color: (gx + gy) % 2 === 0 ? 0x22c55e : 0x15803d,
+              emissive: 0x16a34a,
+              emissiveIntensity: 0.45
+            })
+          );
+          commitTile.position.set(-2.1 + gx * 0.22, 3.1 + gy * 0.22, -3.71);
+          dioramaGroup.add(commitTile);
+        }
+      }
+
+      // Articulated Programmer Character (M1ghty_2wy) in Ergonomic Chair
+      var programmerGroup = new THREE.Group();
+      programmerGroup.position.set(-0.2, 0, 0.92);
+
+      // 5-Star Chair Base + Cylinder + Seat + Mesh Backrest + Headrest
+      var chairStarBase = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.06, 5), matMetalSilver);
+      chairStarBase.position.y = 0.06;
+      var chairPiston = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.62, 10), matDarkMetal);
+      chairPiston.position.y = 0.36;
+      var chairSeat = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.12, 0.82), matDarkMetal);
+      chairSeat.position.y = 0.7;
+      var chairBack = new THREE.Mesh(
+        new THREE.BoxGeometry(0.78, 1.28, 0.12),
+        new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.45 })
+      );
+      chairBack.position.set(0, 1.38, 0.38);
+      var chairHeadrest = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.24, 0.12), matDarkMetal);
+      chairHeadrest.position.set(0, 2.12, 0.36);
+      programmerGroup.add(chairStarBase, chairPiston, chairSeat, chairBack, chairHeadrest);
+
+      // Character Legs & Sneakers
+      var matJeans = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.7 });
+      var legL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.58, 0.26), matJeans);
+      legL.position.set(-0.2, 0.44, -0.26);
+      var legR = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.58, 0.26), matJeans);
+      legR.position.set(0.2, 0.44, -0.26);
+      programmerGroup.add(legL, legR);
+
+      // Hoodie Torso
+      var matHoodie = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.55 });
+      var torso = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.84, 0.44), matHoodie);
+      torso.position.set(0, 1.24, 0.04);
+      programmerGroup.add(torso);
+      addPickable(torso, 'coder');
+
+      // Sculpted Head + Hair + Glasses + Glowing Headset
+      var headGroup = new THREE.Group();
+      headGroup.position.set(0, 1.92, 0.02);
+      var matSkin = new THREE.MeshStandardMaterial({ color: 0xfde68a, roughness: 0.4 });
+      var headBox = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), matSkin);
+      headGroup.add(headBox);
+      addPickable(headBox, 'coder');
+
+      var hairTop = new THREE.Mesh(
+        new THREE.BoxGeometry(0.54, 0.2, 0.54),
+        new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.6 })
+      );
+      hairTop.position.y = 0.22;
+      headGroup.add(hairTop);
+
+      // Geek Glasses Rim
+      var glassesFrame = new THREE.Mesh(
+        new THREE.BoxGeometry(0.48, 0.12, 0.06),
+        new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8 })
+      );
+      glassesFrame.position.set(0, 0.04, -0.26);
+      headGroup.add(glassesFrame);
+
+      // Glowing RGB Headphones (Band + Left/Right Earcups)
+      var matHeadsetGlow = new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        emissive: 0x0ea5e9,
+        emissiveIntensity: 0.75
+      });
+      var hpBand = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.1, 0.16), matHeadsetGlow);
+      hpBand.position.y = 0.28;
+      var hpEarL = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.1, 12), matHeadsetGlow);
+      hpEarL.rotation.z = Math.PI / 2;
+      hpEarL.position.set(-0.28, 0.02, 0);
+      var hpEarR = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.1, 12), matHeadsetGlow);
+      hpEarR.rotation.z = Math.PI / 2;
+      hpEarR.position.set(0.28, 0.02, 0);
+      headGroup.add(hpBand, hpEarL, hpEarR);
+      programmerGroup.add(headGroup);
+
+      // Articulated Typing Arms & Hands
+      var leftArm = new THREE.Group();
+      leftArm.position.set(-0.36, 1.32, -0.3);
+      var lSleeve = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.58), matHoodie);
+      var lHand = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.14, 0.18), matSkin);
+      lHand.position.set(0, -0.02, -0.34);
+      leftArm.add(lSleeve, lHand);
+      programmerGroup.add(leftArm);
+
+      var rightArm = new THREE.Group();
+      rightArm.position.set(0.36, 1.32, -0.3);
+      var rSleeve = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.58), matHoodie);
+      var rHand = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.14, 0.18), matSkin);
+      rHand.position.set(0, -0.02, -0.34);
+      rightArm.add(rSleeve, rHand);
+      programmerGroup.add(rightArm);
+
+      coderStation.add(programmerGroup);
+      dioramaGroup.add(coderStation);
+
+      // -------------------------------------------------------------------
+      // D. HOTSPOT 2: ESPRESSO BAR, POUR-OVER DRIPPER & BOOKSHELF
+      // -------------------------------------------------------------------
+      var coffeeStation = new THREE.Group();
+      coffeeStation.position.set(2.25, 0.35, -2.75);
+
+      var counterBase = new THREE.Mesh(
+        new THREE.BoxGeometry(2.1, 1.15, 1.15),
+        new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 })
+      );
+      counterBase.position.y = 0.58;
+      counterBase.castShadow = true;
+      coffeeStation.add(counterBase);
+      addPickable(counterBase, 'coffee');
+
+      var counterWoodTop = new THREE.Mesh(
+        new THREE.BoxGeometry(2.2, 0.1, 1.22),
+        new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.45 })
+      );
+      counterWoodTop.position.y = 1.18;
+      coffeeStation.add(counterWoodTop);
+
+      // Detailed Italian Espresso Machine + Grinder + Steaming Cup
+      var espressoBody = new THREE.Mesh(
+        new THREE.BoxGeometry(0.82, 0.76, 0.64),
+        new THREE.MeshStandardMaterial({ color: 0xdc2626, metalness: 0.55, roughness: 0.25 })
+      );
+      espressoBody.position.set(-0.42, 1.6, 0);
+      coffeeStation.add(espressoBody);
+      addPickable(espressoBody, 'coffee');
+
+      var grinderMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.68, 14), matDarkMetal);
+      grinderMesh.position.set(0.25, 1.56, -0.15);
+      coffeeStation.add(grinderMesh);
+
+      var coffeeCup = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.16, 0.13, 0.32, 16),
+        new THREE.MeshStandardMaterial({ color: 0xfef08a, emissive: 0xf59e0b, emissiveIntensity: 0.45 })
+      );
+      coffeeCup.position.set(0.62, 1.38, 0.18);
+      coffeeStation.add(coffeeCup);
+      addPickable(coffeeCup, 'coffee');
+
+      dioramaGroup.add(coffeeStation);
+
+      // -------------------------------------------------------------------
+      // E. HOTSPOT 3: SCULPTED ORANGE CAT "NullPointer" ON TUFTED SOFA
+      // -------------------------------------------------------------------
+      var catGroup = new THREE.Group();
+      catGroup.position.set(1.85, 0.35, 1.05);
+
+      var matSofaFabric = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.75 });
+      var sofaSeat = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.46, 1.15), matSofaFabric);
+      sofaSeat.position.y = 0.25;
+      sofaSeat.castShadow = true;
+      catGroup.add(sofaSeat);
+      addPickable(sofaSeat, 'cat');
+
+      var sofaBackrest = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.96, 0.28), matSofaFabric);
+      sofaBackrest.position.set(0, 0.52, -0.44);
+      var sofaArmL = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.68, 1.15), matSofaFabric);
+      sofaArmL.position.set(-1.0, 0.38, 0);
+      var sofaArmR = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.68, 1.15), matSofaFabric);
+      sofaArmR.position.set(1.0, 0.38, 0);
+      catGroup.add(sofaBackrest, sofaArmL, sofaArmR);
+
+      // Detailed Orange Cat with Ears, Paws & Animated Tail
+      var orangeCat = new THREE.Group();
+      orangeCat.position.set(0.05, 0.68, 0.06);
+      var matCatOrange = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.5 });
+      var matCatWhite = new THREE.MeshStandardMaterial({ color: 0xfffbeb, roughness: 0.5 });
+
+      var catBody = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.34, 0.4), matCatOrange);
+      orangeCat.add(catBody);
+      addPickable(catBody, 'cat');
+
+      var catHead = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.36, 0.38), matCatOrange);
+      catHead.position.set(-0.3, 0.18, 0);
+      orangeCat.add(catHead);
+      addPickable(catHead, 'cat');
+
+      // Cat Pointed Ears
+      var earL = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.18, 4), matCatOrange);
+      earL.position.set(-0.3, 0.42, -0.11);
+      var earR = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.18, 4), matCatOrange);
+      earR.position.set(-0.3, 0.42, 0.11);
+      var catTail = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.48, 8), matCatOrange);
+      catTail.position.set(0.36, 0.22, 0);
+      catTail.rotation.z = -0.6;
+      var pawFL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.1, 0.12), matCatWhite);
+      pawFL.position.set(-0.22, -0.14, -0.12);
+      var pawFR = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.1, 0.12), matCatWhite);
+      pawFR.position.set(-0.22, -0.14, 0.12);
+      orangeCat.add(earL, earR, catTail, pawFL, pawFR);
+
+      catGroup.add(orangeCat);
+      dioramaGroup.add(catGroup);
+
+      // -------------------------------------------------------------------
+      // F. HOTSPOT 4: HOME-LAB SERVER RACK WITH BLADE UNITS & GUITAR
+      // -------------------------------------------------------------------
+      var serverGroup = new THREE.Group();
+      serverGroup.position.set(-3.55, 0.35, -2.85);
+
+      var rackChassis = new THREE.Mesh(
+        new THREE.BoxGeometry(1.18, 2.75, 1.12),
+        new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.75, roughness: 0.25 })
+      );
+      rackChassis.position.y = 1.38;
+      rackChassis.castShadow = true;
+      serverGroup.add(rackChassis);
+      addPickable(rackChassis, 'server');
+
+      for (var sRow = 0; sRow < 6; sRow++) {
+        var blade = new THREE.Mesh(
+          new THREE.BoxGeometry(0.92, 0.14, 0.06),
+          new THREE.MeshStandardMaterial({
+            color: sRow % 2 === 0 ? 0x10b981 : 0x38bdf8,
+            emissive: sRow % 2 === 0 ? 0x10b981 : 0x38bdf8,
+            emissiveIntensity: 0.95
+          })
+        );
+        blade.position.set(0, 0.45 + sRow * 0.38, 0.56);
+        serverGroup.add(blade);
+      }
+
+      var serverHoloMesh = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.75, 1),
+        new THREE.MeshBasicMaterial({ color: 0x34d399, wireframe: true, transparent: true, opacity: 0.0 })
+      );
+      serverHoloMesh.position.set(0, 3.35, 0);
+      serverGroup.add(serverHoloMesh);
+      dioramaGroup.add(serverGroup);
+
+      // -------------------------------------------------------------------
+      // G. HOTSPOT 5: SCI-FI HOLOGRAPHIC PORTAL TO PERSONAL SPACE
+      // -------------------------------------------------------------------
+      var portalStation = new THREE.Group();
+      portalStation.position.set(-3.55, 0.35, 1.55);
+
+      var portalPedestal = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.18, 0.18, 24), matDarkMetal);
+      portalPedestal.position.y = 0.09;
+      portalStation.add(portalPedestal);
+
+      var portalFrame = new THREE.Mesh(
+        new THREE.BoxGeometry(0.36, 2.95, 1.95),
+        new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.82, roughness: 0.2 })
+      );
+      portalFrame.position.y = 1.48;
+      portalStation.add(portalFrame);
+      addPickable(portalFrame, 'portal');
+
+      var portalCoreScreen = new THREE.Mesh(
+        new THREE.BoxGeometry(0.42, 2.48, 1.55),
+        new THREE.MeshStandardMaterial({
+          color: 0x38bdf8,
+          emissive: 0x2563eb,
+          emissiveIntensity: 1.15,
+          roughness: 0.12
+        })
+      );
+      portalCoreScreen.position.y = 1.48;
+      portalStation.add(portalCoreScreen);
+      addPickable(portalCoreScreen, 'portal');
+
+      var portalRing = new THREE.Mesh(
+        new THREE.TorusGeometry(0.72, 0.055, 14, 48),
+        new THREE.MeshBasicMaterial({ color: 0xfacc15 })
+      );
+      portalRing.position.set(0.32, 1.48, 0);
+      portalRing.rotation.y = Math.PI / 2;
+      portalStation.add(portalRing);
+      addPickable(portalRing, 'portal');
+
+      dioramaGroup.add(portalStation);
+
+      // -------------------------------------------------------------------
+      // 7. WEATHER PARTICLES (SAKURA PETALS / RAIN / SNOW)
+      // -------------------------------------------------------------------
+      var weatherCount = 680;
+      var weatherGeo = new THREE.BufferGeometry();
+      var weatherPos = new Float32Array(weatherCount * 3);
+      for (var wIdx = 0; wIdx < weatherCount; wIdx++) {
+        weatherPos[wIdx * 3] = (Math.random() - 0.5) * 18;
+        weatherPos[wIdx * 3 + 1] = Math.random() * 12;
+        weatherPos[wIdx * 3 + 2] = (Math.random() - 0.5) * 18;
+      }
+      weatherGeo.setAttribute('position', new THREE.BufferAttribute(weatherPos, 3));
+      var weatherMat = new THREE.PointsMaterial({
+        color: 0xf4a8c0,
+        size: 0.14,
+        transparent: true,
+        opacity: 0.72
+      });
+      var weatherPoints = new THREE.Points(weatherGeo, weatherMat);
+      scene.add(weatherPoints);
+
+      // -------------------------------------------------------------------
+      // 8. CAMERA ORBIT & RAYCAST CLICK INTERACTION
+      // -------------------------------------------------------------------
+      var camAzimuth = 0.72;
+      var camElevation = 0.52;
+      var camDistance = 17.5;
+      var camLookTarget = new THREE.Vector3(0, 1.4, 0);
+
+      var isDragging = false;
+      var dragStartX = 0;
+      var dragStartY = 0;
+      var pointerMovedDist = 0;
+
+      container.addEventListener('pointerdown', function (e) {
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        pointerMovedDist = 0;
+      });
+
+      window.addEventListener('pointermove', function (e) {
+        if (!isDragging) return;
+        var dx = e.clientX - dragStartX;
+        var dy = e.clientY - dragStartY;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        pointerMovedDist += Math.abs(dx) + Math.abs(dy);
+
+        camAzimuth -= dx * 0.0065;
+        camElevation = Math.max(0.18, Math.min(1.25, camElevation + dy * 0.0065));
+      });
+
+      var raycaster = new THREE.Raycaster();
+      var mouseNDC = new THREE.Vector2();
+
+      window.addEventListener('pointerup', function (e) {
+        if (!isDragging) return;
+        isDragging = false;
+
+        if (pointerMovedDist < 6 && !state.isIdeOpen) {
+          mouseNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
+          mouseNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
+          raycaster.setFromCamera(mouseNDC, camera);
+          var hits = raycaster.intersectObjects(interactivePickables, false);
+          if (hits.length > 0) {
+            var key = hits[0].object.userData.hotspotKey;
+            if (key) triggerHotspotAction(key);
+          }
+        }
+      });
+
+      container.addEventListener('wheel', function (e) {
+        e.preventDefault();
+        camDistance = Math.max(9.5, Math.min(26.0, camDistance + e.deltaY * 0.01));
+      }, { passive: false });
+
+      // -------------------------------------------------------------------
+      // 9. ROOM EASTER EGGS & HOTSPOT ACTIONS
+      // -------------------------------------------------------------------
+      var toastTimeout = null;
+      function showRoomToast(icon, title, desc) {
+        var toast = document.getElementById('room-easter-toast');
+        document.getElementById('toast-icon').textContent = icon;
+        document.getElementById('toast-title').textContent = title;
+        document.getElementById('toast-desc').textContent = desc;
+        toast.classList.remove('opacity-0', '-translate-y-2');
+        toast.classList.add('opacity-100', 'translate-y-0');
+
+        if (toastTimeout) clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(function () {
+          toast.classList.remove('opacity-100', 'translate-y-0');
+          toast.classList.add('opacity-0', '-translate-y-2');
+        }, 4200);
+      }
+
+      function updateEggCounterUI() {
+        var keys = Object.keys(state.unlockedEggs);
+        var count = 0;
+        keys.forEach(function (k) {
+          if (state.unlockedEggs[k]) count++;
+        });
+        document.getElementById('hud-egg-counter').textContent = '🎁 房间彩蛋已触发: ' + count + ' / 5';
+        renderAboutEggBadges();
+      }
+
+      function triggerHotspotAction(key) {
+        ensureAudio();
+        state.unlockedEggs[key] = true;
+        updateEggCounterUI();
+
+        if (key === 'coder') {
+          state.overdriveTimer = 4.5;
+          playChimeSfx([329.63, 440.0, 554.37, 659.25]);
+          showRoomToast(
+            '⚡',
+            '彩蛋 #1：狂暴敲代码模式 (APM 999+)',
+            'M1ghty_2wy 开启十倍手速输出！三联屏与水冷机箱 RGB 全开：“只要我敲得够快，产品经理就改不了需求！”'
+          );
+        } else if (key === 'coffee') {
+          state.coffeeBoostTimer = 4.0;
+          state.overdriveTimer = 3.0;
+          playChimeSfx([261.63, 392.0, 523.25]);
+          showRoomToast(
+            '☕',
+            '彩蛋 #2：注入灵魂特浓冰美式',
+            '意式咖啡机与街角贩卖机全功率运转！血液咖啡因浓度突破 120%，今日发际线防守成功！'
+          );
+        } else if (key === 'cat') {
+          state.catJumpTimer = 3.5;
+          playChimeSfx([523.25, 659.25, 783.99]);
+          showRoomToast(
+            '🐱',
+            '彩蛋 #3：橘猫 NullPointer 空翻卖萌',
+            '喵呜！橘猫摇着尾巴在沙发上开心起跳，并趁你不注意帮你按下了 Ctrl + S 保存代码！'
+          );
+        } else if (key === 'server') {
+          state.serverHologramTimer = 5.0;
+          playChimeSfx([196.0, 293.66, 392.0, 587.33]);
+          showRoomToast(
+            '🖥️',
+            '彩蛋 #4：深夜家庭服务器全息超频',
+            'HomeLab 机柜开启全息投影矩阵！温度正常，0 Error 0 Warning，稳如老狗！'
+          );
+        } else if (key === 'portal') {
+          playChimeSfx([293.66, 440.0, 587.33, 880.0]);
+          openPersonalSpaceModal();
+        }
+      }
+
+      document.querySelectorAll('[data-hotspot]').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          triggerHotspotAction(btn.getAttribute('data-hotspot'));
+        });
+      });
+
+      // -------------------------------------------------------------------
+      // 10. DAY/NIGHT, WEATHER & ROOF CONTROLS
+      // -------------------------------------------------------------------
+      var TIME_LABELS = { night: '🌙 夜晚', dusk: '🌅 黄昏', day: '☀️ 白天' };
+      var WEATHER_LABELS = { clear: '🌤️ 晴天', rain: '🌧️ 雨天', snow: '❄️ 雪天' };
+
+      function updateEnvStatusLabel() {
+        document.getElementById('hud-env-status').innerHTML =
+          '<span>' + TIME_LABELS[state.timeOfDay] + '</span><span class="text-slate-500">·</span><span>' + WEATHER_LABELS[state.weather] + '</span>';
+      }
+
+      function setTimeOfDay(mode) {
+        state.timeOfDay = mode;
+        if (mode === 'night') {
+          scene.background.setHex(0x162238);
+          scene.fog.color.setHex(0x162238);
+          ambientLight.intensity = 0.78;
+          dirLight.intensity = 0.75;
+          dirLight.color.setHex(0x93c5fd);
+          warmRoomLight.intensity = 1.55;
+        } else if (mode === 'dusk') {
+          scene.background.setHex(0x2d1f3d);
+          scene.fog.color.setHex(0x2d1f3d);
+          ambientLight.intensity = 0.95;
+          dirLight.intensity = 1.25;
+          dirLight.color.setHex(0xfb923c);
+          warmRoomLight.intensity = 1.35;
+        } else {
+          scene.background.setHex(0x3b6998);
+          scene.fog.color.setHex(0x3b6998);
+          ambientLight.intensity = 1.25;
+          dirLight.intensity = 1.5;
+          dirLight.color.setHex(0xffffff);
+          warmRoomLight.intensity = 0.7;
+        }
+
+        document.querySelectorAll('.time-btn').forEach(function (btn) {
+          if (btn.getAttribute('data-time') === mode) {
+            btn.className = 'time-btn px-2.5 py-1 rounded-lg text-xs transition bg-sky-500/25 text-sky-200 border border-sky-400/40';
+          } else {
+            btn.className = 'time-btn px-2.5 py-1 rounded-lg text-xs transition text-slate-400 hover:text-white';
+          }
+        });
+        updateEnvStatusLabel();
+      }
+
+      function setWeather(mode) {
+        state.weather = mode;
+        if (mode === 'clear') {
+          weatherMat.color.setHex(0xf4a8c0);
+          weatherMat.size = 0.14;
+        } else if (mode === 'rain') {
+          weatherMat.color.setHex(0x7dd3fc);
+          weatherMat.size = 0.11;
+        } else {
+          weatherMat.color.setHex(0xffffff);
+          weatherMat.size = 0.18;
+        }
+
+        document.querySelectorAll('.weather-btn').forEach(function (btn) {
+          if (btn.getAttribute('data-weather') === mode) {
+            btn.className = 'weather-btn px-2.5 py-1 rounded-lg text-xs transition bg-sky-500/25 text-sky-200 border border-sky-400/40';
+          } else {
+            btn.className = 'weather-btn px-2.5 py-1 rounded-lg text-xs transition text-slate-400 hover:text-white';
+          }
+        });
+        updateEnvStatusLabel();
+      }
+
+      document.querySelectorAll('.time-btn').forEach(function (b) {
+        b.addEventListener('click', function () {
+          setTimeOfDay(b.getAttribute('data-time'));
+        });
+      });
+
+      document.querySelectorAll('.weather-btn').forEach(function (b) {
+        b.addEventListener('click', function () {
+          setWeather(b.getAttribute('data-weather'));
+        });
+      });
+
+      document.getElementById('btn-rainy-night').addEventListener('click', function () {
+        setTimeOfDay('night');
+        setWeather('rain');
+        showRoomToast('🌧️', '已切换至「深夜听雨敲代码」模式', '窗外细雨绵绵，屋内咖啡飘香，正是 M1ghty_2wy 灵感迸发的时刻。');
+      });
+
+      document.getElementById('btn-toggle-roof').addEventListener('click', function () {
+        state.roofOpen = !state.roofOpen;
+        roofGroup.visible = state.roofOpen;
+      });
+
+      document.getElementById('btn-top-audio').addEventListener('click', function (e) {
+        state.audioOn = !state.audioOn;
+        e.currentTarget.textContent = state.audioOn ? '🔊' : '🔇';
+      });
+
+      document.getElementById('btn-top-reset-cam').addEventListener('click', function () {
+        camAzimuth = 0.72;
+        camElevation = 0.52;
+        camDistance = 17.5;
+      });
+
+      document.getElementById('btn-top-markers').addEventListener('click', function () {
+        state.showMarkers = !state.showMarkers;
+        document.getElementById('hotspots-layer').style.display = state.showMarkers ? 'block' : 'none';
+      });
+
+      document.getElementById('btn-top-ide').addEventListener('click', function () {
+        state.isIdeOpen = true;
+        var overlay = document.getElementById('ide-intro-overlay');
+        overlay.classList.remove('hidden');
+        overlay.style.opacity = '1';
+        loadIdeStage(0);
+      });
+
+      // -------------------------------------------------------------------
+      // 11. PERSONAL SPACE MODAL & DYNAMIC PROJECTS / ARTICLES
+      // -------------------------------------------------------------------
+      function openPersonalSpaceModal() {
+        state.unlockedEggs.portal = true;
+        updateEggCounterUI();
+        document.getElementById('personal-space-modal').classList.remove('hidden');
+      }
+
+      function closePersonalSpaceModal() {
+        document.getElementById('personal-space-modal').classList.add('hidden');
+      }
+
+      document.getElementById('btn-open-personal-space').addEventListener('click', openPersonalSpaceModal);
+      document.getElementById('btn-back-to-room').addEventListener('click', closePersonalSpaceModal);
+
+      document.querySelectorAll('.space-tab-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var target = btn.getAttribute('data-space-tab');
+          ['about', 'projects', 'articles'].forEach(function (t) {
+            var panel = document.getElementById('space-tab-' + t);
+            if (t === target) panel.classList.remove('hidden');
+            else panel.classList.add('hidden');
+          });
+          document.querySelectorAll('.space-tab-btn').forEach(function (b) {
+            if (b.getAttribute('data-space-tab') === target) {
+              b.className = 'space-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-medium transition bg-sky-500 text-white';
+            } else {
+              b.className = 'space-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-white';
+            }
+          });
+        });
+      });
+
+      function renderAboutEggBadges() {
+        var labels = [
+          { k: 'coder', name: '👨‍💻 狂暴敲代码' },
+          { k: 'coffee', name: '☕ 续命冰美式' },
+          { k: 'cat', name: '🐱 橘猫踩键盘' },
+          { k: 'server', name: '🖥️ 服务器全息' },
+          { k: 'portal', name: '🚪 空间传送门' }
+        ];
+        var box = document.getElementById('about-eggs-badges');
+        box.innerHTML = '';
+        labels.forEach(function (item) {
+          var unlocked = state.unlockedEggs[item.k];
+          var d = document.createElement('div');
+          d.className = unlocked
+            ? 'px-2.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 flex items-center justify-between'
+            : 'px-2.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-500 flex items-center justify-between';
+          d.innerHTML = '<span>' + item.name + '</span><span>' + (unlocked ? '✓' : '?') + '</span>';
+          box.appendChild(d);
+        });
+      }
+
+      function renderProjects() {
+        var box = document.getElementById('projects-container');
+        box.innerHTML = '';
+        state.projects.forEach(function (p) {
+          var card = document.createElement('div');
+          card.className = 'p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition flex flex-col justify-between gap-2';
+          card.innerHTML =
+            '<div>' +
+              '<div class="flex items-center justify-between gap-2">' +
+                '<span class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-400/30">' + p.ver + '</span>' +
+                '<span class="text-[11px] font-mono-code text-slate-500">' + (p.date || '2026') + '</span>' +
+              '</div>' +
+              '<h4 class="text-sm font-bold text-white mt-2">' + p.name + '</h4>' +
+              '<p class="text-xs text-slate-300 mt-1 leading-relaxed">' + p.desc + '</p>' +
+            '</div>';
+          box.appendChild(card);
+        });
+      }
+
+      function renderArticles() {
+        var box = document.getElementById('articles-container');
+        box.innerHTML = '';
+        state.articles.forEach(function (a) {
+          var item = document.createElement('div');
+          item.className = 'p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-sky-400/40 transition cursor-pointer';
+          item.setAttribute('data-read-id', a.id);
+          item.innerHTML =
+            '<div class="flex items-center justify-between text-[11px] font-mono-code text-amber-300">' +
+              '<span>' + a.cat + '</span>' +
+              '<span class="text-slate-400">' + (a.date || '2026-10') + ' · 点击阅读全文 →</span>' +
+            '</div>' +
+            '<h4 class="text-sm sm:text-base font-bold text-white mt-1.5">' + a.title + '</h4>' +
+            '<p class="text-xs text-slate-400 mt-1 line-clamp-2">' + a.body + '</p>';
+          box.appendChild(item);
+        });
+      }
+
+      document.getElementById('articles-container').addEventListener('click', function (e) {
+        var card = e.target.closest('[data-read-id]');
+        if (!card) return;
+        var id = card.getAttribute('data-read-id');
+        var found = state.articles.find(function (a) { return a.id === id; });
+        if (!found) return;
+        document.getElementById('reader-cat').textContent = found.cat + ' // ' + (found.date || '2026');
+        document.getElementById('reader-title').textContent = found.title;
+        document.getElementById('reader-body').textContent = found.body;
+        document.getElementById('article-reader-box').classList.remove('hidden');
+      });
+
+      document.getElementById('btn-close-reader').addEventListener('click', function () {
+        document.getElementById('article-reader-box').classList.add('hidden');
+      });
+
+      var formProj = document.getElementById('form-new-project');
+      document.getElementById('btn-toggle-new-project').addEventListener('click', function () {
+        formProj.classList.toggle('hidden');
+      });
+      document.getElementById('btn-cancel-project').addEventListener('click', function () {
+        formProj.classList.add('hidden');
+      });
+      formProj.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var ver = document.getElementById('inp-proj-ver').value.trim();
+        var name = document.getElementById('inp-proj-name').value.trim();
+        var desc = document.getElementById('inp-proj-desc').value.trim();
+        if (!name) return;
+        state.projects.unshift({
+          id: 'p-' + Date.now(),
+          ver: ver || 'NEW',
+          name: name,
+          desc: desc,
+          date: 'JUST NOW'
+        });
+        saveUserData();
+        renderProjects();
+        formProj.reset();
+        formProj.classList.add('hidden');
+      });
+
+      var formArt = document.getElementById('form-new-article');
+      document.getElementById('btn-toggle-new-article').addEventListener('click', function () {
+        formArt.classList.toggle('hidden');
+      });
+      document.getElementById('btn-cancel-article').addEventListener('click', function () {
+        formArt.classList.add('hidden');
+      });
+      formArt.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var cat = document.getElementById('inp-art-cat').value.trim();
+        var title = document.getElementById('inp-art-title').value.trim();
+        var body = document.getElementById('inp-art-body').value.trim();
+        if (!title) return;
+        state.articles.unshift({
+          id: 'a-' + Date.now(),
+          cat: cat || '极客随笔',
+          title: title,
+          body: body,
+          date: '2026-10-17'
+        });
+        saveUserData();
+        renderArticles();
+        formArt.reset();
+        formArt.classList.add('hidden');
+      });
+
+      renderAboutEggBadges();
+      renderProjects();
+      renderArticles();
+
+      // -------------------------------------------------------------------
+      // 12. IDE INTRO BUTTONS & KEYBOARD BINDINGS
+      // -------------------------------------------------------------------
+      document.getElementById('btn-ide-next').addEventListener('click', advanceIdeStage);
+      document.getElementById('btn-ide-skip').addEventListener('click', closeIdeAndEnterRoom);
+      document.getElementById('btn-ide-instant').addEventListener('click', function () {
+        state.isTyping = false;
+        renderIdeText(state.targetCode);
+      });
+
+      document.getElementById('btn-ide-coffee').addEventListener('click', function () {
+        ensureAudio();
+        playChimeSfx([349.23, 440.0, 523.25]);
+        document.getElementById('ide-console-status').textContent =
+          '> [COFFEE INJECTED] 冰美式续杯成功！今日写 Bug 概率降低 99.9%！';
+      });
+
+      document.getElementById('btn-ide-hair').addEventListener('click', function () {
+        ensureAudio();
+        playChimeSfx([392.0, 493.88, 587.33]);
+        document.getElementById('ide-console-status').textContent =
+          '> [HAIR GUARD] try { 保住发量 } catch (OvertimeException e) { 颜值依旧在线 }';
+      });
+
+      document.getElementById('ide-input-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        document.getElementById('ide-terminal-input').value = '';
+        advanceIdeStage();
+      });
+
+      window.addEventListener('keydown', function (e) {
+        if (state.isIdeOpen && e.key === 'Enter' && document.activeElement.tagName !== 'INPUT') {
+          e.preventDefault();
+          advanceIdeStage();
+        }
+      });
+
+      // -------------------------------------------------------------------
+      // 13. 2D HOTSPOT MARKER PROJECTION & MAIN ANIMATION LOOP
+      // -------------------------------------------------------------------
+      var markerMap = {
+        coder: document.getElementById('marker-coder'),
+        coffee: document.getElementById('marker-coffee'),
+        cat: document.getElementById('marker-cat'),
+        server: document.getElementById('marker-server'),
+        portal: document.getElementById('marker-portal')
+      };
+
+      var tempVec = new THREE.Vector3();
+
+      function updateHotspotScreenPositions() {
+        if (!state.showMarkers || state.isIdeOpen) {
+          document.getElementById('hotspots-layer').style.opacity = '0';
+          return;
+        }
+        document.getElementById('hotspots-layer').style.opacity = '1';
+
+        Object.keys(hotspotAnchors).forEach(function (k) {
+          var el = markerMap[k];
+          if (!el) return;
+          tempVec.copy(hotspotAnchors[k]);
+          tempVec.project(camera);
+
+          var x = (tempVec.x * 0.5 + 0.5) * window.innerWidth;
+          var y = (-(tempVec.y * 0.5) + 0.5) * window.innerHeight;
+          el.style.left = x + 'px';
+          el.style.top = y + 'px';
+        });
+      }
+
+      window.addEventListener('resize', function () {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      var clock = new THREE.Clock();
+
+      function animate() {
+        requestAnimationFrame(animate);
+        var dt = Math.min(clock.getDelta(), 0.1);
+        var elapsed = clock.getElapsedTime();
+
+        // 1) Typewriter in IDE Intro
+        if (state.isIdeOpen && state.isTyping) {
+          state.typingIdx = Math.min(state.targetCode.length, state.typingIdx + 3);
+          renderIdeText(state.targetCode.slice(0, state.typingIdx));
+          playKeyTick();
+          if (state.typingIdx >= state.targetCode.length) {
+            state.isTyping = false;
+          }
+        }
+
+        // 2) Programmer Typing Animation
+        var typeSpeed = state.overdriveTimer > 0 ? 34.0 : 10.0;
+        if (state.overdriveTimer > 0) {
+          state.overdriveTimer -= dt;
+          deskGlowLight.color.setHSL((elapsed * 1.5) % 1.0, 0.9, 0.6);
+          deskGlowLight.intensity = 3.4;
+        } else {
+          deskGlowLight.color.setHex(0x38bdf8);
+          deskGlowLight.intensity = 1.9;
+        }
+
+        leftArm.position.y = 1.32 + Math.sin(elapsed * typeSpeed) * 0.045;
+        rightArm.position.y = 1.32 + Math.cos(elapsed * typeSpeed) * 0.045;
+        headGroup.rotation.y = Math.sin(elapsed * 1.8) * 0.16;
+        headGroup.rotation.x = Math.sin(elapsed * 3.6) * 0.05;
+
+        // 3) Coffee Cup Bounce
+        if (state.coffeeBoostTimer > 0) {
+          state.coffeeBoostTimer -= dt;
+          coffeeCup.position.y = 1.38 + Math.abs(Math.sin(elapsed * 10)) * 0.45;
+          coffeeCup.rotation.y += dt * 6;
+        } else {
+          coffeeCup.position.y = 1.38;
+        }
+
+        // 4) Orange Cat NullPointer Jump & Tail Wag
+        catTail.rotation.x = Math.sin(elapsed * 4.5) * 0.35;
+        if (state.catJumpTimer > 0) {
+          state.catJumpTimer -= dt;
+          orangeCat.position.y = 0.68 + Math.abs(Math.sin(elapsed * 9)) * 0.85;
+          orangeCat.rotation.y += dt * 8;
+        } else {
+          orangeCat.position.y = 0.68 + Math.sin(elapsed * 2.5) * 0.03;
+          orangeCat.rotation.y = 0;
+        }
+
+        // 5) Server Hologram
+        if (state.serverHologramTimer > 0) {
+          state.serverHologramTimer -= dt;
+          serverHoloMesh.material.opacity = 0.85;
+          serverHoloMesh.rotation.y += dt * 2.5;
+          serverHoloMesh.rotation.x += dt * 1.5;
+        } else {
+          serverHoloMesh.material.opacity = 0.0;
+        }
+
+        // 6) Portal Ring & Rooftop AC Fans
+        portalRing.rotation.z = elapsed * 1.4;
+        portalLight.intensity = 1.8 + Math.sin(elapsed * 3.5) * 0.6;
+        acFans.forEach(function (fan) {
+          fan.rotation.y = elapsed * 6.0;
+        });
+
+        // 7) Weather Particles Fall Animation
+        var posAttr = weatherGeo.attributes.position;
+        var fallSpeed = state.weather === 'rain' ? 9.5 : state.weather === 'snow' ? 2.4 : 1.1;
+        for (var i = 0; i < weatherCount; i++) {
+          var py = posAttr.getY(i) - fallSpeed * dt;
+          var px = posAttr.getX(i) + Math.sin(elapsed + i) * 0.008;
+          if (py < -0.5) py = 11.5;
+          posAttr.setY(i, py);
+          posAttr.setX(i, px);
+        }
+        posAttr.needsUpdate = true;
+
+        // 8) Roof Smooth Lift/Drop
+        if (state.roofOpen) {
+          roofGroup.position.y += (0 - roofGroup.position.y) * 0.1;
+        } else {
+          roofGroup.position.y += (6.5 - roofGroup.position.y) * 0.1;
+        }
+
+        // 9) Camera Position Update
+        var cx = camDistance * Math.cos(camElevation) * Math.sin(camAzimuth);
+        var cy = camDistance * Math.sin(camElevation) + 1.2;
+        var cz = camDistance * Math.cos(camElevation) * Math.cos(camAzimuth);
+
+        camera.position.x += (cx - camera.position.x) * 0.1;
+        camera.position.y += (cy - camera.position.y) * 0.1;
+        camera.position.z += (cz - camera.position.z) * 0.1;
+        camera.lookAt(camLookTarget);
+
+        updateHotspotScreenPositions();
+        renderer.render(scene, camera);
+      }
+
+      loadIdeStage(0);
+      window.onload = function () {
+        animate();
+      };
+    })();
+  </script>
+</body>
+</html>

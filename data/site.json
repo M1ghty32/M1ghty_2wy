@@ -1,0 +1,25 @@
+{
+  "name": "M1ghty_2wy",
+  "title": "转角的 M1ghty_2wy · 个人数字空间",
+  "tagline": "独立开发者 · Java 与 3D 创意编程玩家",
+  "bio": "白天与 JVM、分布式微服务和高并发斗智斗勇，深夜在转角的小房间里泡上一杯冰美式，用代码搭建属于自己的数字微缩世界。",
+  "motto": "代码会过期，但好奇心不会",
+  "location": "中国 · 远程工作",
+  "status": "正在把个人网站做成一座可探索的数字房间",
+  "focus": ["Java 21 / Spring Boot", "Three.js / WebGL", "个人工具与自动化"],
+  "skills": [
+    { "name": "Java / Spring Boot", "level": "熟练", "color": "sky" },
+    { "name": "Three.js / WebGL", "level": "创作中", "color": "amber" },
+    { "name": "React / TypeScript", "level": "熟练", "color": "emerald" },
+    { "name": "架构设计 / 自动化", "level": "长期实践", "color": "purple" }
+  ],
+  "timeline": [
+    { "year": "现在", "title": "构建个人数字空间", "desc": "把作品、文章、工具和灵感收进一座可互动的 3D 代码屋。" },
+    { "year": "近期", "title": "深入 Java 21 与 WebGL", "desc": "在高并发服务和实时 3D 交互之间寻找更好的连接。" },
+    { "year": "长期", "title": "持续开源与分享", "desc": "把解决过的问题整理成可以复用的工具和内容。" }
+  ],
+  "links": {
+    "github": "",
+    "email": ""
+  }
+}

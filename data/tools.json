@@ -1,0 +1,45 @@
+[
+  {
+    "id": "tool-json",
+    "name": "JSON Crack / Formatter",
+    "category": "开发效率",
+    "description": "快速格式化、压缩和检查 JSON。",
+    "url": "https://jsoncrack.com/",
+    "tags": ["JSON", "调试", "API"],
+    "favorite": true
+  },
+  {
+    "id": "tool-mdn",
+    "name": "MDN Web Docs",
+    "category": "文档参考",
+    "description": "前端 API、Web 标准和浏览器能力的可靠参考。",
+    "url": "https://developer.mozilla.org/",
+    "tags": ["Web", "文档", "标准"],
+    "favorite": true
+  },
+  {
+    "id": "tool-github",
+    "name": "GitHub",
+    "category": "协作发布",
+    "description": "代码托管、项目协作与个人开源档案。",
+    "url": "https://github.com/",
+    "tags": ["Git", "开源", "协作"],
+    "favorite": true
+  },
+  {
+    "id": "tool-regex",
+    "name": "Regex101",
+    "category": "调试分析",
+    "description": "在线编写、解释和测试正则表达式。",
+    "url": "https://regex101.com/",
+    "tags": ["Regex", "测试", "文本"]
+  },
+  {
+    "id": "tool-three",
+    "name": "Three.js Journey",
+    "category": "创意编程",
+    "description": "系统学习 WebGL、着色器和 Three.js 场景制作。",
+    "url": "https://threejs.org/",
+    "tags": ["3D", "WebGL", "Shader"]
+  }
+]

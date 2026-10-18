@@ -1,0 +1,24 @@
+[
+  {
+    "id": "library-1",
+    "type": "bookmark",
+    "title": "Three.js 示例库",
+    "description": "收集可复用的材质、相机和交互灵感。",
+    "url": "https://threejs.org/examples/",
+    "tags": ["3D", "灵感"]
+  },
+  {
+    "id": "library-2",
+    "type": "model",
+    "title": "代码屋建模笔记",
+    "description": "记录房间比例、材质颜色和低多边形建模草稿。",
+    "tags": ["建模", "草稿"]
+  },
+  {
+    "id": "library-3",
+    "type": "idea",
+    "title": "把个人网站做成可探索的数字房间",
+    "description": "让访客通过物件、声音和天气状态理解一个人的工作方式。",
+    "tags": ["产品", "创意"]
+  }
+]

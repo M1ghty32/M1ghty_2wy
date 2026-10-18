@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "content-export.schema.json",
+  "title": "M1ghty_2wy content export",
+  "description": "站内内容控制台导出的 JSON 结构。导入时按集合级合并，只更新文件中出现的集合。",
+  "type": "object",
+  "required": ["schemaVersion", "exportedAt", "projects", "articles", "notes", "guestbook", "tools", "library"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "exportedAt": { "type": "string", "format": "date-time" },
+    "note": { "type": "string" },
+    "site": { "$ref": "#/$defs/site" },
+    "projects": { "type": "array", "items": { "$ref": "#/$defs/project" } },
+    "articles": { "type": "array", "items": { "$ref": "#/$defs/article" } },
+    "notes": { "type": "array", "items": { "$ref": "#/$defs/note" } },
+    "guestbook": { "type": "array", "items": { "$ref": "#/$defs/guestbook" } },
+    "tools": { "type": "array", "items": { "$ref": "#/$defs/tool" } },
+    "library": { "type": "array", "items": { "$ref": "#/$defs/library" } }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "site": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "title": { "type": "string" },
+        "tagline": { "type": "string" },
+        "bio": { "type": "string" },
+        "motto": { "type": "string" },
+        "location": { "type": "string" },
+        "status": { "type": "string" },
+        "focus": { "type": "array", "items": { "type": "string" } },
+        "skills": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string" },
+              "level": { "type": "string" },
+              "color": { "type": "string" }
+            }
+          }
+        },
+        "timeline": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "year": { "type": "string" },
+              "title": { "type": "string" },
+              "desc": { "type": "string" }
+            }
+          }
+        },
+        "links": {
+          "type": "object",
+          "properties": {
+            "github": { "type": "string", "pattern": "^$|^https?://" },
+            "email": { "type": "string", "pattern": "^$|^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$" }
+          }
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "required": ["id", "name", "desc"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "ver": { "type": "string", "maxLength": 80 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "desc": { "type": "string", "minLength": 1, "maxLength": 800 },
+        "date": { "type": "string", "maxLength": 40 }
+      },
+      "additionalProperties": false
+    },
+    "article": {
+      "type": "object",
+      "required": ["id", "title", "body"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "cat": { "type": "string", "maxLength": 80 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 180 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 6000 },
+        "date": { "type": "string", "maxLength": 40 }
+      },
+      "additionalProperties": false
+    },
+    "note": {
+      "type": "object",
+      "required": ["id", "title", "body"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 1200 },
+        "date": { "type": "string", "maxLength": 40 },
+        "mood": { "type": "string", "maxLength": 32 },
+        "author": { "type": "string", "maxLength": 40 }
+      },
+      "additionalProperties": false
+    },
+    "guestbook": {
+      "type": "object",
+      "required": ["id", "title", "body"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 1200 },
+        "date": { "type": "string", "maxLength": 40 },
+        "mood": { "type": "string", "maxLength": 32 },
+        "author": { "type": "string", "maxLength": 40 }
+      },
+      "additionalProperties": false
+    },
+    "tool": {
+      "type": "object",
+      "required": ["id", "name", "category", "description", "url"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "category": { "type": "string", "minLength": 1, "maxLength": 48 },
+        "description": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "url": { "type": "string", "pattern": "^https?://" },
+        "tags": { "type": "array", "items": { "type": "string", "maxLength": 24 }, "maxItems": 12 },
+        "favorite": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "library": {
+      "type": "object",
+      "required": ["id", "type", "title", "description"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "type": { "enum": ["bookmark", "model", "idea"] },
+        "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "description": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "url": { "type": "string", "pattern": "^https?://" },
+        "tags": { "type": "array", "items": { "type": "string", "maxLength": 24 }, "maxItems": 12 }
+      },
+      "additionalProperties": false
+    }
+  }
+}

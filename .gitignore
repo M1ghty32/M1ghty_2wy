@@ -1,0 +1,8 @@
+.zcode/
+node_modules/
+.npm-cache/
+.tools/
+.tmp/
+.DS_Store
+Thumbs.db
+*.log
