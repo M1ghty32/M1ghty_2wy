@@ -88,9 +88,9 @@ export function createGate(factory) {
     gateLeaf.add(hinge);
     root.add(gateLeaf);
   });
-  // 门前的 welcome mat 与小石子
-  root.add(f.rounded(1.8, 0.025, 0.62, 0.06, f.material('mint', { roughness: 0.9 }), [0, 0.025, 0.45]));
-  root.add(f.rounded(1.5, 0.01, 0.38, 0.03, f.material(0x315e4d, { roughness: 0.95 }), [0, 0.045, 0.45]));
+  // 门前的石板门垫与小石子
+  root.add(f.rounded(1.8, 0.025, 0.62, 0.06, f.material(0x3c464c, { roughness: 0.94 }), [0, 0.025, 0.45]));
+  root.add(f.rounded(1.5, 0.01, 0.38, 0.03, f.material(0x252d32, { roughness: 0.95 }), [0, 0.045, 0.45]));
   for (let i = 0; i < 8; i++) {
     root.add(f.sphere(0.04 + (i % 3) * 0.02, f.material(0x8b948d, { roughness: 0.92 }), [Math.sin(i * 2.1) * 2.3, 0.05, 0.45 + Math.cos(i * 1.7) * 0.3], 6));
   }
