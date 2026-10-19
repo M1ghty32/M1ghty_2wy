@@ -137,13 +137,8 @@ export function createIdeIntro({ audio, reducedMotion = false, onEnterWorld, aut
     if (consoleStatus) consoleStatus.textContent = item.console;
     const prefix = stagePrefix(index);
     target = prefix + item.code;
-    if (reducedMotion) {
-      typed = target.length;
-      typing = false;
-      renderText(target);
-      return;
-    }
-    // 进入下一段时，前一段代码已经完整显示，只打新内容。
+    // 打字动画是开场体验的核心，即使系统开启“减少动态效果”也照常播放，
+    // 只用更快的速度减少等待（原先会直接整段渲染，看起来像卡住了）。
     if (index > 0) renderText(prefix);
     else renderText('');
     typed = prefix.length;
@@ -159,7 +154,7 @@ export function createIdeIntro({ audio, reducedMotion = false, onEnterWorld, aut
     if (!lastTime) lastTime = now;
     const dt = Math.min(0.08, (now - lastTime) / 1000);
     lastTime = now;
-    const charsPerSecond = 255;
+    const charsPerSecond = reducedMotion ? 480 : 255;
     typed = Math.min(target.length, typed + Math.max(1, Math.round(dt * charsPerSecond)));
     renderText(target.slice(0, typed));
     audio?.playKeyTick();
@@ -172,7 +167,7 @@ export function createIdeIntro({ audio, reducedMotion = false, onEnterWorld, aut
   }
 
   function startLoop() {
-    if (rafId || reducedMotion) return;
+    if (rafId) return;
     lastTime = performance.now();
     rafId = requestAnimationFrame(updateLoop);
   }
