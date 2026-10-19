@@ -4,11 +4,11 @@
 import { h, clear, badge, link } from '../dom.js';
 
 const EGG_META = [
-  { key: 'coder', label: '狂暴敲代码', icon: '⚡' },
-  { key: 'coffee', label: '续命冰美式', icon: '☕' },
-  { key: 'cat', label: '橘猫踩键盘', icon: '🐱' },
-  { key: 'server', label: '服务器全息', icon: '🖥️' },
-  { key: 'portal', label: '传送门开启', icon: '🌀' }
+  { key: 'coder', label: '工作台专注模式', icon: '⚡' },
+  { key: 'coffee', label: '庭院咖啡角', icon: '☕' },
+  { key: 'cat', label: '长椅上的猫', icon: '🐱' },
+  { key: 'server', label: 'HomeLab 机柜', icon: '🖥️' },
+  { key: 'portal', label: '空间传送门', icon: '🌀' }
 ];
 
 export function createAboutRenderer({ store, registry, getEggState, onGuideSelect }) {
@@ -45,7 +45,7 @@ export function createAboutRenderer({ store, registry, getEggState, onGuideSelec
       clear(terminal);
       const rows = [
         ['$', 'whoami'],
-        ['', `${site.name} · independent developer`],
+        ['', `${site.name} · ${site.tagline}`],
         ['$', 'cat motto.txt'],
         ['', `“${site.motto}”`],
         ['$', 'status --now'],
@@ -96,8 +96,8 @@ export function createAboutRenderer({ store, registry, getEggState, onGuideSelec
     const location = document.getElementById('about-location');
     const status = document.getElementById('about-status');
     const motto = document.getElementById('about-motto');
-    if (name) name.textContent = `${site.name} 的个人数字空间`;
-    if (tagline) tagline.textContent = `${site.tagline} · 欢迎在房间里逛一逛`;
+    if (name) name.textContent = `${site.name} · 个人网站`;
+    if (tagline) tagline.textContent = `${site.tagline} · 欢迎浏览`;
     if (heading) heading.textContent = `你好，我是 ${site.name} 👋`;
     if (bio) bio.textContent = site.bio;
     if (location) location.textContent = site.location;

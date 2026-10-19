@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#111a2d" />
-  <meta name="description" content="M1ghty_2wy 的可探索 3D 庭院与极客工作室，个人作品、文章、工具箱和随记。" />
-  <meta property="og:title" content="转角的 M1ghty_2wy · 可探索 3D 个人空间" />
-  <meta property="og:description" content="推开院门，走进一座可以探索、阅读和互动的 Three.js 数字工作室。" />
+  <meta name="description" content="M1ghty_2wy 的个人网站：以可探索的 3D 空间组织项目、文章、工具与随笔。" />
+  <meta property="og:title" content="M1ghty_2wy · 个人网站" />
+  <meta property="og:description" content="以可探索的 Three.js 空间呈现项目、文章与工具，记录工程实践与长期更新。" />
   <meta property="og:type" content="website" />
-  <title>转角的 M1ghty_2wy // 3D 极客代码屋与个人空间</title>
+  <title>M1ghty_2wy · 个人网站</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,7 +25,7 @@
 <body>
   <noscript>
     <div class="noscript-panel">
-      <h1>转角的 M1ghty_2wy</h1>
+      <h1>M1ghty_2wy · 个人网站</h1>
       <p>这个 3D 个人空间需要启用 JavaScript。你仍然可以在 GitHub 上阅读本项目的源码与 README。</p>
     </div>
   </noscript>
@@ -49,7 +49,7 @@
       <div class="loading-card">
         <span class="loading-orbit" aria-hidden="true"></span>
         <div>
-          <div class="loading-title">正在布置转角的房间</div>
+          <div class="loading-title">正在加载场景与内容</div>
           <div class="loading-sub" id="world-loading-status">加载内容与程序化模型…</div>
         </div>
       </div>
@@ -64,38 +64,38 @@
     <!-- ================================================================= -->
     <!-- IDE INTRO                                                         -->
     <!-- ================================================================= -->
-    <section id="ide-intro-overlay" aria-label="程序员代码开场" role="dialog" aria-modal="true">
+    <section id="ide-intro-overlay" aria-label="站点启动" role="dialog" aria-modal="true">
       <div class="ide-shell">
         <header class="ide-window-bar">
           <div class="ide-dots" aria-hidden="true"><i class="dot dot-red"></i><i class="dot dot-amber"></i><i class="dot dot-green"></i></div>
-          <div class="ide-window-title"><span aria-hidden="true">☕</span> IntelliJ IDEA <span class="ide-slash">//</span> M1ghty_2wy_DailyLife.java</div>
+          <div class="ide-window-title"><span aria-hidden="true">☕</span> IntelliJ IDEA <span class="ide-slash">//</span> PersonalSite.java</div>
           <div class="ide-window-actions">
-            <button id="btn-ide-instant" type="button" class="ide-tool-btn">⚡ 瞬间敲完</button>
-            <button id="btn-ide-skip" type="button" class="ide-tool-btn ide-tool-btn-sky">跳过代码直达小站 ⏭</button>
+            <button id="btn-ide-instant" type="button" class="ide-tool-btn">⚡ 直接显示</button>
+            <button id="btn-ide-skip" type="button" class="ide-tool-btn ide-tool-btn-sky">跳过开场 ⏭</button>
           </div>
         </header>
 
         <div class="ide-tabbar">
-          <span class="ide-tab is-active">M1ghty_2wy_DailyLife.java</span>
-          <span class="ide-tab">HairLossException.java</span>
-          <span class="ide-tab">CoffeeInjector.java</span>
-          <span id="ide-stage-badge" class="ide-stage-badge">STEP 1/2 · 程序员段子自检中</span>
+          <span class="ide-tab is-active">PersonalSite.java</span>
+          <span class="ide-tab">ContentStore.java</span>
+          <span class="ide-tab">SceneRuntime.java</span>
+          <span id="ide-stage-badge" class="ide-stage-badge">STEP 1/2 · 初始化个人站点</span>
         </div>
 
         <div id="ide-scroll-box" class="ide-code-box custom-scroll">
           <div class="ide-code-gutter">
             <div id="ide-line-nums" aria-hidden="true">1</div>
             <div class="ide-code-area">
-              <pre id="ide-code-display" tabindex="0" aria-label="自动输入的程序员代码"></pre><span class="code-cursor" aria-hidden="true"></span>
+              <pre id="ide-code-display" tabindex="0" aria-label="自动输入的示例代码"></pre><span class="code-cursor" aria-hidden="true"></span>
             </div>
           </div>
         </div>
 
         <div class="ide-status-bar">
-          <div id="ide-console-status" class="ide-console" role="status">&gt; [JVM] 正在检测 M1ghty_2wy 血液咖啡因浓度: 99.8% (安全)</div>
+          <div id="ide-console-status" class="ide-console" role="status">&gt; [INFO] 正在加载站点配置与内容集合…</div>
           <div class="ide-quick-actions">
-            <button id="btn-ide-coffee" type="button" class="ide-chip ide-chip-amber">☕ 喝口冰美式 (+Bug免疫)</button>
-            <button id="btn-ide-hair" type="button" class="ide-chip ide-chip-purple">💇 try { 保住头发 }</button>
+            <button id="btn-ide-coffee" type="button" class="ide-chip ide-chip-amber">☕ 工作状态</button>
+            <button id="btn-ide-hair" type="button" class="ide-chip ide-chip-purple">🧭 使用说明</button>
           </div>
         </div>
 
@@ -103,11 +103,11 @@
           <form id="ide-input-form" class="ide-terminal-form">
             <label for="ide-terminal-input" class="sr-only">输入任意内容并继续</label>
             <span class="ide-prompt">M1ghty_2wy@jvm:~$</span>
-            <input id="ide-terminal-input" type="text" autocomplete="off" spellcheck="false" placeholder="输入任意内容按 Enter 继续（第 1 段段子 → 第 2 段进入小站）" />
+            <input id="ide-terminal-input" type="text" autocomplete="off" spellcheck="false" placeholder="输入任意内容按 Enter 继续（第 1 段 → 第 2 段进入站点）" />
           </form>
-          <button id="btn-ide-next" type="button" class="btn btn-primary ide-next">▶ 编译下一段段子 (Enter)</button>
+          <button id="btn-ide-next" type="button" class="btn btn-primary ide-next">▶ 继续 (Enter)</button>
         </div>
-        <div class="ide-footer-note">这是一个可以走进去的个人网站。代码只是入口，庭院和工作室才是正片。</div>
+        <div class="ide-footer-note">这是一个可以走进去的个人网站：代码只是入口，庭院与工作室承载内容。</div>
       </div>
     </section>
 
@@ -118,15 +118,15 @@
       <div class="hud-brand">
         <span class="hud-brand-rule" aria-hidden="true"></span>
         <div>
-          <h1 class="hud-title">转角的 M1ghty_2wy<span class="accent-dot">。</span></h1>
-          <p class="hud-kicker">M1GHTY_2WY · EXPLORABLE MINI WORLD</p>
+          <h1 class="hud-title">M1ghty_2wy<span class="accent-dot">。</span></h1>
+          <p class="hud-kicker">PERSONAL SITE · EXPLORABLE 3D SPACE</p>
         </div>
       </div>
       <div class="hud-context">
         <div id="hud-scene-label" class="hud-scene-label">01 / 庭院入口 · COURTYARD</div>
         <div id="hud-env-status" class="hud-env-status"><span>🌙 夜晚</span><span class="sep">·</span><span>🌤️ 晴天</span></div>
         <div class="hud-badges">
-          <span id="hud-egg-counter" class="hud-badge">🎁 彩蛋 0 / 5</span>
+          <span id="hud-egg-counter" class="hud-badge">🎁 探索 0 / 5</span>
           <span id="hud-save-badge" class="hud-badge hud-badge-muted">本机草稿 0</span>
         </div>
         <div id="hud-objective" class="hud-objective">从院门出发，靠近发光物件按 <kbd>E</kbd> 探索。</div>
@@ -142,7 +142,7 @@
         <button id="btn-top-ide" type="button" class="code-replay-btn" title="重新播放代码开场">☕ 代码开场</button>
       </div>
       <div class="hud-clock">
-        <div class="hud-clock-label">敲代码中 · 24 / 7</div>
+        <div class="hud-clock-label">持续更新 · 24 / 7</div>
         <div id="hud-clock">23:48</div>
       </div>
     </div>
@@ -176,8 +176,8 @@
     <div id="room-easter-toast" class="world-toast" role="status" aria-live="polite">
       <div id="toast-icon" class="toast-icon">✨</div>
       <div class="toast-copy">
-        <div id="toast-title" class="toast-title">触发房间彩蛋</div>
-        <div id="toast-desc" class="toast-desc">靠近或点击房间里的物件，会有一些程序员式的小惊喜。</div>
+        <div id="toast-title" class="toast-title">场景互动</div>
+        <div id="toast-desc" class="toast-desc">靠近或点击场景中的物件，可以打开对应内容或触发细节。</div>
       </div>
       <button id="toast-close" type="button" class="toast-close" aria-label="关闭提示">×</button>
     </div>
@@ -233,10 +233,10 @@
             <div class="space-avatar" aria-hidden="true">M1</div>
             <div class="space-identity-copy">
               <div class="space-name-row">
-                <h2 id="profile-name">M1ghty_2wy 的个人数字空间</h2>
+                <h2 id="profile-name">M1ghty_2wy · 个人网站</h2>
                 <span class="online-pill"><i></i>ONLINE</span>
               </div>
-              <p id="profile-tagline">独立开发者 · Java 与 3D 创意玩家 · 欢迎探索我的项目与文章</p>
+              <p id="profile-tagline">Java 后端工程师 · 实时 3D 交互实践者 · 欢迎浏览</p>
               <p id="modal-context-label" class="modal-context">从「工作台」进入 · 全站静态内容</p>
             </div>
           </div>
@@ -270,14 +270,14 @@
                 <div class="about-links" id="about-links"></div>
               </article>
               <aside class="panel-card about-status-card">
-                <div class="eyebrow amber">ROOM TELEMETRY // 世界状态</div>
+                <div class="eyebrow amber">SITE INFO // 站点状态</div>
                 <div class="status-grid">
                   <div><span>所在位置</span><strong id="about-location">中国 · 远程工作</strong></div>
                   <div><span>正在专注</span><strong id="about-status">正在构建可探索的个人空间</strong></div>
                   <div class="wide"><span>座右铭</span><strong id="about-motto">“代码会过期，但好奇心不会”</strong></div>
                 </div>
                 <div class="mini-divider"></div>
-                <div class="egg-heading"><span>程序员彩蛋</span><span id="about-egg-count">0 / 5</span></div>
+                <div class="egg-heading"><span>场景探索</span><span id="about-egg-count">0 / 5</span></div>
                 <div id="about-eggs-badges" class="egg-grid"></div>
               </aside>
             </div>
@@ -320,7 +320,7 @@
           <!-- ARTICLES -->
           <div id="space-tab-articles" class="space-tab-panel" hidden>
             <div class="panel-toolbar">
-              <div><div class="eyebrow amber">ARTICLES // FIELD NOTES</div><h3>技术分享与极客随笔</h3><p>点击文章卡片展开全文。留言板则留给路过的朋友。</p></div>
+              <div><div class="eyebrow amber">ARTICLES // FIELD NOTES</div><h3>技术文章与工程笔记</h3><p>点击文章卡片展开全文。留言板则留给路过的朋友。</p></div>
               <button id="btn-toggle-new-article" type="button" class="btn btn-amber btn-sm">+ 撰写新文章</button>
             </div>
             <form id="form-new-article" class="inline-form" hidden>
@@ -392,7 +392,7 @@
 
             <div class="soft-divider"></div>
             <section class="utility-section">
-              <div class="panel-heading"><div><div class="eyebrow amber">LOCAL UTILITIES // 站内工具</div><h4>不用离开小站的快速处理器</h4></div><span class="tiny-label">所有输入只在本机处理</span></div>
+              <div class="panel-heading"><div><div class="eyebrow amber">LOCAL UTILITIES // 站内工具</div><h4>无需离开页面的本地处理工具</h4></div><span class="tiny-label">所有输入只在本机处理</span></div>
               <div id="utility-tabs" class="utility-tabs">
                 <button type="button" data-util="json" class="utility-btn is-active">JSON</button>
                 <button type="button" data-util="base64" class="utility-btn">Base64</button>

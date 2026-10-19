@@ -108,6 +108,112 @@ export function makeTileTexture() {
   }, { repeat: [2, 2], width: 640, height: 640 });
 }
 
+function createRandom(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
+
+function roundedPath(ctx, x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  ctx.lineTo(x + r, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+/** 庭院草坪：低对比噪点 + 草叶短笔触，避免大面积纯色块。 */
+export function makeGrassTexture() {
+  return canvasTexture('grass-lawn', (ctx, w, h) => {
+    const rand = createRandom(7);
+    ctx.fillStyle = '#2c5238';
+    ctx.fillRect(0, 0, w, h);
+    const tones = ['#2f5a3d', '#27503a', '#356346', '#234a34', '#39694a', '#315c40'];
+    ctx.globalAlpha = 0.45;
+    for (let i = 0; i < 2400; i++) {
+      ctx.fillStyle = tones[i % tones.length];
+      const r = 2 + rand() * 9;
+      ctx.beginPath();
+      ctx.ellipse(rand() * w, rand() * h, r, r * 0.5, rand() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 2600; i++) {
+      const x = rand() * w;
+      const y = rand() * h;
+      ctx.strokeStyle = tones[(i * 2 + 1) % tones.length];
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + (rand() - 0.5) * 5, y - 3 - rand() * 6);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 0.55;
+    for (let i = 0; i < 22; i++) {
+      ctx.fillStyle = ['#e6d69a', '#f2ecd9', '#cfe6b8'][i % 3];
+      ctx.beginPath();
+      ctx.arc(rand() * w, rand() * h, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }, { repeat: [0.34, 0.34], width: 512, height: 512 });
+}
+
+/** 入口铺装：规整石板 + 深色勾缝，用于门廊前的正式铺地。 */
+export function makeFlagstoneTexture() {
+  return canvasTexture('flagstone-patio', (ctx, w, h) => {
+    const rand = createRandom(23);
+    ctx.fillStyle = '#3f4741';
+    ctx.fillRect(0, 0, w, h);
+    const cell = w / 4;
+    const tones = ['#8f9791', '#9aa29a', '#848d86', '#a3a99f', '#969e94', '#8b948c'];
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col < 4; col++) {
+        const inset = 7;
+        const jx = (rand() - 0.5) * 4;
+        const jy = (rand() - 0.5) * 4;
+        const x = col * cell + inset + jx;
+        const y = row * cell + inset + jy;
+        const pw = cell - inset * 2 + (rand() - 0.5) * 6;
+        const ph = cell - inset * 2 + (rand() - 0.5) * 6;
+        ctx.fillStyle = tones[(row * 4 + col + (row % 2)) % tones.length];
+        roundedPath(ctx, x, y, pw, ph, 9);
+        ctx.fill();
+        // 石面颗粒
+        for (let s = 0; s < 26; s++) {
+          ctx.fillStyle = s % 3 ? 'rgba(52,62,54,.10)' : 'rgba(238,244,235,.10)';
+          ctx.beginPath();
+          ctx.arc(x + rand() * pw, y + rand() * ph, 0.8 + rand() * 2.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        // 受光边
+        ctx.strokeStyle = 'rgba(240,247,238,.15)';
+        ctx.lineWidth = 2;
+        roundedPath(ctx, x + 1, y + 1, pw - 2, ph - 2, 8);
+        ctx.stroke();
+      }
+    }
+    // 勾缝里的苔藓
+    ctx.globalAlpha = 0.22;
+    for (let i = 0; i < 160; i++) {
+      ctx.fillStyle = '#6f8f5c';
+      ctx.beginPath();
+      ctx.arc(rand() * w, rand() * h, 0.6 + rand() * 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }, { repeat: [2.4, 1.3], width: 512, height: 512 });
+}
+
 export function makeCodeScreenTexture(variant = 0) {
   const key = `code-screen-${variant}`;
   return canvasTexture(key, (ctx, w, h) => {
@@ -654,6 +760,8 @@ export function createAssetFactory(quality) {
     textures: {
       wood: makeWoodTexture(),
       tile: makeTileTexture(),
+      grass: makeGrassTexture(),
+      flagstone: makeFlagstoneTexture(),
       code: [makeCodeScreenTexture(0), makeCodeScreenTexture(1), makeCodeScreenTexture(2)],
       terminal: makeTerminalScreenTexture(),
       dashboard: makeDashboardScreenTexture(),

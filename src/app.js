@@ -26,36 +26,36 @@ const EGG_INFO = {
   coder: {
     duration: 5.2,
     icon: '⚡',
-    title: '彩蛋 #1：狂暴敲代码模式 (APM 999+)',
-    description: '三联屏与水冷机箱 RGB 全开！只要我敲得够快，产品经理就改不了需求。',
+    title: '探索 #1：工作台专注模式',
+    description: '三联屏与主机灯光依次点亮，场景进入专注状态。',
     frequencies: [329.63, 440, 554.37, 659.25]
   },
   coffee: {
     duration: 4.6,
     icon: '☕',
-    title: '彩蛋 #2：注入灵魂特浓冰美式',
-    description: '咖啡机全功率运转，血液咖啡因浓度突破 120%，今日发际线防守成功！',
+    title: '探索 #2：庭院咖啡角',
+    description: '咖啡机开始工作，蒸汽与灯光提示这里也是休息区。',
     frequencies: [261.63, 392, 523.25]
   },
   cat: {
     duration: 4.2,
     icon: '🐱',
-    title: '彩蛋 #3：橘猫 NullPointer 空翻卖萌',
-    description: '喵呜！橘猫摇着尾巴开心起跳，还趁你不注意帮你按下了 Ctrl + S。',
+    title: '探索 #3：长椅上的猫',
+    description: '猫起身伸了个懒腰，跳下长椅。',
     frequencies: [523.25, 659.25, 783.99]
   },
   server: {
     duration: 5.4,
     icon: '🖥️',
-    title: '彩蛋 #4：HomeLab 全息超频',
-    description: '机柜启动全息矩阵：0 Error，0 Warning，猫毛覆盖率正常，稳如老狗。',
+    title: '探索 #4：HomeLab 机柜',
+    description: '机柜进入工作状态：风扇加速，指示灯依次亮起。',
     frequencies: [196, 293.66, 392, 587.33]
   },
   portal: {
     duration: 4.8,
     icon: '🌀',
-    title: '彩蛋 #5：空间传送门已开启',
-    description: '内外环开始旋转，个人空间的金色灯光从门缝里漏了出来。',
+    title: '探索 #5：空间传送门',
+    description: '光环开始旋转，通往个人空间的入口被点亮。',
     frequencies: [293.66, 440, 587.33, 880]
   }
 };
@@ -249,7 +249,7 @@ async function boot() {
   function updateEggHUD() {
     const count = EGG_KEYS.filter((key) => state.eggs[key]).length;
     const counter = document.getElementById('hud-egg-counter');
-    if (counter) counter.textContent = `🎁 彩蛋 ${count} / ${EGG_KEYS.length}`;
+    if (counter) counter.textContent = `🎁 探索 ${count} / ${EGG_KEYS.length}`;
   }
 
   function unlockEgg(key) {
@@ -559,7 +559,7 @@ async function boot() {
       if (!state.modalOpen) {
         toast.show({
           icon: '🗺️',
-          title: firstVisit ? '欢迎来到转角的 M1ghty_2wy' : '欢迎回来',
+          title: firstVisit ? '欢迎来到 M1ghty_2wy 的个人网站' : '欢迎回来',
           description: 'WASD / 方向键移动，靠近物件按 E；点击标签或物件也能直接打开内容。',
           duration: 5200
         });

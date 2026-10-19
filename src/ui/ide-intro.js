@@ -1,50 +1,48 @@
 /**
- * IDE 打字开场。保留两位程序员段子、跳过、瞬间敲完、终端输入与右上角重播。
+ * IDE 打字开场。用两段示例代码把访客从加载状态带入可探索空间。
  */
 const SEEN_KEY = 'm1ghty_2wy_seen_intro_v1';
 
 const STAGES = [
   {
-    badge: 'STEP 1/2 · 程序员日常防秃自检中',
-    button: '▶ 没毛病！编译并加载 3D 小站 (Enter)',
-    console: '> [WARNING] HairLossException: 检测到发际线正在尝试向后逃逸，已靠冰美式强行镇压！',
+    badge: 'STEP 1/2 · 初始化个人站点',
+    button: '继续 → 进入可探索空间 (Enter)',
+    console: '> [INFO] 正在加载场景配置、内容集合与交互注册表…',
     code: [
       '// ================================================================',
-      '// FILE: M1ghty_2wy_DailyLife.java — 祖传屎山与防秃指南',
+      '// FILE: PersonalSite.java — 站点结构与内容装配',
       '// ================================================================',
-      'package dev.m1ghty2wy.sanctuary;',
+      'package dev.m1ghty.site;',
       '',
-      'public class M1ghty_2wy extends Programmer {',
+      'public class PersonalSite {',
       '',
-      '    private int hairCount        = Integer.MAX_VALUE; // 每次改需求发量自动 -1024',
-      '    private double bloodCaffeine = 0.99;              // 血管里流淌的不是血，是冰美式',
-      '    private boolean worksOnMyPC  = true;              // “奇怪，在我电脑上明明是好的啊！”',
+      '    private final ContentStore content = ContentStore.load("data/");',
+      '    private final SceneRuntime world   = SceneRuntime.create(quality());',
       '',
-      '    public String handleBug(String bugReport) {',
-      '        if (bugReport.contains("紧急")) {',
-      '            // 只要我不看报错日志，Bug 就处于薛定谔的修复状态',
-      '            return "这不是 Bug，这是我精心设计的隐藏 Feature！";',
-      '        }',
-      '        return "重启试试？清下缓存？换个姿势点？";',
-      '    }'
+      '    public Portfolio compose() {',
+      '        // 每个物件都注册统一的交互描述，避免各写一套逻辑。',
+      '        world.register(courtyard());',
+      '        world.register(studio());',
+      '',
+      '        // 内容与场景解耦：替换 JSON 即可更新项目与文章。',
+      '        return new Portfolio(content.projects(), content.articles());',
+      '    }',
+      '}'
     ].join('\n')
   },
   {
-    badge: 'STEP 2/2 · 正在唤醒【转角的 M1ghty_2wy】可探索世界',
-    button: '🚀 推开院门！进入 M1ghty_2wy 的小站 (Enter)',
-    console: '> [BUILD SUCCESS] 庭院、工作台、橘猫 NullPointer 与传送门已全部就位！',
+    badge: 'STEP 2/2 · 进入可探索空间',
+    button: '进入站点 (Enter)',
+    console: '> [READY] 庭院与工作室已就绪，靠近物件按 E 打开内容。',
     code: [
-      '    // [STAGE 02] 启动转角的 M1ghty_2wy · 可探索 3D 世界',
+      '    // [STAGE 02] 启动可探索的 3D 空间',
       '    public static void main(String[] args) {',
-      '        M1ghty_2wy me = new M1ghty_2wy();',
-      '        MiniWorld world = new MiniWorld("庭院 / 工作室 / HomeLab");',
+      '        PersonalSite site = new PersonalSite();',
+      '        MiniWorld world = site.compose().mount("courtyard");',
       '',
-      '        world.spawnExplorer(me, "从院门走到工作台");',
-      '        world.brewCoffee("特浓冰美式", 999);',
-      '        world.spawnCat("橘猫·NullPointer", "正在长椅上晒太阳");',
-      '',
-      '        // 靠近任何发光物件，按 E 打开真实内容，而不是只看装饰。',
-      '        world.launchInteractiveWorld();',
+      '        world.spawnVisitor("从院门走向工作台");',
+      '        world.enableInteractions("E");',
+      '        world.start();',
       '    }',
       '}'
     ].join('\n')
@@ -64,7 +62,7 @@ function highlightJava(raw) {
       return `___S${strings.length - 1}___`;
     });
     processed = processed.replace(/\b(package|public|private|class|extends|static|void|int|double|boolean|if|return|new|true|false)\b/g, '<span class="tok-kw">$1</span>');
-    processed = processed.replace(/\b(String|M1ghty_2wy|Programmer|Integer|MiniWorld)\b/g, '<span class="tok-type">$1</span>');
+    processed = processed.replace(/\b(String|PersonalSite|ContentStore|SceneRuntime|Portfolio|MiniWorld|Integer)\b/g, '<span class="tok-type">$1</span>');
     processed = processed.replace(/___S(\d+)___/g, (_, index) => `<span class="tok-str">${strings[Number(index)]}</span>`);
     return processed;
   }).join('\n');
@@ -240,11 +238,11 @@ export function createIdeIntro({ audio, reducedMotion = false, onEnterWorld, aut
   });
   coffeeButton?.addEventListener('click', () => {
     audio?.chime([349.23, 440, 523.25]);
-    if (consoleStatus) consoleStatus.textContent = '> [COFFEE INJECTED] 冰美式续杯成功！今日写 Bug 概率降低 99.9%！';
+    if (consoleStatus) consoleStatus.textContent = '> [STATUS] 站点持续维护中，最近更新：庭院地坪、门廊铺装与内容结构。';
   });
   hairButton?.addEventListener('click', () => {
     audio?.chime([392, 493.88, 587.33]);
-    if (consoleStatus) consoleStatus.textContent = '> [HAIR GUARD] try { 保住发量 } catch (OvertimeException e) { 颜值依旧在线 }';
+    if (consoleStatus) consoleStatus.textContent = '> [GUIDE] WASD 或方向键移动，靠近物件按 E；Esc 关闭面板。';
   });
   terminalForm?.addEventListener('submit', (event) => {
     event.preventDefault();

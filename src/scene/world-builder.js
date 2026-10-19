@@ -375,7 +375,7 @@ function buildStudio({ scene, f, quality, hotspots }) {
       object: coffeeBar.root,
       anchor: anchors.coffee,
       zone: 'studio',
-      prompt: '接一杯续命冰美式',
+      prompt: '接一杯咖啡',
       radius: 2.0,
       interaction: { kind: 'egg', egg: 'coffee', focus: '手冲咖啡角' }
     },
@@ -493,31 +493,21 @@ function buildCourtyard({ scene, f, quality, hotspots }) {
   const lights = new THREE.Group();
   root.add(lights);
 
-  const grass = f.material(0x2e5b42, { roughness: 0.97 });
-  const grassLight = f.material(0x396e4f, { roughness: 0.97 });
-  const grassDark = f.material(0x214934, { roughness: 0.97 });
+  const grass = f.material(0xffffff, { map: f.textures.grass, roughness: 0.97 });
   const soil = f.material(0x6c4d38, { roughness: 1 });
   const rock = f.material(0x3e4a50, { roughness: 0.95 });
   const stone = f.material(0x7d8983, { roughness: 0.94 });
   const trim = f.material('woodDark', { roughness: 0.8 });
 
-  // 漂浮岛的层次：草皮、土壤、岩层
+  // 漂浮岛的层次：草地、石质包边、土壤、岩层
   const islandTop = f.rounded(22.6, 0.42, 16.4, 0.7, grass, [0, -0.21, 0.4]);
   islandTop.receiveShadow = true;
   root.add(islandTop);
+  // 草地收边：一圈浅色石质压边，让地坪与土壤层之间过渡更干净
+  root.add(f.rounded(23.02, 0.2, 16.82, 0.86, f.material(0x7c857d, { roughness: 0.93 }), [0, -0.12, 0.4]));
   root.add(f.rounded(22.9, 0.55, 16.7, 0.8, soil, [0, -0.65, 0.4]));
   root.add(f.rounded(22.1, 0.62, 15.9, 0.75, rock, [0, -1.2, 0.4]));
   root.add(f.rounded(20.8, 0.55, 14.7, 0.7, f.material(0x2d373d, { roughness: 0.98 }), [0, -1.72, 0.4]));
-  // 草皮色块
-  for (let i = 0; i < 26; i++) {
-    const patch = f.rounded(0.8 + (i % 4) * 0.5, 0.02, 0.45 + (i % 3) * 0.3, 0.2, i % 2 ? grassLight : grassDark, [
-      -9.5 + (i * 1.77) % 19,
-      0.01,
-      -6.2 + (i * 2.31) % 13
-    ]);
-    patch.receiveShadow = true;
-    root.add(patch);
-  }
   // 岛边缘石块
   for (let i = 0; i < 18; i++) {
     const t = i / 18;
@@ -532,8 +522,8 @@ function buildCourtyard({ scene, f, quality, hotspots }) {
 
   // 前院石径与小径
   const path = createSteppingPath(f, {
-    points: [[0, 7.6], [0.4, 6.4], [0.1, 5.1], [-0.6, 4.0], [-0.2, 2.9], [0, 1.55], [0, 0.4]],
-    count: quality.tier === 'low' ? 11 : 17
+    points: [[0, 7.6], [0.4, 6.4], [0.1, 5.1], [-0.6, 4.0], [-0.2, 2.9], [0, 2.35]],
+    count: quality.tier === 'low' ? 11 : 15
   });
   root.add(path.root);
   const sidePath = createSteppingPath(f, {
@@ -546,6 +536,19 @@ function buildCourtyard({ scene, f, quality, hotspots }) {
     count: quality.tier === 'low' ? 6 : 9
   });
   root.add(pondPath.root);
+
+  // 门廊铺装：石板 + 深色压边 + 入户台阶，作为小径到建筑的正式过渡
+  const patioMat = f.material(0xffffff, { map: f.textures.flagstone, roughness: 0.92 });
+  root.add(f.plane(5.8, 3.0, patioMat, [0.1, 0.02, 0.5], {
+    rotation: [-Math.PI / 2, 0, 0],
+    castShadow: false,
+    receiveShadow: true,
+    name: 'porch-paving'
+  }));
+  const curbMat = f.material(0x6b746c, { roughness: 0.94 });
+  root.add(f.box(5.98, 0.09, 0.2, curbMat, [0.1, 0.045, 2.0]));
+  root.add(f.box(0.2, 0.09, 3.18, curbMat, [-2.79, 0.045, 0.5]));
+  root.add(f.box(0.2, 0.09, 3.18, curbMat, [2.99, 0.045, 0.5]));
 
   // 院门与围栏
   const gate = createGate(f);
@@ -678,9 +681,9 @@ function buildCourtyard({ scene, f, quality, hotspots }) {
   house.add(door.root);
   house.add(f.rounded(2.2, 0.2, 0.9, 0.06, stone, [0, 0.1, 0.1]));
   house.add(f.rounded(1.75, 0.12, 0.62, 0.05, f.material(0x99a19a, { roughness: 0.9 }), [0, 0.22, 0.18]));
-  // 门垫
-  house.add(f.rounded(1.5, 0.025, 0.65, 0.05, f.material('mint', { roughness: 0.95 }), [0, 0.31, 0.35]));
-  house.add(f.rounded(1.18, 0.01, 0.4, 0.02, f.material(0x315e4d), [0, 0.33, 0.35]));
+  // 门垫：深灰拼花，落在铺装面上而不是悬在台阶上
+  house.add(f.rounded(1.5, 0.02, 0.65, 0.05, f.material(0x39434a, { roughness: 0.95 }), [0, 0.035, 0.62]));
+  house.add(f.rounded(1.18, 0.008, 0.4, 0.02, f.material(0x232b31), [0, 0.052, 0.62]));
 
   // 雨棚 / 门廊
   house.add(f.rounded(6.25, 0.16, 2.0, 0.05, roofEdge, [0, 2.98, 0.15]));
@@ -958,7 +961,7 @@ function buildCourtyard({ scene, f, quality, hotspots }) {
       object: coffeeCart.root,
       anchor: anchors.coffee,
       zone: 'courtyard',
-      prompt: '点一杯冰美式',
+      prompt: '点一杯咖啡',
       radius: 2.1,
       interaction: { kind: 'egg', egg: 'coffee', focus: '庭院咖啡车' }
     },
