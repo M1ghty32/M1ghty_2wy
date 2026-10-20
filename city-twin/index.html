@@ -200,8 +200,8 @@
     background: rgba(12, 22, 36, .72);
     color: #b7c9dc;
     font-family: var(--mono);
-    font-size: 9px;
-    letter-spacing: .04em;
+    font-size: 7px;
+    letter-spacing: .03em;
     white-space: nowrap;
     transition: border-color .16s ease, background .16s ease, color .16s ease;
   }
@@ -922,7 +922,7 @@
     padding: 8px 11px 6px;
     border-bottom: 1px solid var(--line);
     color: #b9cbdd;
-    font-size: 10px;
+    font-size: 8px;
     font-weight: 600;
   }
 
@@ -1283,7 +1283,7 @@
   }
 
   .map-label {
-    padding: 2px 6px;
+    padding: 1px 4px;
     border: 1px solid rgba(90, 160, 210, .2);
     border-radius: 4px;
     background: rgba(4, 10, 18, .62);
@@ -1297,7 +1297,7 @@
   }
 
   .map-label.major {
-    padding: 3px 8px;
+    padding: 2px 6px;
     border-color: rgba(56, 225, 255, .3);
     background: rgba(4, 14, 24, .74);
     color: #dcf7ff;
@@ -1777,102 +1777,8 @@ const NETWORKS = {
   }
 };
 
-/* 8×8 街区规划：j=0 为北（-Z），j=7 为南（+Z）；i=0 为西（-X）。 */
-const BLOCK_PLAN = [
-  [
-    { kind: 'lake', name: '北湖' },
-    { kind: 'hangar', name: '汽车工程实验实训中心', h: 10, style: 'warm' },
-    { kind: 'lab', name: '工程训练中心', h: 13 },
-    { kind: 'teaching', name: '科研楼', h: 15 },
-    { kind: 'lab', name: '实训楼 A', h: 12 },
-    { kind: 'lab', name: '实训楼 B', h: 12 },
-    { kind: 'utility', name: '能源中心' },
-    { kind: 'parking', name: '北门停车场' }
-  ],
-  [
-    { kind: 'green', name: '湖畔绿地' },
-    { kind: 'hall', name: '体育馆', h: 9, style: 'warm' },
-    { kind: 'track', name: '田径场' },
-    { kind: 'teaching', name: '立德楼', h: 16 },
-    { kind: 'teaching', name: '明德楼', h: 16 },
-    { kind: 'library', name: '图书馆', h: 26 },
-    { kind: 'utility', name: '信息中心' },
-    { kind: 'utility', name: '通信枢纽' }
-  ],
-  [
-    { kind: 'green', name: '东侧绿地' },
-    { kind: 'teaching', name: '教学楼 C', h: 14 },
-    { kind: 'lab', name: '实验楼', h: 12 },
-    { kind: 'hall', name: '学术交流中心', h: 10, style: 'warm' },
-    { kind: 'hall', name: '校史馆', h: 9, style: 'warm' },
-    { kind: 'office', name: '行政楼', h: 13 },
-    { kind: 'lab', name: '计算中心', h: 12 },
-    { kind: 'parking', name: '东门停车场' }
-  ],
-  [
-    { kind: 'green', name: '西侧绿地' },
-    { kind: 'hall', name: '学生活动中心', h: 9, style: 'warm' },
-    { kind: 'shops', name: '商业街' },
-    { kind: 'plaza', name: '中心广场' },
-    { kind: 'plaza', name: '中心广场' },
-    { kind: 'hall', name: '大礼堂', h: 12, style: 'warm' },
-    { kind: 'teaching', name: '研究生院', h: 14 },
-    { kind: 'dorm', name: '专家公寓' }
-  ],
-  [
-    { kind: 'green', name: '西门绿地' },
-    { kind: 'canteen', name: '一食堂', h: 9, style: 'warm' },
-    { kind: 'dorm', name: '俊园 1 栋' },
-    { kind: 'dorm', name: '俊园 2 栋' },
-    { kind: 'dorm', name: '俊园 3 栋' },
-    { kind: 'dorm', name: '俊园 4 栋' },
-    { kind: 'dorm', name: '留学生公寓' },
-    { kind: 'utility', name: '后勤服务楼' }
-  ],
-  [
-    { kind: 'courts', name: '篮球场' },
-    { kind: 'courts', name: '网球场' },
-    { kind: 'dorm', name: '俊园 5 栋' },
-    { kind: 'dorm', name: '俊园 6 栋' },
-    { kind: 'logistics', name: '快递物流中心' },
-    { kind: 'clinic', name: '校医院' },
-    { kind: 'dorm', name: '教师公寓' },
-    { kind: 'green', name: '东南绿地' }
-  ],
-  [
-    { kind: 'plaza', name: '南门广场' },
-    { kind: 'green', name: '迎宾绿地' },
-    { kind: 'parking', name: '访客停车场' },
-    { kind: 'hall', name: '游泳馆', h: 8, style: 'warm' },
-    { kind: 'office', name: '大学生创业园', h: 10 },
-    { kind: 'office', name: '科技园 B', h: 13 },
-    { kind: 'utility', name: '后勤车库' },
-    { kind: 'green', name: '东南绿地' }
-  ],
-  [
-    { kind: 'plaza', name: '迎宾广场' },
-    { kind: 'green', name: '南校门绿地' },
-    { kind: 'parking', name: '南停车场' },
-    { kind: 'green', name: '南校门绿地' },
-    { kind: 'green', name: '南校门绿地' },
-    { kind: 'office', name: '科技园 A', h: 12 },
-    { kind: 'parking', name: '公交场站' },
-    { kind: 'green', name: '东南绿地' }
-  ]
-];
-
-/* 自动巡游机位 */
-const TOUR_STOPS = [
-  { pos: [96, 86, 104], target: [0, 0, 6], name: '校园全景' },
-  { pos: [10, 34, 42], target: [18, 12, -34], name: '图书馆与中轴' },
-  { pos: [-70, 30, 30], target: [-34, 8, -6], name: '一食堂与俊园' },
-  { pos: [-64, 26, -48], target: [-40, 6, -44], name: '田径场与体育馆' },
-  { pos: [66, 26, -66], target: [40, 6, -50], name: '实训与能源区' },
-  { pos: [16, 58, 96], target: [0, 6, 56], name: '南校门迎宾轴' }
-];
-
 /* =======================================================================
-   2. 渲染基础、程序化材质与校区几何
+   2. 渲染基础、天空、阴影与真实校园几何
    ======================================================================= */
 
 const container = document.getElementById('scene');
@@ -1880,8 +1786,10 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'hi
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.92;
+renderer.toneMappingExposure = 1.0;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 container.appendChild(renderer.domElement);
 
 const labelRenderer = new CSS2DRenderer();
@@ -1893,68 +1801,217 @@ labelRenderer.domElement.style.pointerEvents = 'none';
 document.getElementById('label-layer').appendChild(labelRenderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x04070d);
-scene.fog = new THREE.FogExp2(0x04070d, 0.0034);
+scene.fog = new THREE.FogExp2(0x05090f, 0.0016);
 
-const camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.5, 1600);
-camera.position.set(92, 104, 142);
+const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 1, 1600);
+camera.position.set(196, 132, 246);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 0, 4);
+controls.target.set(-6, 0, 18);
 controls.enableDamping = true;
 controls.dampingFactor = 0.07;
 controls.rotateSpeed = 0.55;
 controls.zoomSpeed = 0.8;
 controls.panSpeed = 0.7;
-controls.minDistance = 22;
-controls.maxDistance = 340;
-controls.maxPolarAngle = Math.PI * 0.485;
+controls.minDistance = 40;
+controls.maxDistance = 900;
+controls.maxPolarAngle = Math.PI * 0.487;
 controls.screenSpacePanning = false;
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.55, 0.62, 0.32);
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.55, 0.6, 0.3);
 composer.addPass(bloomPass);
 composer.addPass(new OutputPass());
 
-/* ---------------------------- 灯光 ---------------------------- */
-const hemiLight = new THREE.HemisphereLight(0x35597d, 0x070c12, 0.95);
-scene.add(hemiLight);
-const ambientLight = new THREE.AmbientLight(0x16232f, 1.55);
-scene.add(ambientLight);
-const moonLight = new THREE.DirectionalLight(0xbcd4ff, 0.85);
-moonLight.position.set(70, 130, 46);
-scene.add(moonLight);
-const fillLight = new THREE.DirectionalLight(0x2b6a8c, 0.35);
-fillLight.position.set(-80, 60, -70);
-scene.add(fillLight);
+/* ---------------------------- 天空 ---------------------------- */
+const skyUniforms = {
+  topColor: { value: new THREE.Color(0x050a14) },
+  horizonColor: { value: new THREE.Color(0x16283a) },
+  groundColor: { value: new THREE.Color(0x060a10) }
+};
+const skyDome = new THREE.Mesh(
+  new THREE.SphereGeometry(1200, 32, 20),
+  new THREE.ShaderMaterial({
+    uniforms: skyUniforms,
+    side: THREE.BackSide,
+    depthWrite: false,
+    fog: false,
+    vertexShader: `
+      varying vec3 vWorld;
+      void main() {
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vWorld = wp.xyz;
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 topColor;
+      uniform vec3 horizonColor;
+      uniform vec3 groundColor;
+      varying vec3 vWorld;
+      void main() {
+        float h = normalize(vWorld).y;
+        vec3 color = h > 0.0
+          ? mix(horizonColor, topColor, pow(clamp(h, 0.0, 1.0), 0.65))
+          : mix(horizonColor, groundColor, clamp(-h * 6.0, 0.0, 1.0));
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `
+  })
+);
+skyDome.frustumCulled = false;
+scene.add(skyDome);
 
-/* ---------------------------- 纹理工具 ---------------------------- */
-function makeGlowTexture(rgb = '190,240,255') {
+/* 星空 */
+const starPositions = new Float32Array(900 * 3);
+const starRandom = (function seedRandom(seed) {
+  let s = seed % 2147483647;
+  if (s <= 0) s += 2147483646;
+  return () => {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+})(37);
+for (let i = 0; i < 900; i++) {
+  const radius = 700 + starRandom() * 360;
+  const theta = starRandom() * Math.PI * 2;
+  const phi = starRandom() * Math.PI * 0.46;
+  starPositions[i * 3] = Math.cos(theta) * Math.cos(phi) * radius;
+  starPositions[i * 3 + 1] = Math.sin(phi) * radius + 40;
+  starPositions[i * 3 + 2] = Math.sin(theta) * Math.cos(phi) * radius;
+}
+const starGeometry = new THREE.BufferGeometry();
+starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+const starMaterial = new THREE.PointsMaterial({
+  color: 0xa9c8e8,
+  size: 1.6,
+  sizeAttenuation: false,
+  transparent: true,
+  opacity: 0.7,
+  depthWrite: false,
+  fog: false
+});
+const stars = new THREE.Points(starGeometry, starMaterial);
+stars.frustumCulled = false;
+scene.add(stars);
+
+/* 太阳 / 月亮 */
+function makeRadialTexture(rgb) {
   const size = 128;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext('2d');
-  const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  grad.addColorStop(0, `rgba(${rgb},1)`);
-  grad.addColorStop(0.28, `rgba(${rgb},.55)`);
-  grad.addColorStop(1, `rgba(${rgb},0)`);
-  ctx.fillStyle = grad;
+  const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  gradient.addColorStop(0, `rgba(${rgb},1)`);
+  gradient.addColorStop(0.35, `rgba(${rgb},.45)`);
+  gradient.addColorStop(1, `rgba(${rgb},0)`);
+  ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, size, size);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
+const glowTexture = makeRadialTexture('190,240,255');
+const sunTexture = makeRadialTexture('255,236,200');
 
-function makeGridTexture() {
+const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: sunTexture,
+  transparent: true,
+  opacity: 0,
+  depthWrite: false,
+  fog: false,
+  blending: THREE.AdditiveBlending
+}));
+sunSprite.scale.setScalar(120);
+sunSprite.position.set(-520, 520, -560);
+scene.add(sunSprite);
+
+const moonSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: glowTexture,
+  color: 0xcfe3ff,
+  transparent: true,
+  opacity: 0.8,
+  depthWrite: false,
+  fog: false,
+  blending: THREE.AdditiveBlending
+}));
+moonSprite.scale.setScalar(54);
+moonSprite.position.set(460, 560, 320);
+scene.add(moonSprite);
+
+/* ---------------------------- 灯光与阴影 ---------------------------- */
+const hemiLight = new THREE.HemisphereLight(0x4a6f94, 0x0a1016, 1.05);
+scene.add(hemiLight);
+const ambientLight = new THREE.AmbientLight(0x233240, 1.35);
+scene.add(ambientLight);
+
+const shadowLight = new THREE.DirectionalLight(0xbcd4ff, 1.15);
+shadowLight.position.set(-180, 260, 160);
+shadowLight.castShadow = true;
+shadowLight.shadow.mapSize.set(2048, 2048);
+shadowLight.shadow.camera.left = -340;
+shadowLight.shadow.camera.right = 340;
+shadowLight.shadow.camera.top = 340;
+shadowLight.shadow.camera.bottom = -340;
+shadowLight.shadow.camera.near = 20;
+shadowLight.shadow.camera.far = 900;
+shadowLight.shadow.bias = -0.0006;
+shadowLight.shadow.normalBias = 0.6;
+shadowLight.shadow.radius = 2;
+shadowLight.shadow.camera.updateProjectionMatrix();
+scene.add(shadowLight);
+scene.add(shadowLight.target);
+shadowLight.target.position.set(0, 0, 0);
+
+/* ---------------------------- 程序化纹理 ---------------------------- */
+function makeGrassTexture() {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const random = (function seed(s0) {
+    let s = s0;
+    return () => {
+      s = (s * 16807) % 2147483647;
+      return (s - 1) / 2147483646;
+    };
+  })(91);
+  ctx.fillStyle = '#2c4436';
+  ctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < 9000; i++) {
+    const x = random() * size;
+    const y = random() * size;
+    const shade = 0.55 + random() * 0.5;
+    ctx.fillStyle = `rgba(${Math.round(38 * shade)}, ${Math.round(74 * shade)}, ${Math.round(52 * shade)}, 0.55)`;
+    ctx.fillRect(x, y, 1 + random() * 2, 1 + random() * 2);
+  }
+  for (let i = 0; i < 1400; i++) {
+    const x = random() * size;
+    const y = random() * size;
+    ctx.strokeStyle = `rgba(${60 + Math.round(random() * 30)}, ${95 + Math.round(random() * 35)}, ${62 + Math.round(random() * 20)}, 0.35)`;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + (random() - 0.5) * 3, y - 2 - random() * 3);
+    ctx.stroke();
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(90, 90);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  return texture;
+}
+
+function makePavingTexture() {
   const size = 256;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#6f7f8d';
+  ctx.fillStyle = '#7b8794';
   ctx.fillRect(0, 0, size, size);
-  ctx.strokeStyle = 'rgba(200,232,255,.3)';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(40,52,62,.35)';
+  ctx.lineWidth = 2;
   for (let i = 0; i <= size; i += 32) {
     ctx.beginPath();
     ctx.moveTo(i, 0);
@@ -1965,53 +2022,25 @@ function makeGridTexture() {
     ctx.lineTo(size, i);
     ctx.stroke();
   }
-  ctx.strokeStyle = 'rgba(210,242,255,.5)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(0, 0, size, size);
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(26, 26);
+  texture.repeat.set(40, 40);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 8;
   return texture;
 }
 
-function makeSignTexture(title, subtitle) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 1024;
-  canvas.height = 256;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#081522';
-  ctx.fillRect(0, 0, 1024, 256);
-  ctx.strokeStyle = 'rgba(56,225,255,.55)';
-  ctx.lineWidth = 6;
-  ctx.strokeRect(8, 8, 1008, 240);
-  ctx.fillStyle = '#e8fbff';
-  ctx.font = '700 96px "Microsoft YaHei", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(title, 512, 116);
-  ctx.fillStyle = '#63b8d8';
-  ctx.font = '500 30px monospace';
-  ctx.fillText(subtitle, 512, 196);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-
-const glowTexture = makeGlowTexture('190,240,255');
-
 /* ---------------------------- 材质 ---------------------------- */
+const windowUniforms = { night: { value: 1 } };
+
 const buildingMat = new THREE.MeshStandardMaterial({
   color: 0xffffff,
   vertexColors: true,
-  roughness: 0.8,
-  metalness: 0.2,
-  emissive: 0x0c1725,
-  emissiveIntensity: 1
+  roughness: 0.78,
+  metalness: 0.18,
+  emissive: 0x13202d,
+  emissiveIntensity: 1.1
 });
-
-const windowUniforms = { night: { value: 1 } };
 
 buildingMat.onBeforeCompile = (shader) => {
   shader.uniforms.uNight = windowUniforms.night;
@@ -2021,64 +2050,74 @@ buildingMat.onBeforeCompile = (shader) => {
   shader.fragmentShader = shader.fragmentShader
     .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNormal;\nuniform float uNight;')
     .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-      if (abs(vWNormal.y) < 0.4) {
+      if (abs(vWNormal.y) < 0.45) {
         vec2 face = abs(vWNormal.x) > 0.5 ? vec2(vWPos.z, vWPos.y) : vec2(vWPos.x, vWPos.y);
-        vec2 cell = vec2(2.25, 2.65);
+        vec2 cell = vec2(2.6, 3.0);
         vec2 id = floor(face / cell);
         vec2 f = fract(face / cell);
-        float win = step(0.3, f.x) * step(f.x, 0.7) * step(0.3, f.y) * step(f.y, 0.72);
+        float win = step(0.24, f.x) * step(f.x, 0.76) * step(0.28, f.y) * step(f.y, 0.74);
         float h = fract(sin(dot(id, vec2(127.1, 311.7))) * 43758.5453);
-        float lit = step(0.46, h);
-        float warmPick = step(0.62, fract(h * 5.73));
-        vec3 tint = mix(vec3(1.0, 0.78, 0.46), vec3(0.58, 0.84, 1.0), warmPick);
-        float band = 1.0 - step(0.92, fract(vWPos.y / 3.6)) * 0.65;
-        totalEmissiveRadiance += tint * win * lit * band * 0.62 * uNight;
+        float lit = step(0.42, h);
+        float warmPick = step(0.66, fract(h * 5.73));
+        vec3 tint = mix(vec3(1.0, 0.76, 0.44), vec3(0.56, 0.83, 1.0), warmPick);
+        float band = 1.0 - step(0.86, fract(vWPos.y / 3.6)) * 0.82;
+        totalEmissiveRadiance += tint * win * lit * band * 0.9 * uNight;
       }
     `);
 };
-buildingMat.customProgramCacheKey = () => 'twin-window-v1';
+buildingMat.customProgramCacheKey = () => 'twin-window-v2';
 
-const roofMat = new THREE.MeshStandardMaterial({ color: 0x151f2b, roughness: 0.62, metalness: 0.38 });
-const roadMat = new THREE.MeshStandardMaterial({ color: 0x152130, roughness: 0.92, metalness: 0.08 });
-const markMat = new THREE.MeshBasicMaterial({ color: 0x3a87a8, transparent: true, opacity: 0.9 });
-const lawnMat = new THREE.MeshStandardMaterial({ color: 0x0b1a17, roughness: 0.96 });
-const plazaMat = new THREE.MeshStandardMaterial({ color: 0x121b25, roughness: 0.9 });
-const waterMat = new THREE.MeshStandardMaterial({
-  color: 0x0a2a42,
-  emissive: 0x11527a,
-  emissiveIntensity: 0.8,
-  roughness: 0.22,
-  metalness: 0.6
+const roofMat = new THREE.MeshStandardMaterial({ color: 0x2a3542, roughness: 0.72, metalness: 0.25 });
+const groundMat = new THREE.MeshStandardMaterial({
+  map: makeGrassTexture(),
+  color: 0xffffff,
+  roughness: 0.96,
+  metalness: 0.02
 });
-const trackMat = new THREE.MeshStandardMaterial({ color: 0x2b1a1d, roughness: 0.94 });
-const courtMat = new THREE.MeshStandardMaterial({ color: 0x0d2119, roughness: 0.95 });
-const poleMat = new THREE.MeshStandardMaterial({ color: 0x2a3644, roughness: 0.6, metalness: 0.5 });
-const lampMat = new THREE.MeshBasicMaterial({ color: 0xffe2b0 });
+const asphaltMat = new THREE.MeshStandardMaterial({ color: 0x252c35, roughness: 0.94, metalness: 0.04, side: THREE.DoubleSide });
+const walkwayMat = new THREE.MeshStandardMaterial({ color: 0x3d4751, roughness: 0.9, metalness: 0.05, side: THREE.DoubleSide });
+const plazaMat = new THREE.MeshStandardMaterial({ map: makePavingTexture(), color: 0x8a97a4, roughness: 0.9, side: THREE.DoubleSide });
+const markMat = new THREE.MeshBasicMaterial({ color: 0xc8d6e2, transparent: true, opacity: 0.35 });
+const trackMat = new THREE.MeshStandardMaterial({ color: 0x7a2f33, roughness: 0.92, side: THREE.DoubleSide });
+const fieldMat = new THREE.MeshStandardMaterial({ color: 0x234a2c, roughness: 0.95, side: THREE.DoubleSide });
+const trimMat = new THREE.MeshStandardMaterial({ color: 0x2c3742, roughness: 0.7, metalness: 0.35 });
 const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff5c6c });
-const cyanGlowMat = new THREE.MeshBasicMaterial({ color: 0x66e6ff });
+const flagMat = new THREE.MeshBasicMaterial({ color: 0x66e6ff });
+const hedgeMat = new THREE.MeshStandardMaterial({ color: 0x35634a, roughness: 0.95 });
+const edgeMat = new THREE.MeshBasicMaterial({ color: 0x2c6f8e, transparent: true, opacity: 0.45 });
+const waterMat = new THREE.MeshStandardMaterial({ color: 0x1d4a66, emissive: 0x0d2e44, emissiveIntensity: 0.7, roughness: 0.2, metalness: 0.5 });
 
-/* ---------------------------- 几何收集器 ---------------------------- */
+/* ---------------------------- 几何收集 ---------------------------- */
 const geoBuilding = [];
 const geoRoof = [];
 const geoMark = [];
-const geoLawn = [];
-const geoPlaza = [];
+const geoWalk = [];
 const geoRoad = [];
+const geoPlaza = [];
 const geoTrim = [];
+const geoHedge = [];
+const geoEdge = [];
 const geoBeacon = [];
-const geoFlags = [];
-const seeds = [];
+const geoFlag = [];
 const campusMeshes = {};
 const buildingLabels = [];
+const seeds = [];
+const lampSpots = [];
+const roadSamples = [];
 
-function rng(seed) {
-  let s = seed % 2147483647;
-  if (s <= 0) s += 2147483646;
-  return () => {
-    s = (s * 16807) % 2147483647;
-    return (s - 1) / 2147483646;
-  };
-}
+const CAMPUS_BOUNDS = { minX: -300, maxX: 300, minZ: -180, maxZ: 180 };
+const BUILDING_COLORS = {
+  teaching: 0x3d5269,
+  student_bedroom: 0x574c3c,
+  library: 0x46657d,
+  experiment_building: 0x44566d,
+  canteen: 0x5c4736,
+  gymnasium: 0x52465e,
+  hospital: 0x594749,
+  service_building: 0x475563,
+  administration: 0x4d5a6a,
+  part_entrance: 0x454f5a
+};
 
 function pushColored(list, geometry, colorHex) {
   const count = geometry.attributes.position.count;
@@ -2093,580 +2132,601 @@ function pushColored(list, geometry, colorHex) {
   list.push(geometry);
 }
 
-const _brightenColor = new THREE.Color();
-
-function brightenHex(hex, factor) {
-  _brightenColor.setHex(hex).multiplyScalar(factor);
-  return _brightenColor.getHex();
-}
-
-function boxAt(w, h, d, x, y, z, list, colorHex = 0x1a2433, rotY = 0) {
+function boxAt(w, h, d, x, y, z, list, colorHex, rotY = 0) {
   const geometry = new THREE.BoxGeometry(w, h, d);
   if (rotY) geometry.rotateY(rotY);
   geometry.translate(x, y + h / 2, z);
-  if (colorHex === null) list.push(geometry);
-  else pushColored(list, geometry, list === geoBuilding ? brightenHex(colorHex, 1.7) : colorHex);
-  return geometry;
-}
-
-function planeAt(w, d, x, y, z, list, colorHex = 0x0e151e, rotY = 0) {
-  const geometry = new THREE.PlaneGeometry(w, d);
-  geometry.rotateX(-Math.PI / 2);
-  if (rotY) geometry.rotateY(rotY);
-  geometry.translate(x, y, z);
-  if (colorHex === null) list.push(geometry);
+  if (colorHex === undefined || colorHex === null) list.push(geometry);
   else pushColored(list, geometry, colorHex);
   return geometry;
 }
 
-function addBeacon(x, y, z, scale = 0.16) {
-  const geometry = new THREE.SphereGeometry(scale, 8, 8);
+function planeAt(w, d, x, y, z, list, rotY = 0) {
+  const geometry = new THREE.PlaneGeometry(w, d);
+  geometry.rotateX(-Math.PI / 2);
+  if (rotY) geometry.rotateY(rotY);
   geometry.translate(x, y, z);
-  geoBeacon.push(geometry);
+  list.push(geometry);
+  return geometry;
 }
 
-/* ---------------------------- 校区构建 ---------------------------- */
-const MAJOR_LABELS = new Set([
-  '图书馆', '立德楼', '明德楼', '汽车工程实验实训中心', '一食堂', '田径场', '体育馆',
-  '北湖', '学生活动中心', '大礼堂', '南校门', '东门', '西门'
-]);
+/* =======================================================================
+   真实校园建筑数据（官方可视化位置服务平台 GeoJSON，经简化）
+   ======================================================================= */
+const CAMPUS_BUILDINGS = [{"n":"博园1号公寓","t":"student_bedroom","h":24,"r":[[[110.6,-98.7],[117.5,-99.6],[122.2,-88.1],[121.6,-80.1],[115.9,-79.6],[111.1,-89.2],[110.7,-92.2]]]},{"n":"博园2号公寓","t":"student_bedroom","h":24,"r":[[[92.1,-94.5],[92.1,-95.3],[99.2,-96.4],[103.9,-85.2],[107,-86.6],[107.3,-85.7],[112.3,-86.4],[114,-82.4],[113.9,-74.8],[100,-72.6],[99.2,-74.6],[97.7,-75.1],[92.1,-88.8]]]},{"n":"博园3号公寓","t":"student_bedroom","h":24,"r":[[[72.7,-109.9],[76.4,-101.7],[76.9,-92.6],[76.3,-91],[70.3,-90.2],[65.4,-102.1],[65.4,-109.5],[72.4,-109.9]]]},{"n":"博园4号公寓","t":"student_bedroom","h":24,"r":[[[94,-95.6],[88.1,-93.9],[83.1,-104.9],[74.9,-104],[72.7,-109.9],[72.7,-115.6],[86.8,-117.5],[87.7,-115.4],[89,-115.6],[94.5,-102.7],[94,-96.1]]]},{"n":"博园5号公寓","t":"student_bedroom","h":24,"r":[[[105,-111.5],[108.5,-103.2],[108.4,-95.4],[102.1,-94.5],[96.9,-107.3],[96.9,-113.8],[103.7,-114.7],[105,-111.6]]]},{"n":"博园6号公寓","t":"student_bedroom","h":24,"r":[[[107.9,-105.8],[105,-111.5],[105,-117.2],[119.1,-119.2],[120,-117.1],[121.3,-117.2],[126.8,-104.4],[126.8,-97.8],[126.3,-96.3],[120.5,-95.5],[115.4,-106.6]]]},{"n":"博园7号公寓","t":"student_bedroom","h":24,"r":[[[142,-123.8],[143.7,-119.7],[143.8,-112.8],[138.6,-111.9],[140.2,-107.4],[139.6,-99.5],[133.1,-99.3],[127.6,-112.9],[128,-121.9]]]},{"n":"博园8号公寓","t":"student_bedroom","h":24,"r":[[[147.8,-120.5],[154.6,-121.4],[159.4,-109.9],[158.7,-102],[153.1,-101.2],[148.2,-111],[147.8,-114]]]},{"n":"孵化园1","t":"experiment_building","h":16,"r":[[[-131.7,34],[-126.4,34.5],[-104.8,46.8],[-104.7,61.3],[-109.7,64.2],[-124.2,56],[-124.2,49.9],[-129.6,53],[-155.2,49.7],[-175.1,38.4],[-175.1,23.8],[-160,15.2],[-149.9,21],[-149.8,31.8]]]},{"n":"孵化园2","t":"experiment_building","h":16,"r":[[[-102.4,34.5],[-104.8,33.2],[-111.5,37],[-111.5,43],[-126.4,34.5],[-133.6,33],[-133.7,30.4],[-136.9,28.6],[-136.9,14.3],[-124,6.9],[-109.2,15.2],[-109.2,26.6],[-102.5,30.4]]]},{"n":"国际交流中心","t":"service_building","h":8,"r":[[[151.8,64.3],[153.9,64.2],[159.6,67.7],[159.3,71.5],[179.6,83.4],[179.9,87.4],[170.4,92.9],[165.5,91],[161.4,92.2],[145,82.3],[143.7,79.5],[143.4,71.2],[147.5,66.7]]]},{"n":"吉利学院邮政综合服务中心","t":"service_building","h":16,"r":[[[48.1,-107.1],[51,-107.6],[54,-100.4],[54,-99],[51.1,-98.6],[48.1,-106.6]]]},{"n":"俊园1号公寓","t":"student_bedroom","h":16,"r":[[[-137.1,-35.1],[-138.7,-38.8],[-138.5,-44.2],[-140.8,-43.9],[-142.3,-48],[-142.3,-52.8],[-144.3,-52.6],[-146,-56.8],[-145.8,-66.1],[-126.9,-68.8],[-117.9,-46.9],[-117.8,-40.6],[-115.8,-39.3],[-115.8,-38.1],[-118.8,-36.5],[-120.6,-37.3]]]},{"n":"俊园2号公寓","t":"student_bedroom","h":16,"r":[[[-74.4,-50.6],[-75.7,-50.4],[-77,-53],[-76.5,-55.6],[-77.7,-58.4],[-79.1,-58.3],[-82.4,-67.4],[-82.4,-68.9],[-81.2,-68.9],[-81.4,-76.6],[-62.5,-79.2],[-60.8,-75.3],[-60.8,-69.8],[-58.8,-70.1],[-57.2,-66.2],[-57.2,-60.8],[-55,-61.1],[-53.4,-57.3],[-53.3,-48],[-70.3,-45.7],[-71.3,-44.3],[-75.1,-45],[-73.7,-48.9]]]},{"n":"俊园3号公寓","t":"student_bedroom","h":24,"r":[[[-126.1,-66.6],[-126.9,-68.8],[-141.3,-66.7],[-141.7,-73.5],[-144.1,-73.3],[-145.6,-76.8],[-145.4,-86.3],[-122.9,-89.3],[-117.6,-76.5],[-117.6,-67.8]]]},{"n":"俊园4号公寓","t":"student_bedroom","h":24,"r":[[[-81.1,-76.6],[-81.4,-74.1],[-103.5,-71.2],[-109,-84.4],[-108.9,-93.2],[-86.4,-96.3],[-84.8,-92.6],[-84.8,-87],[-82.7,-87.3],[-81,-83.4]]]},{"n":"立德楼","t":"teaching","h":20,"r":[[[5.4,70.6],[23.9,59.8],[38.7,68.3],[38.8,73.4],[39.7,74],[39,75.7],[44.2,78.1],[31.7,85.5],[25.9,82.5],[25.9,85.2],[8.2,95.5],[4.2,93.7],[8.8,96.4],[8.8,98.1],[-4.2,105.6],[-11.6,101.4],[-12.7,99.4],[-13.9,100.1],[-16.6,98.6],[-17.8,96.5],[-18.9,97.2],[-21.7,95.5],[-22,92.5],[-23.6,91.6],[-21.4,90.2],[-21.3,85.6],[5.4,71.1]]]},{"n":"留学生及研究生宿舍","t":"student_bedroom","h":24,"r":[[[182.2,39.2],[193.8,46.4],[198,44],[194.2,43.9],[191.7,42.3],[191.4,32.8],[211.8,20.9],[229.6,31.3],[229.3,39.7],[222.6,43.7],[210.7,50.5],[208.3,50.8],[208.4,52],[194.3,60.1],[177.5,51.7],[177.5,49.9],[178.8,49],[177.6,48.4],[177.6,41.9]]]},{"n":"留学生及研究生宿舍","t":"student_bedroom","h":24,"r":[[[215.2,-13.5],[203.7,-20.3],[199.2,-17.7],[201.3,-16.5],[202.8,-17.4],[206,-15.6],[206,-6.5],[185.9,5],[168.3,-5.1],[168.3,-14.2],[175,-17],[176.5,-19],[189.3,-25.2],[189.3,-26.2],[203.4,-34.3],[205,-33.4],[206.9,-34.5],[208,-33.9],[208,-31.6],[220,-25.4],[220.2,-16.5]]]},{"n":"留学生及研究生宿舍","t":"student_bedroom","h":24,"r":[[[261.1,-1.8],[264.6,-1.5],[264.6,0.8],[266.9,2.1],[266.9,11.2],[252.8,19.2],[250.3,19.5],[250.3,20.6],[238.4,27.4],[236,27.7],[236,28.8],[231.7,31.2],[214,21.1],[213.9,17.6],[212.2,18.1],[212.3,13.7],[234.1,0.6],[237.3,2.5],[238.2,4.6],[242,2.5],[241.6,0.1],[246.5,-2.8],[246.5,-4.7],[251.3,-7.4],[259.2,-2.9]]]},{"n":"留学生及研究生宿舍","t":"student_bedroom","h":24,"r":[[[249.5,-6.4],[249.5,-9.3],[234.7,-17.8],[228.8,-14.3],[224.4,-16.9],[224.3,-25.6],[234.3,-31.3],[246.5,-25.3],[248.4,-22.7],[250.8,-22.3],[263.9,-14.3],[264,-5.7],[259.2,-2.9],[251.3,-7.4]]]},{"n":"明德楼","t":"teaching","h":20,"r":[[[-26.1,37.7],[-20.5,34.5],[-5.9,43.1],[-5.4,50.5],[-8.1,52.1],[-5.5,53.6],[-23.4,60.9],[-23.3,63.8],[-28.9,67],[-32.3,65.9],[-47.9,78.5],[-50.8,76.9],[-54.1,77.3],[-58,73.7],[-59.1,74.4],[-63.1,70.8],[-64.2,71.5],[-71.6,67.2],[-65.7,61.9],[-65.6,60.3],[-60.2,57.1],[-52.9,60.6],[-53.7,60.2],[-53.8,52.1],[-36,41.9],[-33.8,43.1],[-26.1,39.3],[-25.3,38.7],[-26.1,38.2]]]},{"n":"铭福楼","t":"hospital","h":16,"r":[[[-76.9,-96.3],[-69.8,-97.2],[-65.4,-86.1],[-64.8,-81.5],[-64.8,-79.4],[-71.8,-78.4],[-76.9,-91.1]]]},{"n":"南门","t":"part_entrance","h":1,"r":[[[-69.8,106.8],[-73.6,105.1],[-73.3,104.2],[-69.9,106.1]],[[-65.2,105.6],[-59,109.2],[-61.3,112.1],[-65.9,108.1],[-68.1,109.3],[-69.5,108.6],[-69.6,104.1],[-66.6,102.4],[-65.2,104.2]],[[-81.1,96.4],[-76.4,99.2],[-74.3,98],[-72.8,98.9],[-72.8,103.1],[-75.8,104.8],[-77.1,103.9],[-77.2,101.6],[-78.7,100.6],[-79.9,101.6],[-82.2,100.2],[-83.2,97.6]]]},{"n":"汽车工程实验实训中心","t":"experiment_building","h":6,"r":[[[-101.1,-28.1],[-99.4,-23.9],[-97.6,-24.1],[-95.2,-17.8],[-94.3,-14.5],[-95.5,-13.7],[-95.2,-7.4],[-107.4,-5.9],[-107.4,-4.2],[-117,-2.8],[-120.7,-10.9],[-120.7,-17.1],[-119.4,-19.6],[-116.2,-21.7],[-110.1,-23.3],[-110,-27.6],[-101.4,-28]]]},{"n":"青春馆","t":"service_building","h":16,"r":[[[-18.9,-64],[-19,-64.8],[-13.3,-65.6],[0.3,-66.1],[5.8,-53.2],[3.8,-52.6],[4.5,-49.3],[-2,-48.2],[-4.4,-52.3],[-4.4,-48.1],[-11,-47],[-11,-46.2],[-25.8,-44.1],[-32,-60.5],[-18.4,-62.9]]]},{"n":"实验实训楼","t":"experiment_building","h":24,"r":[[[-83.4,-32.6],[-80.3,-33],[-80.3,-34],[-54.3,-37.4],[-48.3,-22.8],[-48.3,-14.8],[-50.6,-14.6],[-50.6,-11.2],[-76.6,-7.7],[-78.6,-12.2],[-78.6,-16.6],[-80.2,-16.3],[-83.4,-24.1]]]},{"n":"实验实训楼","t":"experiment_building","h":24,"r":[[[138.6,-44.4],[138.6,-40.8],[128.2,-39.3],[127.1,-42.7],[127.9,-42.9],[120.1,-61.8],[123.8,-63.9],[141.1,-66.2],[143.3,-62.5],[143.3,-54],[137.2,-53.4],[138.6,-50.2]]]},{"n":"实验实训楼","t":"experiment_building","h":24,"r":[[[162.8,25.9],[171.9,31.2],[171.9,37.6],[157.8,45.7],[144.1,37],[144.1,31.4],[158.2,23.2]]]},{"n":"实验实训楼","t":"experiment_building","h":24,"r":[[[178.9,33],[175.1,35.3],[171.9,33.5],[171.9,31.2],[162.8,25.9],[162.8,21.1],[176.6,13.2],[176.6,11.9],[178.5,10.7],[179.7,11.5],[182.6,9.9],[194.8,16.8],[194.8,23.5]]]},{"n":"食堂","t":"canteen","h":8,"r":[[[224.4,6.2],[212.3,13.7],[212.2,18.1],[193.3,7.3],[193.3,5.8],[195.8,4.4],[195.2,0.8],[208.8,-7],[225.7,2.7],[225.6,4.5],[223.5,5.7]]]},{"n":"双创中心","t":"administration","h":20,"r":[[[-89.9,74.9],[-78.1,68.2],[-58.4,79.5],[-58.4,86.6],[-70.1,93.4],[-89.9,82.1]]]},{"n":"体育场","t":"gymnasium","h":8,"r":[[[-30.1,-33.3],[-4.2,-48.1],[1.7,-45.2],[3.5,-43.1],[14.3,-45.9],[15,-42.8],[14.2,-42.3],[6.2,-41.4],[5.4,-40.9],[6.6,-38.3],[-27.4,-19],[-30.8,-21.2],[-31.8,-19.1],[-37.7,-15.8],[-38.6,-18.8],[-32.2,-22.6],[-32.2,-25.7],[-29.6,-33]]]},{"n":"体育馆","t":"gymnasium","h":16,"r":[[[97.2,104.4],[103,107.5],[106.6,112.4],[107.9,117.7],[106.1,126.3],[102.8,130.7],[99.5,132.7],[96.4,133.8],[84.9,134.3],[81.2,136],[78.2,139.3],[77.8,130],[75.7,125.8],[72.2,123],[76.8,120.7],[76,118.2],[76.6,113.9],[80.5,108.1],[86.5,104.5],[94.3,103.9]]]},{"n":"图书馆","t":"library","h":50,"r":[[[75.2,31.4],[75.2,32.7],[58.6,42.4],[39.3,31.2],[36.4,13.9],[55.7,2.9],[70.9,12.5],[71.6,12],[78,15.7],[75.4,31.4]]]},{"n":"西部研究院-专家楼","t":"experiment_building","h":16,"r":[[[133.5,52.6],[136.9,54.7],[127.4,60],[135.1,63.9],[135.1,65.2],[133.3,66.3],[123.1,60],[112.9,65.9],[105.1,61.5],[105.1,55.6],[120.4,46.9],[128.2,51.3],[128.2,55.6]]]},{"n":"西部研究院-专家楼","t":"experiment_building","h":16,"r":[[[144.1,37],[156.9,44.3],[156.9,50.6],[143.2,58.3],[126.7,48.9],[126.7,42.6],[140.2,34.8]]]},{"n":"西南门","t":"part_entrance","h":5,"r":[[[-146.3,6.5],[-148.4,9.6],[-150.8,9.1],[-150.8,6.8],[-148.7,3.7],[-146.3,4.2]],[[-142.7,1.2],[-144.8,4.3],[-147.1,3.8],[-147.1,1.5],[-145.1,-1.6],[-142.7,-1.1]]]},{"n":"行政楼","t":"administration","h":20,"r":[[[-50.7,100],[-39.7,93.7],[-19.9,104.9],[-19.9,112.1],[-31.6,118.9],[-51.3,108],[-51.3,105.7],[-49.9,104.9],[-50.7,104.3]]]},{"n":"秀园1号公寓","t":"student_bedroom","h":24,"r":[[[-13.3,-65.6],[-31.6,-62.4],[-33.3,-66],[-33.4,-71.6],[-35.5,-71.4],[-37.2,-77.8],[-37.2,-84.4],[-18.6,-86.9],[-13.3,-74.1],[-13.3,-66.3]]]},{"n":"秀园2号公寓","t":"student_bedroom","h":24,"r":[[[-18.5,-86.8],[-40,-83.8],[-44.4,-94.4],[-44.4,-103.7],[-37.8,-104.6],[-36.3,-102.9],[-34.3,-96.1],[-32.8,-96.3],[-32.8,-97.8],[-28.2,-98.4],[-28.6,-105.9],[-21.9,-106.9],[-17.5,-96.3],[-17.6,-86.9]]]},{"n":"秀园3号公寓","t":"student_bedroom","h":24,"r":[[[3.4,-110.2],[10,-111.1],[14.4,-100.4],[14.4,-91.4],[-8.1,-88.3],[-12.5,-98.8],[-12.5,-108.1],[-5.9,-108.9],[-4.7,-108],[-2.3,-100.4],[-0.8,-100.6],[-0.9,-102],[3.7,-102.6],[3.3,-103.8]]]},{"n":"秀园4号公寓","t":"student_bedroom","h":24,"r":[[[42.1,-114.5],[46.5,-104.1],[46.4,-96.2],[30.6,-94.1],[30.6,-92.3],[24.1,-91.6],[19.6,-102.4],[19.6,-111.6],[26.2,-112.5],[27.5,-111.4],[29.9,-104],[31.3,-104.2],[31.3,-105.6],[35.9,-106.3],[35.5,-113.8],[42,-114.7]]]},{"n":"秀园5号公寓","t":"student_bedroom","h":24,"r":[[[30.6,-92.3],[30.6,-94.1],[49.2,-96.6],[50.8,-92.8],[50.8,-87.3],[53,-87.5],[54.5,-83.8],[54.4,-74.4],[36,-71.8],[30.6,-84.7],[30.6,-87.4]]]},{"n":"学二餐厅","t":"canteen","h":4,"r":[[[25,-66.5],[28.2,-66.9],[27.8,-68.6],[51.4,-72.4],[52.2,-70.4],[56.7,-71],[60.6,-61.2],[60.6,-58.8],[56.5,-58.3],[56.4,-56],[38.8,-53.2],[38.2,-53.9],[31,-53.1],[29.9,-53.5],[24.9,-66]]]},{"n":"学三餐厅","t":"canteen","h":4,"r":[[[135.5,-87.3],[153.2,-89.6],[153.8,-88.1],[161.9,-89.1],[166.4,-75.4],[162.2,-74.9],[158.4,-84.1],[155.6,-83.8],[158.5,-76.5],[158.2,-72.7],[149.5,-71.5],[149.1,-72.5],[145.8,-72.2],[145.5,-71.2],[143.4,-71],[143,-71.8],[140.3,-71.5],[137.2,-79.3],[135.9,-79.2],[135.5,-80.3],[134.5,-84.6],[135.7,-84.8],[135.4,-87.2]]]},{"n":"学一餐厅","t":"canteen","h":4,"r":[[[-110.8,-59],[-91.6,-61.7],[-89.8,-57.3],[-84.2,-58],[-77.5,-42.2],[-77.5,-39.8],[-81.8,-39],[-82.4,-40.1],[-84.8,-39.9],[-84.8,-38.5],[-106.3,-35.6],[-107.7,-39.7],[-108.9,-39.5],[-110.2,-42.7],[-110.2,-45.7],[-107.6,-46],[-108.7,-48.2],[-110.6,-47.9],[-112.1,-51.2],[-112.3,-55.7],[-110.4,-56.4],[-110.8,-58]]]},{"n":"医院","t":"hospital","h":24,"r":[[[110.3,-148.2],[124.2,-150.1],[128.1,-140.3],[134.9,-141.2],[132.5,-144.9],[132.4,-155.3],[136.4,-158.7],[144.9,-159.9],[145.5,-158.4],[154,-159.6],[154,-161.1],[163.4,-162.3],[165.7,-156.6],[166.8,-135.5],[161.7,-134.8],[157.3,-145.3],[151.2,-144.7],[151.3,-136.4],[148.8,-136.1],[148.8,-133.9],[143.7,-133.2],[142.8,-135.1],[128.9,-133.4],[128.9,-131.1],[115.7,-129.3],[110.4,-142.2],[110.2,-148.1]]]},{"n":"游泳馆","t":"gymnasium","h":16,"r":[[[9.7,136.8],[8.2,141.8],[8.1,149.6],[6.6,146.1],[2.8,143.8],[-8.8,143],[-14.7,141.2],[-19.2,137.6],[-20.9,134.8],[-22.2,130.6],[-21.1,122.7],[-19.5,120.2],[-13.9,117.4],[-7.3,117.7],[-0.4,120.8],[4.8,126.6],[6.7,130.5]]]},{"n":"幼儿园","t":"service_building","h":16,"r":[[[-252.3,-34.6],[-248.8,-35.8],[-245.9,-33.7],[-245.7,-35.6],[-242.1,-37.8],[-239,-36.4],[-239,-33.9],[-236.4,-35],[-233,-33.1],[-232.3,-28.7],[-237.9,-26],[-237.9,-25.1],[-242.3,-23.1],[-244.9,-24.3],[-245,-25.9],[-247.3,-25.1],[-249.3,-26.4],[-249.5,-27.8],[-252.9,-28.8],[-252.5,-34.5]]]},{"n":"运动场","t":"gymnasium","h":16,"r":[[[73.6,123.9],[77.8,130],[78.2,139.3],[74.8,146.6],[65,154.7],[54.1,159.4],[37.5,162.3],[29,162],[15,157.5],[8.5,150.7],[8.2,141.8],[11.8,132.7],[19.6,125.4],[32.2,119.5],[45.7,117.1],[60.5,118.4],[72.2,123]]]}];
 
-const labelDefs = [];
-
-function addLabel(text, x, y, z, kind = 'minor') {
-  labelDefs.push({ text, x, y, z, kind });
-}
-
-function addLawn(cx, cz, size = 11.4) {
-  planeAt(size, size, cx, 0.045, cz, geoLawn, 0x0b1a17);
-}
-
-function addPlaza(cx, cz, size = 11.8) {
-  planeAt(size, size, cx, 0.05, cz, geoPlaza, 0x0e151e);
-}
-
-function scatterTrees(cx, cz, count, random, radius = 4.6) {
-  for (let i = 0; i < count; i++) {
-    const angle = random() * Math.PI * 2;
-    const r = 1.6 + random() * radius;
-    seeds.push({
-      x: cx + Math.cos(angle) * r,
-      z: cz + Math.sin(angle) * r,
-      s: 0.8 + random() * 0.7,
-      pine: random() > 0.72
-    });
+const buildingIndex = new Map();
+for (const item of CAMPUS_BUILDINGS) {
+  if (!buildingIndex.has(item.n)) buildingIndex.set(item.n, []);
+  buildingIndex.get(item.n).push(item);
+  const ring = item.r[0];
+  let sx = 0, sz = 0;
+  for (const p of ring) { sx += p[0]; sz += p[1]; }
+  item.cx = sx / ring.length;
+  item.cz = sz / ring.length;
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  for (const p of ring) {
+    minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]);
+    minZ = Math.min(minZ, p[1]); maxZ = Math.max(maxZ, p[1]);
   }
+  item.bbox = { minX, maxX, minZ, maxZ };
+  item.area = Math.abs(ring.reduce((sum, p, i, arr) => {
+    const q = arr[(i + 1) % arr.length];
+    return sum + (p[0] * q[1] - q[0] * p[1]);
+  }, 0) / 2);
 }
 
-function addTrack(cx, cz) {
-  planeAt(12.2, 12.2, cx, 0.04, cz, geoLawn, 0x0c2018);
-  const ring = new THREE.TorusGeometry(6.8, 0.34, 8, 64);
-  ring.rotateX(-Math.PI / 2);
-  ring.scale(1, 1, 0.68);
-  ring.translate(cx, 0.09, cz);
-  pushColored(geoTrim, ring, 0x4a2730);
-  const field = new THREE.CircleGeometry(5.6, 40);
-  field.rotateX(-Math.PI / 2);
-  field.scale(1, 1, 0.66);
-  field.translate(cx, 0.075, cz);
-  pushColored(geoLawn, field, 0x102a1d);
+function findBuilding(name, index = 0) {
+  const list = buildingIndex.get(name);
+  return list && list[index] ? list[index] : null;
 }
 
-function addLake(cx, cz) {
-  const water = new THREE.CircleGeometry(6.6, 48);
-  water.rotateX(-Math.PI / 2);
-  water.scale(1, 1, 0.86);
-  const mesh = new THREE.Mesh(water, waterMat);
-  mesh.position.set(cx, 0.06, cz);
-  mesh.receiveShadow = true;
-  scene.add(mesh);
-  const shore = new THREE.TorusGeometry(6.7, 0.22, 6, 56);
-  shore.rotateX(-Math.PI / 2);
-  shore.scale(1, 1, 0.86);
-  shore.translate(cx, 0.1, cz);
-  pushColored(geoTrim, shore, 0x1c3a44);
-  for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * Math.PI * 2;
-    seeds.push({ x: cx + Math.cos(a) * 7.4, z: cz + Math.sin(a) * 7.4 * 0.86, s: 0.9, pine: false });
+function pointInRing(x, z, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], zi = ring[i][1];
+    const xj = ring[j][0], zj = ring[j][1];
+    if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
   }
+  return inside;
 }
 
-function addCourts(cx, cz) {
-  planeAt(11.6, 11.6, cx, 0.04, cz, geoLawn, 0x0d2019);
-  for (let i = 0; i < 2; i++) {
-    const ox = cx + (i - 0.5) * 4.6;
-    const line = new THREE.BoxGeometry(4.1, 0.03, 0.1);
-    line.translate(ox, 0.07, cz - 2.6);
-    pushColored(geoMark, line, 0x3b6f7d);
-    const line2 = new THREE.BoxGeometry(4.1, 0.03, 0.1);
-    line2.translate(ox, 0.07, cz + 2.6);
-    pushColored(geoMark, line2, 0x3b6f7d);
-    const side = new THREE.BoxGeometry(0.1, 0.03, 5.2);
-    side.translate(ox - 2.05, 0.07, cz);
-    pushColored(geoMark, side, 0x3b6f7d);
-    const side2 = new THREE.BoxGeometry(0.1, 0.03, 5.2);
-    side2.translate(ox + 2.05, 0.07, cz);
-    pushColored(geoMark, side2, 0x3b6f7d);
+function buildingAt(x, z) {
+  for (const item of CAMPUS_BUILDINGS) {
+    const box = item.bbox;
+    if (x < box.minX - 1 || x > box.maxX + 1 || z < box.minZ - 1 || z > box.maxZ + 1) continue;
+    for (const ring of item.r) if (pointInRing(x, z, ring)) return item;
   }
+  return null;
 }
 
-function addParking(cx, cz, random) {
-  planeAt(11.6, 11.6, cx, 0.04, cz, geoPlaza, 0x0b1219);
-  for (let i = 0; i < 4; i++) {
-    const x = cx - 4.2 + i * 2.8;
-    const line = new THREE.BoxGeometry(0.08, 0.03, 4.6);
-    line.translate(x, 0.07, cz);
-    pushColored(geoMark, line, 0x2b4d5c);
+function buildingHeightAt(x, z) {
+  const item = buildingAt(x, z);
+  return item ? item.h : 0;
+}
+
+/* ---------------------------- 道路 ---------------------------- */
+const ROADS = [
+  {
+    id: 'main',
+    width: 14,
+    points: [[-71, 128], [-71, 112], [-68, 100], [-60, 90], [-48, 82], [-32, 76], [-14, 70], [2, 62], [18, 52], [32, 42], [42, 32]]
+  },
+  {
+    id: 'libraryLoop',
+    width: 10,
+    points: [[28, 54], [46, 56], [66, 54], [84, 46], [94, 32], [92, 14], [78, 2], [58, -2], [40, 4], [26, 18], [22, 36], [28, 54]]
+  },
+  {
+    id: 'ring',
+    width: 12,
+    points: [[24, 112], [44, 104], [64, 94], [82, 80], [94, 62], [102, 40], [106, 16], [104, -10], [98, -36], [88, -60], [72, -82], [50, -100], [24, -114], [-4, -122], [-34, -126], [-64, -124], [-94, -116], [-120, -102], [-140, -82], [-154, -58], [-162, -30], [-164, 0], [-160, 30], [-152, 58], [-142, 84], [-128, 104], [-108, 118], [-84, 126], [-58, 128], [-32, 124], [0, 120], [24, 112]]
+  },
+  {
+    id: 'north',
+    width: 7,
+    points: [[-140, -82], [-118, -96], [-94, -108], [-66, -118], [-36, -126], [-4, -130], [28, -128], [58, -122], [86, -112], [108, -98], [120, -82]]
+  },
+  {
+    id: 'eastLink',
+    width: 7,
+    points: [[102, 40], [124, 44], [146, 44], [166, 40], [182, 30], [192, 14], [196, -6], [192, -24], [180, -40], [162, -50], [142, -54], [122, -52]]
+  },
+  {
+    id: 'dormLink',
+    width: 6,
+    points: [[24, -114], [22, -94], [18, -76], [14, -58], [10, -40], [6, -22], [0, -6], [-6, 8], [-14, 22], [-22, 36], [-28, 52]]
+  },
+  {
+    id: 'westLink',
+    width: 6,
+    points: [[-162, -30], [-140, -26], [-118, -22], [-96, -18], [-74, -14], [-54, -8], [-38, 0], [-26, 12], [-18, 26], [-12, 40], [-6, 54]]
+  },
+  {
+    id: 'southLink',
+    width: 7,
+    points: [[-32, 124], [-18, 132], [0, 138], [20, 142], [42, 142], [62, 138], [80, 132], [92, 124], [96, 114]]
+  },
+  {
+    id: 'hospitalSpur',
+    width: 6,
+    points: [[108, -98], [118, -112], [128, -126], [136, -138], [140, -148]]
+  },
+  {
+    id: 'westGate',
+    width: 8,
+    points: [[-164, 0], [-150, 6], [-182, 10], [-196, 12]]
   }
-  for (let i = 0; i < 3; i++) {
-    boxAt(1.1, 0.42, 2.0, cx - 3.2 + i * 3.0, 0.06, cz + (random() - 0.5) * 2, geoRoof, null);
-  }
-}
+];
 
-function addBuildingBase(cx, cz, w, d, h, color, extra = 0) {
-  boxAt(w, h, d, cx, 0, cz, geoBuilding, color);
-  boxAt(w + 0.7, 0.55, d + 0.7, cx, h, cz, geoRoof, null);
-  if (extra) {
-    boxAt(w * 0.42, extra, d * 0.34, cx + w * 0.18, h + 0.55, cz - d * 0.12, geoRoof, null);
-  }
-}
-
-function addAntenna(x, y, z) {
-  const mast = new THREE.CylinderGeometry(0.05, 0.05, 2.6, 5);
-  mast.translate(x, y + 1.3, z);
-  pushColored(geoTrim, mast, 0x31414f);
-  addBeacon(x, y + 2.7, z, 0.12);
-}
-
-function addTeaching(cx, cz, h, style) {
-  const warm = style === 'warm';
-  addBuildingBase(cx, cz, 9.2, 8.2, h, warm ? 0x2a2620 : 0x19222f, 1.4);
-  boxAt(3.0, h * 0.52, 3.2, cx - 5.4, 0, cz - 1.6, geoBuilding, warm ? 0x24211c : 0x151d29);
-  // 入口雨棚
-  boxAt(4.4, 0.28, 1.8, cx, 3.5, cz + 4.2, geoTrim);
-  addAntenna(cx + 2.6, h + 1.4, cz + 1.6);
-  if (h >= 15) addAntenna(cx - 2.2, h + 1.4, cz - 1.8);
-}
-
-function addLab(cx, cz, h) {
-  addBuildingBase(cx, cz, 10.0, 8.4, h, 0x172029, 1.0);
-  boxAt(2.2, 1.8, 2.2, cx + 2.8, h + 0.55, cz - 2.2, geoRoof, null);
-  const tank = new THREE.CylinderGeometry(1.05, 1.05, 2.2, 14);
-  tank.translate(cx - 2.8, h + 1.6, cz + 2.0);
-  geoRoof.push(tank);
-  addAntenna(cx - 2.4, h + 2.6, cz + 1.9);
-}
-
-function addLibrary(cx, cz) {
-  boxAt(12.4, 6.2, 11.2, cx, 0, cz, geoBuilding, 0x1d2a38);
-  boxAt(8.8, 20.0, 8.8, cx, 6.2, cz, geoBuilding, 0x223140);
-  boxAt(10.0, 1.0, 10.0, cx, 26.2, cz, geoRoof, null);
-  const crown = new THREE.TorusGeometry(4.9, 0.12, 8, 56);
-  crown.rotateX(-Math.PI / 2);
-  crown.translate(cx, 27.1, cz);
-  geoFlags.push(crown);
-  for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * Math.PI * 2;
-    addBeacon(cx + Math.cos(a) * 4.9, 27.1, cz + Math.sin(a) * 4.9, 0.1);
-  }
-  boxAt(2.0, 0.4, 4.0, cx, 0.1, cz + 5.4, geoTrim);
-  addLabel('图书馆', cx, 30.4, cz, 'major');
-}
-
-function addHangar(cx, cz, h) {
-  boxAt(11.6, h, 9.2, cx, 0, cz, geoBuilding, 0x24262c);
-  const arch = new THREE.CylinderGeometry(5.5, 5.5, 9.0, 22, 1, true, 0, Math.PI);
-  arch.rotateZ(Math.PI / 2);
-  arch.rotateY(Math.PI / 2);
-  arch.translate(cx, h, cz);
-  geoRoof.push(arch);
-  boxAt(11.6, 0.2, 0.2, cx, h + 5.4, cz + 4.4, geoTrim);
-  addBeacon(cx, h + 5.6, cz, 0.12);
-}
-
-function addHall(cx, cz, h, style) {
-  const warm = style === 'warm';
-  boxAt(10.6, h, 8.8, cx, 0, cz + 1.2, geoBuilding, warm ? 0x2b2722 : 0x1c2532);
-  const roof = new THREE.CylinderGeometry(4.4, 4.4, 9.6, 18, 1, true, 0, Math.PI);
-  roof.rotateZ(Math.PI / 2);
-  roof.rotateY(Math.PI / 2);
-  roof.translate(cx, h, cz + 0.4);
-  geoRoof.push(roof);
-  boxAt(7.0, 0.5, 2.0, cx, 4.2, cz + 5.6, geoTrim);
-  boxAt(4.6, 0.18, 1.4, cx, 4.7, cz + 5.7, geoRoof, null);
-}
-
-function addUtility(cx, cz) {
-  boxAt(7.6, 6.4, 6.8, cx, 0, cz, geoBuilding, 0x151c24);
-  boxAt(8.4, 0.4, 7.6, cx, 6.4, cz, geoRoof, null);
-  for (let i = 0; i < 2; i++) {
-    const tank = new THREE.CylinderGeometry(1.25, 1.25, 3.4, 14);
-    tank.translate(cx - 2.0 + i * 4.0, 1.7, cz - 4.8);
-    geoRoof.push(tank);
-  }
-  const pipe = new THREE.CylinderGeometry(0.18, 0.18, 7.0, 8);
-  pipe.rotateZ(Math.PI / 2);
-  pipe.translate(cx, 1.0, cz + 3.4);
-  pushColored(geoTrim, pipe, 0x31414f);
-  addBeacon(cx + 3.0, 7.0, cz + 2.6, 0.1);
-}
-
-function addOffice(cx, cz, h) {
-  addBuildingBase(cx, cz, 8.0, 8.0, h, 0x1a2432, 1.2);
-  boxAt(2.6, 0.5, 2.6, cx - 1.6, h + 0.55, cz + 1.8, geoRoof, null);
-  addAntenna(cx + 1.8, h + 1.0, cz - 1.6);
-}
-
-function addDorm(cx, cz) {
-  for (let i = 0; i < 3; i++) {
-    const x = cx - 4.0 + i * 4.0;
-    boxAt(3.3, 15.5, 9.4, x, 0, cz, geoBuilding, 0x1c2533);
-    boxAt(3.9, 0.4, 10.0, x, 15.5, cz, geoRoof, null);
-    for (let f = 1; f < 5; f++) {
-      const balcony = new THREE.BoxGeometry(3.4, 0.12, 0.3);
-      balcony.translate(x, f * 3.1, cz + 4.8);
-      pushColored(geoTrim, balcony, 0x2b3a48);
+function makeRibbon(points, width, y) {
+  const vectorPoints = points.map((p) => new THREE.Vector3(p[0], y, p[1]));
+  const curve = new THREE.CatmullRomCurve3(vectorPoints, false, 'catmullrom', 0.3);
+  const length = curve.getLength();
+  const divisions = Math.max(10, Math.round(length / 3));
+  const samples = curve.getSpacedPoints(divisions);
+  const positions = [];
+  const uvs = [];
+  const indices = [];
+  for (let i = 0; i < samples.length; i++) {
+    const p = samples[i];
+    const prev = samples[Math.max(0, i - 1)];
+    const next = samples[Math.min(samples.length - 1, i + 1)];
+    const dx = next.x - prev.x;
+    const dz = next.z - prev.z;
+    const len = Math.hypot(dx, dz) || 1;
+    const nx = -dz / len;
+    const nz = dx / len;
+    positions.push(p.x + nx * width / 2, y, p.z + nz * width / 2);
+    positions.push(p.x - nx * width / 2, y, p.z - nz * width / 2);
+    uvs.push(0, i * 0.2, 1, i * 0.2);
+    if (i < samples.length - 1) {
+      const a = i * 2, b = i * 2 + 1, c = (i + 1) * 2, d = (i + 1) * 2 + 1;
+      indices.push(a, b, c, b, d, c);
     }
   }
-  addBeacon(cx, 17.0, cz, 0.1);
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return { geometry, curve, samples };
 }
 
-function addCanteen(cx, cz) {
-  boxAt(10.4, 8.6, 9.2, cx, 0, cz + 0.8, geoBuilding, 0x2a2620);
-  boxAt(11.4, 0.5, 10.2, cx, 8.6, cz + 0.8, geoRoof, null);
-  boxAt(9.0, 0.3, 2.4, cx, 4.4, cz + 5.8, geoTrim);
-  addBeacon(cx - 3.6, 9.4, cz + 3.6, 0.1);
-}
-
-function addClinic(cx, cz) {
-  boxAt(8.2, 8.0, 7.2, cx, 0, cz, geoBuilding, 0x20262a);
-  boxAt(9.0, 0.4, 8.0, cx, 8.0, cz, geoRoof, null);
-  const crossA = new THREE.BoxGeometry(1.9, 0.52, 0.16);
-  crossA.translate(cx, 6.9, cz + 3.95);
-  const crossB = new THREE.BoxGeometry(0.52, 1.9, 0.16);
-  crossB.translate(cx, 6.9, cz + 3.95);
-  geoBeacon.push(crossA, crossB);
-}
-
-function addShops(cx, cz) {
-  for (let i = 0; i < 3; i++) {
-    const x = cx - 3.6 + i * 3.6;
-    boxAt(3.0, 4.6, 8.4, x, 0, cz, geoBuilding, 0x20262e);
-    boxAt(3.4, 0.35, 8.8, x, 4.6, cz, geoRoof, null);
-    boxAt(2.4, 0.16, 1.6, x, 3.0, cz + 4.4, geoTrim);
-  }
-}
-
-function addLogistics(cx, cz) {
-  boxAt(10.2, 7.6, 8.4, cx, 0, cz, geoBuilding, 0x1b232c);
-  boxAt(11.0, 0.5, 9.2, cx, 7.6, cz, geoRoof, null);
-  for (let i = 0; i < 3; i++) {
-    boxAt(2.4, 0.2, 1.6, cx - 3.0 + i * 3.0, 0.06, cz + 5.0, geoPlaza, 0x0d141b);
-  }
-  addBeacon(cx, 8.2, cz, 0.1);
-}
-
-function buildBlock(block, cx, cz, i, j, random) {
-  planeAt(12.6, 12.6, cx, 0.04, cz, geoPlaza, 0x111a25);
-  // 地块轮廓：让 8×8 街区在夜景里保持可读
-  boxAt(12.7, 0.05, 0.1, cx, 0.055, cz - 6.32, geoMark, 0x1d4c60);
-  boxAt(12.7, 0.05, 0.1, cx, 0.055, cz + 6.32, geoMark, 0x1d4c60);
-  boxAt(0.1, 0.05, 12.7, cx - 6.32, 0.055, cz, geoMark, 0x1d4c60);
-  boxAt(0.1, 0.05, 12.7, cx + 6.32, 0.055, cz, geoMark, 0x1d4c60);
-
-  switch (block.kind) {
-    case 'green':
-      addLawn(cx, cz, 11.2);
-      scatterTrees(cx, cz, 3 + Math.floor(random() * 3), random);
-      break;
-    case 'plaza':
-      addPlaza(cx, cz, 11.8);
-      if (i === 3 && j === 3) {
-        const basin = new THREE.CylinderGeometry(1.6, 1.8, 0.5, 18);
-        basin.translate(0, 0.3, cz);
-        pushColored(geoTrim, basin, 0x21404e);
-        const water = new THREE.CylinderGeometry(1.35, 1.35, 0.12, 18);
-        water.translate(0, 0.6, cz);
-        pushColored(geoPlaza, water, 0x0b2b3d);
-      }
-      scatterTrees(cx, cz, 2, random, 4.8);
-      break;
-    case 'lake':
-      addLake(cx, cz);
-      break;
-    case 'track':
-      addTrack(cx, cz);
-      break;
-    case 'courts':
-      addCourts(cx, cz);
-      break;
-    case 'parking':
-      addParking(cx, cz, random);
-      break;
-    default: {
-      addLawn(cx, cz, 11.0);
-      switch (block.kind) {
-        case 'teaching': addTeaching(cx, cz, block.h || 14, block.style); break;
-        case 'lab': addLab(cx, cz, block.h || 12); break;
-        case 'library': addLibrary(cx, cz); break;
-        case 'hangar': addHangar(cx, cz, block.h || 10); break;
-        case 'hall': addHall(cx, cz, block.h || 9, block.style); break;
-        case 'utility': addUtility(cx, cz); break;
-        case 'office': addOffice(cx, cz, block.h || 12); break;
-        case 'dorm': addDorm(cx, cz); break;
-        case 'canteen': addCanteen(cx, cz); break;
-        case 'clinic': addClinic(cx, cz); break;
-        case 'shops': addShops(cx, cz); break;
-        case 'logistics': addLogistics(cx, cz); break;
-        default: addOffice(cx, cz, block.h || 12);
-      }
-      scatterTrees(cx, cz, 2, random, 4.9);
-      if (MAJOR_LABELS.has(block.name)) {
-        const y = block.kind === 'library' ? 30.4 : (block.h || 12) + 3.2;
-        if (block.kind !== 'library') addLabel(block.name, cx, y, cz, 'major');
-      }
-      if (block.kind === 'dorm' && i === 3 && j === 4) addLabel('俊园公寓', cx, 19.5, cz, 'major');
-    }
-  }
-}
-
-/* 路网 */
 function buildRoads() {
-  for (let k = 0; k <= 8; k++) {
-    const p = -64 + k * 16;
-    const isAxis = k === 4;
-    const width = isAxis ? 6.2 : 3.8;
-    boxAt(width, 0.04, 132, p, 0.015, 0, geoRoad, 0x0a111b);
-    boxAt(132, 0.04, width, 0, 0.015, p, geoRoad, 0x0a111b);
-    // 快车道虚线
-    const dash = isAxis ? 2.6 : 2.0;
-    for (let t = -62; t <= 62; t += 6.2) {
-      const lineV = new THREE.BoxGeometry(0.14, 0.03, dash);
-      lineV.translate(p, 0.05, t);
-      pushColored(geoMark, lineV, isAxis ? 0x2f6f8c : 0x1d4658);
-      const lineH = new THREE.BoxGeometry(dash, 0.03, 0.14);
-      lineH.translate(t, 0.05, p);
-      pushColored(geoMark, lineH, isAxis ? 0x2f6f8c : 0x1d4658);
+  ROADS.forEach((road, index) => {
+    const lift = index * 0.0006;
+    geoWalk.push(makeRibbon(road.points, road.width + 3.6, 0.18 + lift).geometry);
+    geoEdge.push(makeRibbon(road.points, road.width + 1.1, 0.33 + lift).geometry);
+    const built = makeRibbon(road.points, road.width, 0.34 + lift);
+    geoRoad.push(built.geometry);
+    roadSamples.push({ samples: built.samples, width: road.width });
+    // 中心虚线
+    const step = road.width >= 9 ? 9 : 7;
+    const length = built.curve.getLength();
+    for (let d = step * 0.5; d < length; d += step) {
+      const t = d / length;
+      const p = built.curve.getPointAt(t);
+      const tangent = built.curve.getTangentAt(t);
+      const angle = Math.atan2(tangent.x, tangent.z);
+      const dash = new THREE.BoxGeometry(0.16, 0.03, road.width >= 9 ? 3.4 : 2.4);
+      dash.rotateY(angle);
+      dash.translate(p.x, 0.44 + lift, p.z);
+      geoMark.push(dash);
     }
-  }
-  // 校门斑马线
-  for (let i = 0; i < 6; i++) {
-    const stripe = new THREE.BoxGeometry(5.4, 0.03, 0.42);
-    stripe.translate(0, 0.055, 59 + i * 0.9);
-    pushColored(geoMark, stripe, 0x50839a);
-  }
-  // 环路边界
-  const border = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(-68, 0.08, -68),
-    new THREE.Vector3(68, 0.08, -68),
-    new THREE.Vector3(68, 0.08, 68),
-    new THREE.Vector3(-68, 0.08, 68),
-    new THREE.Vector3(-68, 0.08, -68)
-  ]);
-  const borderLine = new THREE.Line(border, new THREE.LineBasicMaterial({ color: 0x2f6d8c, transparent: true, opacity: 0.55 }));
-  scene.add(borderLine);
-}
-
-/* 校门 */
-function buildGates() {
-  const signTexture = makeSignTexture('四川吉利学院', 'SICHUAN GEELY UNIVERSITY');
-  const signMat = new THREE.MeshBasicMaterial({ map: signTexture, color: 0x9fb4c2, transparent: true });
-
-  function gate(x, z, rotY, label, simple = false) {
-    const cos = Math.cos(rotY);
-    const sin = Math.sin(rotY);
-    const place = (lx, lz) => ({ x: x + lx * cos + lz * sin, z: z - lx * sin + lz * cos });
-
-    [-5.2, 5.2].forEach((px) => {
-      const p = place(px, 0);
-      boxAt(1.1, 6.4, 1.1, p.x, 0, p.z, geoBuilding, 0x202a36, rotY);
-      addBeacon(p.x, 6.6, p.z, 0.12);
-    });
-    const center = place(0, 0);
-    boxAt(11.6, 0.7, 0.9, center.x, 6.4, center.z, geoRoof, null, rotY);
-    if (!simple) {
-      [0, Math.PI].forEach((flip) => {
-        const board = new THREE.Mesh(new THREE.PlaneGeometry(9.4, 2.35), signMat);
-        const angle = rotY + flip;
-        board.position.set(
-          center.x + Math.sin(angle) * 0.54,
-          5.0,
-          center.z + Math.cos(angle) * 0.54
-        );
-        board.rotation.y = angle;
-        scene.add(board);
+    // 路灯点位
+    const walkLength = built.curve.getLength();
+    for (let d = 14; d < walkLength; d += 26) {
+      const t = d / walkLength;
+      const p = built.curve.getPointAt(t);
+      const tangent = built.curve.getTangentAt(t);
+      const side = (Math.floor(d / 26) % 2 === 0) ? 1 : -1;
+      const nx = -tangent.z, nz = tangent.x;
+      lampSpots.push({
+        x: p.x + nx * side * (road.width / 2 + 2.4),
+        z: p.z + nz * side * (road.width / 2 + 2.4)
       });
     }
-    const guard = place(7.6, 1.4);
-    boxAt(2.6, 2.8, 2.4, guard.x, 0, guard.z, geoBuilding, 0x1c2530, rotY);
-    addLabel(label, x, 8.6, z, 'major');
-    return center;
-  }
-
-  gate(0, 64, 0, '南校门', false);
-  gate(64, -16, -Math.PI / 2, '东门', true);
-  gate(-64, 0, Math.PI / 2, '西门', true);
+  });
 }
 
-/* 路灯 */
-const lampPositions = [];
-function buildLamps() {
-  for (let k = 0; k <= 8; k++) {
-    for (let m = 0; m <= 8; m++) {
-      const x = -64 + k * 16;
-      const z = -64 + m * 16;
-      if (Math.abs(x) > 60 && Math.abs(z) > 60) continue;
-      lampPositions.push({ x: x + 2.4, z: z + 2.4 });
+/* ---------------------------- 建筑 ---------------------------- */
+function extrudeBuilding(item) {
+  const color = BUILDING_COLORS[item.t] || 0x3c4854;
+  const height = Math.max(2, item.h);
+  for (const ring of item.r) {
+    const shape = new THREE.Shape();
+    shape.moveTo(ring[0][0], -ring[0][1]);
+    for (let i = 1; i < ring.length; i++) shape.lineTo(ring[i][0], -ring[i][1]);
+    shape.closePath();
+    const geometry = new THREE.ExtrudeGeometry(shape, {
+      depth: height,
+      bevelEnabled: false,
+      curveSegments: 1,
+      steps: 1
+    });
+    geometry.rotateX(-Math.PI / 2);
+    pushColored(geoBuilding, geometry, color);
+  }
+  // 屋顶细节
+  if (item.area > 260 && item.t !== 'part_entrance' && item.t !== 'gymnasium') {
+    const box = item.bbox;
+    const w = Math.min(10, Math.max(3, (box.maxX - box.minX) * 0.22));
+    const d = Math.min(8, Math.max(2.5, (box.maxZ - box.minZ) * 0.2));
+    boxAt(w, 1.6, d, item.cx + 1.5, height, item.cz - 1, geoRoof);
+    boxAt(2.4, 1.0, 2.4, item.cx - 2.2, height, item.cz + 1.4, geoRoof);
+  }
+  if (height >= 22) {
+    const mast = new THREE.CylinderGeometry(0.12, 0.16, 5, 6);
+    mast.translate(item.cx, height + 2.5, item.cz);
+    geoTrim.push(mast);
+    const beacon = new THREE.SphereGeometry(0.35, 8, 8);
+    beacon.translate(item.cx, height + 5.2, item.cz);
+    geoBeacon.push(beacon);
+  }
+}
+
+function buildBuildings() {
+  for (const item of CAMPUS_BUILDINGS) {
+    if (item.n === '运动场') continue;
+    extrudeBuilding(item);
+  }
+  // 图书馆冠环
+  const library = findBuilding('图书馆');
+  if (library) {
+    const ring = new THREE.TorusGeometry(12, 0.22, 8, 64);
+    ring.rotateX(-Math.PI / 2);
+    ring.translate(library.cx, library.h + 1.4, library.cz);
+    geoFlag.push(ring);
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2;
+      const beacon = new THREE.SphereGeometry(0.22, 8, 8);
+      beacon.translate(library.cx + Math.cos(a) * 12, library.h + 1.4, library.cz + Math.sin(a) * 12);
+      geoBeacon.push(beacon);
     }
   }
-  const poleGeo = new THREE.CylinderGeometry(0.07, 0.09, 4.4, 6);
-  const poles = new THREE.InstancedMesh(poleGeo, poleMat, lampPositions.length);
-  const headGeo = new THREE.SphereGeometry(0.13, 8, 8);
-  const heads = new THREE.InstancedMesh(headGeo, lampMat, lampPositions.length);
-  const poolGeo = new THREE.PlaneGeometry(8, 8);
-  poolGeo.rotateX(-Math.PI / 2);
-  const poolMat = new THREE.MeshBasicMaterial({
-    map: glowTexture,
-    color: 0xffd9a0,
-    transparent: true,
-    opacity: 0.1,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
-  });
-  const pools = new THREE.InstancedMesh(poolGeo, poolMat, lampPositions.length);
-  const dummy = new THREE.Object3D();
-  lampPositions.forEach((lamp, index) => {
-    dummy.position.set(lamp.x, 2.2, lamp.z);
-    dummy.updateMatrix();
-    poles.setMatrixAt(index, dummy.matrix);
-    dummy.position.set(lamp.x, 4.5, lamp.z);
-    dummy.updateMatrix();
-    heads.setMatrixAt(index, dummy.matrix);
-    dummy.position.set(lamp.x, 0.06, lamp.z);
-    dummy.updateMatrix();
-    pools.setMatrixAt(index, dummy.matrix);
-  });
-  scene.add(poles, heads, pools);
 }
 
-/* 树木 */
+/* ---------------------------- 运动场 ---------------------------- */
+function buildTrack() {
+  const track = findBuilding('运动场');
+  if (!track || !track.r[0]) return;
+  const ring = track.r[0];
+  const shape = new THREE.Shape();
+  shape.moveTo(ring[0][0], -ring[0][1]);
+  for (let i = 1; i < ring.length; i++) shape.lineTo(ring[i][0], -ring[i][1]);
+  shape.closePath();
+  const trackGeometry = new THREE.ShapeGeometry(shape);
+  trackGeometry.rotateX(-Math.PI / 2);
+  trackGeometry.translate(0, 0.3, 0);
+  const trackMesh = new THREE.Mesh(trackGeometry, trackMat);
+  trackMesh.receiveShadow = true;
+  scene.add(trackMesh);
+
+  const fieldShape = new THREE.Shape();
+  const scale = 0.76;
+  fieldShape.moveTo(track.cx + (ring[0][0] - track.cx) * scale, -(track.cz + (ring[0][1] - track.cz) * scale));
+  for (let i = 1; i < ring.length; i++) {
+    fieldShape.lineTo(track.cx + (ring[i][0] - track.cx) * scale, -(track.cz + (ring[i][1] - track.cz) * scale));
+  }
+  fieldShape.closePath();
+  const fieldGeometry = new THREE.ShapeGeometry(fieldShape);
+  fieldGeometry.rotateX(-Math.PI / 2);
+  fieldGeometry.translate(0, 0.32, 0);
+  const fieldMesh = new THREE.Mesh(fieldGeometry, fieldMat);
+  fieldMesh.receiveShadow = true;
+  scene.add(fieldMesh);
+
+  // 跑道白线
+  const outline = new THREE.BufferGeometry().setFromPoints(
+    ring.map((p) => new THREE.Vector3(p[0], 0.34, p[1]))
+  );
+  const line = new THREE.LineLoop(outline, new THREE.LineBasicMaterial({ color: 0xe8eef4, transparent: true, opacity: 0.5 }));
+  scene.add(line);
+}
+
+/* ---------------------------- 广场与入口 ---------------------------- */
+function buildPlazas() {
+  const plazas = [
+    { x: -71, z: 116, w: 54, d: 26, rot: 0.08 },
+    { x: 8, z: 82, w: 46, d: 26, rot: 0.05 },
+    { x: 38, z: 48, w: 58, d: 36, rot: 0.02 },
+    { x: -20, z: 66, w: 40, d: 20, rot: 0.03 },
+    { x: 88, z: 108, w: 36, d: 24, rot: 0.06 }
+  ];
+  for (const p of plazas) {
+    planeAt(p.w, p.d, p.x, 0.22, p.z, geoPlaza, p.rot);
+  }
+  // 南门与西门
+  buildGate(-71, 108, '四川吉利学院', 'SICHUAN GEELY UNIVERSITY', false, '南门');
+  buildGate(-148, 8, '西门', 'WEST GATE', true);
+}
+
+function buildGate(x, z, title, subtitle, simple = false, labelText = title) {
+  const pillarColor = 0x2c3642;
+  const pillarGeo = new THREE.CylinderGeometry(0.9, 1.1, simple ? 7 : 9, 10);
+  pillarGeo.translate(x - 8, (simple ? 7 : 9) / 2, z);
+  pushColored(geoBuilding, pillarGeo, pillarColor);
+  const pillarGeo2 = new THREE.CylinderGeometry(0.9, 1.1, simple ? 7 : 9, 10);
+  pillarGeo2.translate(x + 8, (simple ? 7 : 9) / 2, z);
+  pushColored(geoBuilding, pillarGeo2, pillarColor);
+  boxAt(19, 1.1, 1.4, x, simple ? 7 : 9, z, geoTrim);
+
+  if (!simple) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 192;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#12202e';
+    ctx.fillRect(0, 0, 1024, 192);
+    ctx.fillStyle = '#d8f4ff';
+    ctx.font = '700 78px "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(title, 512, 82);
+    ctx.fillStyle = '#63b8d8';
+    ctx.font = '500 26px monospace';
+    ctx.fillText(subtitle, 512, 148);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const material = new THREE.MeshBasicMaterial({ map: texture });
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(17, 3.2), material);
+    sign.position.set(x, (simple ? 7 : 9) + 2.4, z + 0.8);
+    scene.add(sign);
+    const back = sign.clone();
+    back.rotation.y = Math.PI;
+    back.position.z = z - 0.8;
+    scene.add(back);
+  }
+  addLabel(labelText, x, (simple ? 7 : 9) + 5, z, 'major');
+}
+
+/* ---------------------------- 树木 ---------------------------- */
+function nearBuilding(x, z, buffer = 0) {
+  for (const item of CAMPUS_BUILDINGS) {
+    const box = item.bbox;
+    if (x > box.minX - buffer && x < box.maxX + buffer && z > box.minZ - buffer && z < box.maxZ + buffer) return true;
+  }
+  return false;
+}
+
+function distanceToRoads(x, z) {
+  let best = Infinity;
+  for (const road of roadSamples) {
+    for (let i = 0; i < road.samples.length; i += 3) {
+      const p = road.samples[i];
+      const d = Math.hypot(p.x - x, p.z - z) - road.width / 2;
+      if (d < best) best = d;
+    }
+  }
+  return best;
+}
+
 function buildTrees() {
-  const broad = seeds.filter((seed) => !seed.pine);
-  const pines = seeds.filter((seed) => seed.pine);
-  const trunkGeo = new THREE.CylinderGeometry(0.12, 0.2, 1.6, 6);
-  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x241a14, roughness: 0.95 });
+  const random = (function seed(s0) {
+    let s = s0;
+    return () => {
+      s = (s * 16807) % 2147483647;
+      return (s - 1) / 2147483646;
+    };
+  })(73);
+  let attempts = 0;
+  while (seeds.length < 1500 && attempts < 30000) {
+    attempts += 1;
+    const x = -270 + random() * 540;
+    const z = -165 + random() * 330;
+    if (nearBuilding(x, z, 7)) continue;
+    if (distanceToRoads(x, z) < 3.2) continue;
+    seeds.push({
+      x,
+      z,
+      s: 0.8 + random() * 0.85,
+      pine: random() > 0.78,
+      tone: random()
+    });
+  }
+  // 中央林荫道（南门 — 图书馆方向）
+  const avenue = [];
+  for (let i = 0; i <= 26; i++) {
+    const t = i / 26;
+    const x = -71 + (52 + 71) * t;
+    const z = 112 + (30 - 112) * t;
+    avenue.push([x, z]);
+  }
+  for (let i = 2; i < avenue.length - 2; i++) {
+    const [ax, az] = avenue[i];
+    const [bx, bz] = avenue[i + 1];
+    const dx = bx - ax, dz = bz - az;
+    const len = Math.hypot(dx, dz) || 1;
+    const nx = -dz / len, nz = dx / len;
+    for (const side of [-1, 1]) {
+      const axx = ax + nx * side * 7.5;
+      const azz = az + nz * side * 7.5;
+      if (nearBuilding(axx, azz, 5)) continue;
+      seeds.push({
+        x: axx,
+        z: azz,
+        s: 1.05 + (i % 3) * 0.08,
+        pine: false,
+        tone: 0.35
+      });
+    }
+  }
+
+  // 主要道路行道树
+  for (const road of roadSamples) {
+    for (let i = 4; i < road.samples.length - 4; i += 7) {
+      const p = road.samples[i];
+      const q = road.samples[i + 1];
+      const dx = q.x - p.x, dz = q.z - p.z;
+      const len = Math.hypot(dx, dz) || 1;
+      const nx = -dz / len, nz = dx / len;
+      const side = i % 2 === 0 ? 1 : -1;
+      seeds.push({
+        x: p.x + nx * side * (road.width / 2 + 4.5),
+        z: p.z + nz * side * (road.width / 2 + 4.5),
+        s: 0.9 + (i % 5) * 0.06,
+        pine: false,
+        tone: 0.5
+      });
+    }
+  }
+
+  const trunkGeo = new THREE.CylinderGeometry(0.28, 0.4, 3.2, 6);
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x2a1c14, roughness: 0.95 });
   const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, seeds.length);
-  const leafGeo = new THREE.IcosahedronGeometry(1.35, 0);
-  const leafMat = new THREE.MeshStandardMaterial({ color: 0x123026, roughness: 0.92, flatShading: true });
-  const broadMesh = new THREE.InstancedMesh(leafGeo, leafMat, Math.max(broad.length, 1));
-  const pineGeo = new THREE.ConeGeometry(1.15, 3.1, 7);
-  const pineMat = new THREE.MeshStandardMaterial({ color: 0x0f2a24, roughness: 0.92, flatShading: true });
-  const pineMesh = new THREE.InstancedMesh(pineGeo, pineMat, Math.max(pines.length, 1));
+  const broadGeo = new THREE.IcosahedronGeometry(2.4, 0);
+  const broadMat = new THREE.MeshStandardMaterial({ color: 0x3f6f4c, roughness: 0.9, flatShading: true });
+  const pineGeo = new THREE.ConeGeometry(2.1, 6.4, 7);
+  const pineMat = new THREE.MeshStandardMaterial({ color: 0x2c5742, roughness: 0.9, flatShading: true });
+  const broad = seeds.filter((s) => !s.pine);
+  const pines = seeds.filter((s) => s.pine);
+  const broadMesh = new THREE.InstancedMesh(broadGeo, broadMat, Math.max(1, broad.length));
+  const pineMesh = new THREE.InstancedMesh(pineGeo, pineMat, Math.max(1, pines.length));
+  broadMesh.castShadow = true;
+  pineMesh.castShadow = true;
   const dummy = new THREE.Object3D();
   seeds.forEach((seed, index) => {
-    dummy.position.set(seed.x, 0.8 * seed.s, seed.z);
-    dummy.scale.setScalar(seed.s);
-    dummy.rotation.set(0, seed.x * 0.3 + seed.z * 0.2, 0);
+    dummy.position.set(seed.x, 1.6 * seed.s, seed.z);
+    dummy.scale.set(seed.s, seed.s, seed.s);
+    dummy.rotation.set(0, seed.tone * 6, 0);
     dummy.updateMatrix();
     trunks.setMatrixAt(index, dummy.matrix);
   });
   broad.forEach((seed, index) => {
-    dummy.position.set(seed.x, 2.4 * seed.s, seed.z);
-    dummy.scale.set(seed.s, seed.s * 1.1, seed.s);
-    dummy.rotation.set(0, seed.x + seed.z, 0);
+    dummy.position.set(seed.x, 4.4 * seed.s, seed.z);
+    dummy.scale.set(seed.s * 1.05, seed.s * 1.15, seed.s * 1.05);
+    dummy.rotation.set(0, seed.tone * 8, 0);
     dummy.updateMatrix();
     broadMesh.setMatrixAt(index, dummy.matrix);
   });
   pines.forEach((seed, index) => {
-    dummy.position.set(seed.x, 2.5 * seed.s, seed.z);
+    dummy.position.set(seed.x, 4.2 * seed.s, seed.z);
     dummy.scale.set(seed.s, seed.s, seed.s);
-    dummy.rotation.set(0, seed.z * 0.4, 0);
+    dummy.rotation.set(0, seed.tone * 5, 0);
     dummy.updateMatrix();
     pineMesh.setMatrixAt(index, dummy.matrix);
   });
+  trunks.castShadow = true;
+  // 路缘绿篱
+  for (const road of roadSamples) {
+    for (let i = 2; i < road.samples.length - 2; i += 2) {
+      const p = road.samples[i];
+      const q = road.samples[i + 1];
+      const dx = q.x - p.x, dz = q.z - p.z;
+      const len = Math.hypot(dx, dz) || 1;
+      const angle = Math.atan2(dx, dz);
+      const nx = -dz / len, nz = dx / len;
+      for (const side of [-1, 1]) {
+        const hx = p.x + nx * side * (road.width / 2 + 2.1);
+        const hz = p.z + nz * side * (road.width / 2 + 2.1);
+        const hedge = new THREE.BoxGeometry(2.2, 0.85, 0.9);
+        hedge.rotateY(angle);
+        hedge.translate(hx, 0.42, hz);
+        geoHedge.push(hedge);
+      }
+    }
+  }
   scene.add(trunks, broadMesh, pineMesh);
 }
 
-/* 地面与星空 */
-function buildGround() {
-  const groundMat = new THREE.MeshStandardMaterial({
-    map: makeGridTexture(),
-    color: 0x2b3946,
-    roughness: 0.95,
-    metalness: 0.05
+/* ---------------------------- 路灯 ---------------------------- */
+function buildLamps() {
+  const poleGeo = new THREE.CylinderGeometry(0.12, 0.18, 7, 6);
+  const poleMat = new THREE.MeshStandardMaterial({ color: 0x2b343d, roughness: 0.6, metalness: 0.5 });
+  const headGeo = new THREE.SphereGeometry(0.55, 8, 8);
+  const headMat = new THREE.MeshBasicMaterial({ color: 0xffd9a0 });
+  const poles = new THREE.InstancedMesh(poleGeo, poleMat, lampSpots.length);
+  const heads = new THREE.InstancedMesh(headGeo, headMat, lampSpots.length);
+  const poolGeo = new THREE.PlaneGeometry(24, 24);
+  poolGeo.rotateX(-Math.PI / 2);
+  const poolMat = new THREE.MeshBasicMaterial({
+    map: glowTexture,
+    color: 0xffcf8a,
+    transparent: true,
+    opacity: 0.32,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
   });
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), groundMat);
+  const pools = new THREE.InstancedMesh(poolGeo, poolMat, lampSpots.length);
+  const dummy = new THREE.Object3D();
+  lampSpots.forEach((spot, index) => {
+    dummy.position.set(spot.x, 3.5, spot.z);
+    dummy.updateMatrix();
+    poles.setMatrixAt(index, dummy.matrix);
+    dummy.position.set(spot.x, 7, spot.z);
+    dummy.updateMatrix();
+    heads.setMatrixAt(index, dummy.matrix);
+    dummy.position.set(spot.x, 0.06, spot.z);
+    dummy.updateMatrix();
+    pools.setMatrixAt(index, dummy.matrix);
+  });
+  poles.castShadow = true;
+  scene.add(poles, heads, pools);
+  campusMeshes.lampHeads = heads;
+  campusMeshes.lampPools = pools;
+}
+
+/* ---------------------------- 地面与合并 ---------------------------- */
+function buildGround() {
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), groundMat);
   ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -0.02;
+  ground.position.y = 0;
+  ground.receiveShadow = true;
   scene.add(ground);
   campusMeshes.ground = ground;
 
-  const starCount = 700;
-  const positions = new Float32Array(starCount * 3);
-  const random = rng(97);
-  for (let i = 0; i < starCount; i++) {
-    const radius = 420 + random() * 260;
-    const theta = random() * Math.PI * 2;
-    const phi = random() * Math.PI * 0.42;
-    positions[i * 3] = Math.cos(theta) * Math.cos(phi) * radius;
-    positions[i * 3 + 1] = Math.sin(phi) * radius + 40;
-    positions[i * 3 + 2] = Math.sin(theta) * Math.cos(phi) * radius;
-  }
-  const starGeo = new THREE.BufferGeometry();
-  starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
-    color: 0x9dc4ee,
-    size: 1.4,
-    sizeAttenuation: false,
-    transparent: true,
-    opacity: 0.65,
-    depthWrite: false
-  }));
-  scene.add(stars);
+  const boundary = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-280, 0.12, -170),
+    new THREE.Vector3(280, 0.12, -170),
+    new THREE.Vector3(280, 0.12, 170),
+    new THREE.Vector3(-280, 0.12, 170),
+    new THREE.Vector3(-280, 0.12, -170)
+  ]);
+  scene.add(new THREE.Line(boundary, new THREE.LineBasicMaterial({ color: 0x2f6d8c, transparent: true, opacity: 0.4 })));
 }
 
-/* ---------------------------- 组装校区 ---------------------------- */
-function buildCampus() {
-  buildGround();
-  buildRoads();
-  for (let j = 0; j < 8; j++) {
-    for (let i = 0; i < 8; i++) {
-      const cx = -56 + i * 16;
-      const cz = -56 + j * 16;
-      buildBlock(BLOCK_PLAN[j][i], cx, cz, i, j, rng(i * 131 + j * 71 + 13));
-    }
-  }
-  buildGates();
-  buildLamps();
-  buildTrees();
-
-  const merge = (list) => (list.length ? mergeGeometries(list, false) : null);
-  const meshes = [
-    ['building', geoBuilding, buildingMat],
-    ['roof', geoRoof, roofMat],
-    ['mark', geoMark, markMat],
-    ['lawn', geoLawn, lawnMat],
-    ['plaza', geoPlaza, plazaMat],
-    ['road', geoRoad, roadMat],
-    ['trim', geoTrim, new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.7, metalness: 0.35 })],
-    ['beacon', geoBeacon, beaconMat],
-    ['flags', geoFlags, cyanGlowMat]
+function mergeAll() {
+  const merge = (list) => (list.length ? mergeGeometries(list.map((g) => (g.index ? g.toNonIndexed() : g)), false) : null);
+  const entries = [
+    ['building', geoBuilding.slice(), buildingMat],
+    ['roof', geoRoof.slice(), roofMat],
+    ['mark', geoMark.slice(), markMat],
+    ['walk', geoWalk.slice(), walkwayMat],
+    ['road', geoRoad.slice(), asphaltMat],
+    ['plaza', geoPlaza.slice(), plazaMat],
+    ['trim', geoTrim.slice(), trimMat],
+    ['hedge', geoHedge.slice(), hedgeMat],
+    ['edge', geoEdge.slice(), edgeMat],
+    ['beacon', geoBeacon.slice(), beaconMat],
+    ['flag', geoFlag.slice(), flagMat]
   ];
-  for (const [name, list, mat] of meshes) {
+  for (const [name, list, material] of entries) {
     const geometry = merge(list);
     if (!geometry) continue;
-    const mesh = new THREE.Mesh(geometry, mat);
+    const mesh = new THREE.Mesh(geometry, material);
     mesh.name = `campus-${name}`;
-    mesh.matrixAutoUpdate = false;
+    mesh.castShadow = name === 'building';
+    mesh.receiveShadow = name !== 'mark' && name !== 'beacon' && name !== 'flag';
     scene.add(mesh);
     campusMeshes[name] = mesh;
   }
 }
 
-buildCampus();
+/* ---------------------------- 标签 ---------------------------- */
+const labelDefs = [];
+function addLabel(text, x, y, z, kind = 'minor') {
+  labelDefs.push({ text, x, y, z, kind });
+}
 
-/* 建筑标签 */
 function buildLabels() {
+  const important = new Set(['图书馆', '立德楼', '明德楼', '医院', '体育馆', '运动场',
+    '汽车工程实验实训中心', '国际交流中心']);
+  for (const item of CAMPUS_BUILDINGS) {
+    if (!important.has(item.n)) continue;
+    const y = item.h + 4;
+    addLabel(item.n, item.cx, y, item.cz, 'major');
+  }
   for (const def of labelDefs) {
     const el = document.createElement('div');
     el.className = `map-label${def.kind === 'major' ? ' major' : ''}`;
@@ -2678,7 +2738,65 @@ function buildLabels() {
   }
 }
 
-buildLabels();
+/* ---------------------------- 组装 ---------------------------- */
+function buildCampus() {
+  buildGround();
+  buildRoads();
+  buildBuildings();
+  buildTrack();
+  buildPlazas();
+  buildTrees();
+  buildLamps();
+  buildLabels();
+  mergeAll();
+}
+
+buildCampus();
+
+/* 供六网与 UI 使用的真实路线（沿校园道路） */
+const FLOW_ROUTES = {
+  water: [
+    ROADS[0].points.concat(ROADS[1].points.slice(1, 7)),
+    ROADS[4].points.slice(0, 8)
+  ],
+  power: [
+    ROADS[2].points,
+    ROADS[0].points
+  ],
+  compute: [
+    ROADS[1].points,
+    ROADS[4].points.slice(2, 9)
+  ],
+  comms: [
+    ROADS[2].points.slice(0, 18),
+    ROADS[9].points
+  ],
+  tunnel: [
+    ROADS[2].points,
+    ROADS[0].points,
+    ROADS[3].points
+  ],
+  logistics: [
+    ROADS[7].points,
+    ROADS[5].points,
+    ROADS[4].points
+  ]
+};
+
+for (const key of NET_ORDER) {
+  if (FLOW_ROUTES[key]) NETWORKS[key].routes = FLOW_ROUTES[key];
+}
+
+/* 相机预设与自动巡游 */
+const TOUR_STOPS = [
+  { pos: [196, 132, 246], target: [-6, 0, 26], name: '校园全景' },
+  { pos: [-60, 120, 230], target: [-40, 12, 70], name: '南门与教学区' },
+  { pos: [160, 110, 120], target: [80, 18, 10], name: '图书馆与东区' },
+  { pos: [-190, 110, 120], target: [-110, 12, -40], name: '宿舍与西区' },
+  { pos: [120, 100, 250], target: [60, 8, 120], name: '体育区' },
+  { pos: [180, 130, -160], target: [110, 10, -110], name: '医院与北区' }
+];
+
 
 /* =======================================================================
    3. 六张网：设施、管线、流动粒子与事故演练
@@ -2707,27 +2825,56 @@ function netColor(key) {
   return NET_STYLE[key].hex;
 }
 
-/* 设施信标抬升到建筑屋顶以上，避免被楼体遮挡 */
-function buildingHeightAt(x, z) {
-  const i = Math.max(0, Math.min(7, Math.round((x + 56) / 16)));
-  const j = Math.max(0, Math.min(7, Math.round((z + 56) / 16)));
-  const block = BLOCK_PLAN[j][i];
-  if (!block) return 6;
-  switch (block.kind) {
-    case 'library': return 27.5;
-    case 'teaching': return (block.h || 14) + 1.4;
-    case 'lab': return (block.h || 12) + 1.4;
-    case 'office': return (block.h || 12) + 1.4;
-    case 'hall': return (block.h || 9) + 4.2;
-    case 'hangar': return (block.h || 10) + 5.6;
-    case 'dorm': return 17.2;
-    case 'canteen': return 9.6;
-    case 'utility': return 7.4;
-    case 'logistics': return 8.6;
-    case 'clinic': return 8.8;
-    case 'shops': return 5.4;
-    default: return 5;
+/* 把六网设施落到真实建筑上 */
+const FACILITY_PLACEMENT = {
+  'water-plant': ['实验实训楼', 0],
+  'water-pump': ['俊园2号公寓', 0],
+  'water-tank': ['学一餐厅', 0],
+  'water-valve': ['图书馆', 0],
+  'water-dorm': ['医院', 0],
+  'power-sub': ['实验实训楼', 1],
+  'power-lib': ['图书馆', 0],
+  'power-lab': ['博园3号公寓', 0],
+  'power-canteen': ['体育馆', 0],
+  'power-east': ['行政楼', 0],
+  'compute-dc': ['图书馆', 0],
+  'compute-edge': ['实验实训楼', 2],
+  'compute-lib': ['留学生及研究生宿舍', 0],
+  'compute-lab': ['青春馆', 0],
+  'comms-core': ['图书馆', 0],
+  'comms-lib': ['医院', 0],
+  'comms-dorm': ['博园5号公寓', 0],
+  'comms-track': ['体育馆', 0],
+  'comms-east': ['国际交流中心', 0],
+  'logi-center': ['吉利学院邮政综合服务中心', 0],
+  'logi-canteen': ['学一餐厅', 0],
+  'logi-dorm': ['学二餐厅', 0],
+  'logi-drone': ['图书馆', 0]
+};
+
+for (const key of NET_ORDER) {
+  for (const fac of NETWORKS[key].facilities) {
+    const place = FACILITY_PLACEMENT[fac.id];
+    if (!place) continue;
+    const building = findBuilding(place[0], place[1] || 0);
+    if (!building) continue;
+    fac.building = place[0];
+    fac.x = building.cx;
+    fac.z = building.cz;
   }
+}
+
+/* 地下管廊节点落在环路上 */
+const TUNNEL_POINTS = {
+  'tunnel-main': [10, 20],
+  'tunnel-north': [-40, -120],
+  'tunnel-east': [100, -10],
+  'tunnel-south': [30, 120],
+  'tunnel-west': [-150, 10]
+};
+for (const fac of NETWORKS.tunnel.facilities) {
+  const point = TUNNEL_POINTS[fac.id];
+  if (point) { fac.x = point[0]; fac.z = point[1]; }
 }
 
 function createFlow(net, curve, options = {}) {
@@ -2804,10 +2951,10 @@ function buildNetworks() {
       const color = netColor(key);
 
       const coreMat = new THREE.MeshBasicMaterial({ color });
-      const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.58, 0), coreMat);
-      core.position.y = 1.6;
+      const core = new THREE.Mesh(new THREE.OctahedronGeometry(1.15, 0), coreMat);
+      core.position.y = 3.2;
 
-      const ringGeo = new THREE.RingGeometry(1.0, 1.28, 30);
+      const ringGeo = new THREE.RingGeometry(2.6, 3.2, 34);
       ringGeo.rotateX(-Math.PI / 2);
       const ringMat = new THREE.MeshBasicMaterial({
         color,
@@ -2817,7 +2964,7 @@ function buildNetworks() {
         depthWrite: false
       });
       const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.position.y = 0.08;
+      ring.position.y = 0.12;
 
       const beamMat = new THREE.MeshBasicMaterial({
         color,
@@ -2826,8 +2973,8 @@ function buildNetworks() {
         blending: THREE.AdditiveBlending,
         depthWrite: false
       });
-      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.6, 6, 1, true), beamMat);
-      beam.position.y = 1.8;
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 9, 6, 1, true), beamMat);
+      beam.position.y = 4.5;
 
       const glow = new THREE.Sprite(new THREE.SpriteMaterial({
         map: glowTexture,
@@ -2837,8 +2984,8 @@ function buildNetworks() {
         blending: THREE.AdditiveBlending,
         depthWrite: false
       }));
-      glow.scale.setScalar(4.2);
-      glow.position.y = 1.7;
+      glow.scale.setScalar(11);
+      glow.position.y = 3.4;
 
       const hit = new THREE.Mesh(
         new THREE.SphereGeometry(2.1, 10, 8),
@@ -2855,7 +3002,7 @@ function buildNetworks() {
       el.className = 'map-label fac';
       el.textContent = item.name;
       const label = new CSS2DObject(el);
-      label.position.set(0, 4.3, 0);
+      label.position.set(0, 9, 0);
       label.userData.netKey = key;
       label.visible = false;
       fg.add(label);
@@ -2957,7 +3104,7 @@ function startIncident(key) {
     setFacilityStatus(focusFac, 'warn');
     const baseY = focusFac.group.position.y;
     const target = new THREE.Vector3(focusFac.def.x, baseY + 1, focusFac.def.z);
-    flyTo(new THREE.Vector3(focusFac.def.x + 40, baseY + 32, focusFac.def.z + 42), target, 1.8);
+    flyTo(new THREE.Vector3(focusFac.def.x + 72, baseY + 58, focusFac.def.z + 84), target, 1.8);
   }
   renderDetail();
 }
@@ -3027,8 +3174,8 @@ function focusNetwork(key, { fly = false } = {}) {
     const points = net.def.facilities;
     const cx = points.reduce((sum, f) => sum + f.x, 0) / points.length;
     const cz = points.reduce((sum, f) => sum + f.z, 0) / points.length;
-    const target = new THREE.Vector3(cx, 6, cz);
-    flyTo(new THREE.Vector3(cx + 64, 62, cz + 70), target, 2.0);
+    const target = new THREE.Vector3(cx, 10, cz);
+    flyTo(new THREE.Vector3(cx + 190, 170, cz + 210), target, 2.2);
   }
   renderLayerPanel();
   renderDetail();
@@ -3454,7 +3601,7 @@ function selectFacility(id) {
   renderDetail();
   const baseY = fac.group.position.y;
   const target = new THREE.Vector3(fac.def.x, baseY + 1, fac.def.z);
-  flyTo(new THREE.Vector3(fac.def.x + 34, baseY + 26, fac.def.z + 36), target, 1.4);
+  flyTo(new THREE.Vector3(fac.def.x + 62, baseY + 46, fac.def.z + 70), target, 1.6);
 }
 
 function updateLive() {
@@ -3570,6 +3717,7 @@ function setRoadsVisible(visible) {
   state.roads = visible;
   if (campusMeshes.road) campusMeshes.road.visible = visible;
   if (campusMeshes.mark) campusMeshes.mark.visible = visible;
+  if (campusMeshes.walk) campusMeshes.walk.visible = visible;
 }
 
 function setLabelsVisible(visible) {
@@ -3595,12 +3743,12 @@ function setXray(on) {
     campusMeshes.roof.material.depthWrite = !on;
     campusMeshes.roof.material.needsUpdate = true;
   }
-  for (const name of ['ground', 'plaza', 'lawn', 'road', 'mark', 'trim']) {
+  for (const name of ['ground', 'plaza', 'walk', 'road', 'mark']) {
     const mesh = campusMeshes[name];
     if (!mesh) continue;
     const mat = mesh.material;
     mat.transparent = on;
-    mat.opacity = on ? (name === 'ground' ? 0.22 : 0.2) : 1;
+    mat.opacity = on ? (name === 'ground' ? 0.24 : 0.38) : 1;
     mat.depthWrite = !on;
     mat.needsUpdate = true;
   }
@@ -3762,7 +3910,7 @@ function resetView() {
   stopTour();
   state.activeNet = null;
   state.selectedFacility = null;
-  flyTo(new THREE.Vector3(92, 104, 142), new THREE.Vector3(0, 0, 4), 1.8);
+  flyTo(new THREE.Vector3(196, 132, 246), new THREE.Vector3(-6, 0, 26), 1.8);
   renderLayerPanel();
   renderDetail();
   addEvent('info', '视角已复位');
@@ -3772,21 +3920,27 @@ function resetView() {
 function setTimeOfDay(mode) {
   state.timeOfDay = mode;
   const day = mode === 'day';
-  scene.background.setHex(day ? 0x5b7f9e : 0x04070d);
-  scene.fog.color.setHex(day ? 0x5b7f9e : 0x04070d);
-  scene.fog.density = day ? 0.0019 : 0.0034;
-  hemiLight.intensity = day ? 1.55 : 0.95;
-  hemiLight.color.setHex(day ? 0xa9c9e4 : 0x35597d);
-  moonLight.intensity = day ? 1.5 : 0.85;
-  moonLight.color.setHex(day ? 0xfff0d8 : 0xbcd4ff);
-  ambientLight.intensity = day ? 2.1 : 1.55;
-  bloomPass.strength = day ? 0.3 : 0.55;
-  windowUniforms.night.value = day ? 0.08 : 1;
-  renderer.toneMappingExposure = day ? 1.04 : 0.92;
-  if (campusMeshes.ground) {
-    campusMeshes.ground.material.color.setHex(day ? 0x9db2c4 : 0x2b3946);
-    campusMeshes.ground.material.needsUpdate = true;
-  }
+  skyUniforms.topColor.value.setHex(day ? 0x3a80bd : 0x050a14);
+  skyUniforms.horizonColor.value.setHex(day ? 0xb6d6ea : 0x16283a);
+  skyUniforms.groundColor.value.setHex(day ? 0x24343d : 0x05080d);
+  scene.fog.color.setHex(day ? 0xb6d6ea : 0x05090f);
+  scene.fog.density = day ? 0.00028 : 0.0015;
+  hemiLight.intensity = day ? 0.62 : 0.85;
+  hemiLight.color.setHex(day ? 0xcfe6f7 : 0x35597d);
+  hemiLight.groundColor.setHex(day ? 0x44503f : 0x070c12);
+  ambientLight.intensity = day ? 0.4 : 1.15;
+  shadowLight.intensity = day ? 2.9 : 1.5;
+  shadowLight.color.setHex(day ? 0xfff1d8 : 0xbcd4ff);
+  shadowLight.position.set(day ? 260 : -180, 300, day ? 190 : 160);
+  bloomPass.strength = day ? 0.16 : 0.58;
+  windowUniforms.night.value = day ? 0.015 : 1;
+  sunSprite.material.opacity = day ? 0.85 : 0;
+  moonSprite.material.opacity = day ? 0 : 0.8;
+  stars.material.opacity = day ? 0 : 0.7;
+  starMaterial.opacity = day ? 0 : 0.7;
+  if (campusMeshes.lampHeads) campusMeshes.lampHeads.visible = !day;
+  if (campusMeshes.lampPools) campusMeshes.lampPools.visible = !day;
+  renderer.toneMappingExposure = day ? 1.02 : 1.0;
   const btn = document.getElementById('btn-daynight');
   if (btn) {
     btn.textContent = day ? '☀ 白天模式' : '☾ 夜间模式';
@@ -3927,7 +4081,7 @@ requestAnimationFrame(() => {
 });
 
 /* 调试钩子：便于验证渲染与交互，不包含任何敏感信息 */
-window.__CITY__ = { scene, camera, renderer, composer, controls, state, netState, facilityIndex, THREE };
+window.__CITY__ = { scene, camera, renderer, composer, controls, state, netState, facilityIndex, THREE, windowUniforms, shadowLight, campusMeshes };
 
 /* 首次交互关闭巡游 */
 controls.addEventListener('start', () => {

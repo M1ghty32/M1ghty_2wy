@@ -21,6 +21,11 @@
       }
     }
   </script>
+  <style>
+    .dock-link { display: inline-flex; align-items: center; gap: 4px; color: var(--sky); text-decoration: none; }
+    .dock-link:hover { color: #fff; }
+    .about-link-demo { color: var(--amber); }
+  </style>
 </head>
 <body>
   <noscript>
@@ -214,6 +219,12 @@
             <button id="btn-toggle-roof" type="button" class="dock-btn">🏠 屋顶</button>
             <button id="btn-rainy-night" type="button" class="dock-btn">🌧️ 一键雨夜</button>
             <button id="btn-toggle-follow" type="button" class="dock-btn is-active" aria-pressed="true">🎥 跟随镜头</button>
+          </div>
+        </div>
+        <div class="dock-group dock-group-project">
+          <span class="dock-label">项目</span>
+          <div class="dock-buttons">
+            <a class="dock-btn dock-link" href="/city-twin/" target="_blank" rel="noopener">🧭 校园数字孪生 ↗</a>
           </div>
         </div>
         <button id="btn-open-personal-space" type="button" class="btn btn-primary dock-enter">

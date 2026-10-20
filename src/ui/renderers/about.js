@@ -22,6 +22,11 @@ export function createAboutRenderer({ store, registry, getEggState, onGuideSelec
       const anchor = link('about-link', 'GitHub ↗', github);
       box.appendChild(anchor);
     }
+    const demoLink = h('a', 'about-link about-link-demo', '🧭 校园数字孪生 Demo ↗');
+    demoLink.href = '/city-twin/';
+    demoLink.target = '_blank';
+    demoLink.rel = 'noopener noreferrer';
+    box.appendChild(demoLink);
     if (email) {
       const anchor = h('a', 'about-link', `✉ ${email}`);
       anchor.href = `mailto:${email}`;
