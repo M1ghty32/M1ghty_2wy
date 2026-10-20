@@ -1526,6 +1526,7 @@
     <div class="top-actions">
       <button id="btn-daynight" class="tb-btn" type="button">☾ 夜间模式</button>
       <button id="btn-xray" class="tb-btn" type="button">X-RAY 地下透视</button>
+      <button id="btn-demo" class="tb-btn" type="button">▶ 演示模式</button>
       <button id="btn-tour" class="tb-btn" type="button">▶ 自动巡游</button>
       <button id="btn-reset" class="tb-btn" type="button">⟲ 复位视角</button>
     </div>
@@ -2854,6 +2855,21 @@ function buildDetails() {
   }
 }
 
+  // 校门路口暖光
+  const gateGlowMat = new THREE.MeshBasicMaterial({
+    map: glowTexture,
+    color: 0xffc06a,
+    transparent: true,
+    opacity: 0.32,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  for (const gate of [[-71, 112], [266, -30], [-40, -164], [-196, 126]]) {
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(38, 38), gateGlowMat);
+    plane.rotation.x = -Math.PI / 2;
+    plane.position.set(gate[0], 0.5, gate[1]);
+    scene.add(plane);
+  }
   // 校门斑马线
   const crossings = [[-71, 112, 0], [266, -30, Math.PI / 2], [-40, -164, 0], [-196, 126, Math.PI / 2]];
   for (const cross of crossings) {
@@ -4076,6 +4092,43 @@ function onClick(event) {
   selectFacility(hoveredFacility.def.id);
 }
 
+let demoTimers = [];
+
+function stopDemo() {
+  for (const timer of demoTimers) clearTimeout(timer);
+  demoTimers = [];
+  state.demo = false;
+  const btn = document.getElementById('btn-demo');
+  if (btn) {
+    btn.textContent = '▶ 演示模式';
+    btn.classList.remove('is-on');
+  }
+}
+
+function startDemo() {
+  if (state.demo) {
+    stopDemo();
+    addEvent('info', '演示已停止');
+    return;
+  }
+  state.demo = true;
+  stopTour();
+  const btn = document.getElementById('btn-demo');
+  if (btn) {
+    btn.textContent = '❚❚ 停止演示';
+    btn.classList.add('is-on');
+  }
+  addEvent('info', '演示开始：校园全景 → 图书馆算力中心 → 生活区 → 运动区');
+  const at = (t, fn) => demoTimers.push(setTimeout(() => { if (state.demo) fn(); }, t));
+  at(0, () => flyTo(new THREE.Vector3(196, 132, 246), new THREE.Vector3(-6, 0, 26), 1.6));
+  at(3600, () => { flyTo(new THREE.Vector3(170, 80, 120), new THREE.Vector3(60, 22, 20), 2.0); focusNetwork('compute', { fly: false }); });
+  at(6200, () => { if (!state.incident) startIncident('compute'); });
+  at(32000, () => { state.activeNet = null; renderLayerPanel(); renderDetail(); flyTo(new THREE.Vector3(-150, 95, 90), new THREE.Vector3(-90, 10, -60), 2.2); });
+  at(39000, () => { flyTo(new THREE.Vector3(160, 85, 280), new THREE.Vector3(40, 8, 130), 2.2); });
+  at(46000, () => { flyTo(new THREE.Vector3(196, 132, 246), new THREE.Vector3(-6, 0, 26), 2.2); });
+  at(52000, () => { stopDemo(); addEvent('ok', '演示结束：六网运行恢复正常'); });
+}
+
 /* ---------------------------- 镜头飞行与巡游 ---------------------------- */
 let flyState = null;
 let tourTimer = null;
@@ -4192,6 +4245,7 @@ function initUI() {
   });
   document.getElementById('btn-xray')?.addEventListener('click', () => setXray(!state.xray));
   document.getElementById('btn-tour')?.addEventListener('click', toggleTour);
+  document.getElementById('btn-demo')?.addEventListener('click', startDemo);
   document.getElementById('btn-reset')?.addEventListener('click', resetView);
 
 
