@@ -1892,6 +1892,7 @@ const NETWORKS = {
    2. 渲染基础、天空、阴影与真实校园几何
    ======================================================================= */
 
+const bootStarted = performance.now();
 const container = document.getElementById('scene');
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 const isSmallScreen = window.matchMedia('(max-width: 760px)').matches;
@@ -2215,6 +2216,8 @@ const geoWarm = [];
 const geoBeacon = [];
 const geoFlag = [];
 const campusMeshes = {};
+let movingCars = [];
+const gateGlows = [];
 const buildingLabels = [];
 const seeds = [];
 const lampSpots = [];
@@ -2869,6 +2872,7 @@ function buildDetails() {
     plane.rotation.x = -Math.PI / 2;
     plane.position.set(gate[0], 0.5, gate[1]);
     scene.add(plane);
+    gateGlows.push(plane);
   }
   // 校门斑马线
   const crossings = [[-71, 112, 0], [266, -30, Math.PI / 2], [-40, -164, 0], [-196, 126, Math.PI / 2]];
@@ -2889,6 +2893,37 @@ function buildDetails() {
     lamp.translate(item.cx, 3.2, z + 0.6);
     geoWarm.push(lamp);
   }
+function buildCars() {
+  const routes = [
+    { points: ROADS[0].points, speed: 0.028, count: 2 },
+    { points: ROADS[2].points, speed: 0.018, count: 3 }
+  ];
+  const colors = [0x3f7f9e, 0xc8d6e2, 0x8a6a4a];
+  let index = 0;
+  for (const route of routes) {
+    const curve = new THREE.CatmullRomCurve3(route.points.map((p) => new THREE.Vector3(p[0], 0.55, p[1])), false, 'catmullrom', 0.3);
+    for (let i = 0; i < route.count; i++) {
+      const group = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(4.2, 1.1, 1.9), new THREE.MeshStandardMaterial({ color: colors[index % colors.length], roughness: 0.5, metalness: 0.35 }));
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.65, 1.65), new THREE.MeshStandardMaterial({ color: 0x1b2531, roughness: 0.4, metalness: 0.5 }));
+      roof.position.set(-0.2, 0.9, 0);
+      group.add(body, roof);
+      const headMat = new THREE.MeshBasicMaterial({ color: 0xfff0c0 });
+      const tailMat = new THREE.MeshBasicMaterial({ color: 0xff4444 });
+      for (const side of [-0.6, 0.6]) {
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.22, 0.4), headMat);
+        head.position.set(2.05, 0.12, side);
+        const tail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.18, 0.35), tailMat);
+        tail.position.set(-2.05, 0.18, side);
+        group.add(head, tail);
+      }
+      scene.add(group);
+      movingCars.push({ group, curve, offset: (i / route.count + index * 0.17) % 1, speed: route.speed });
+      index += 1;
+    }
+  }
+}
+
 /* ---------------------------- 地面与合并 ---------------------------- */
 function buildGround() {
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), groundMat);
@@ -2971,6 +3006,7 @@ function buildCampus() {
   buildTrees();
   buildLamps();
   buildDetails();
+  buildCars();
   buildLabels();
   mergeAll();
 }
@@ -4388,6 +4424,16 @@ function animate() {
   updateFly(delta);
   controls.update();
   updateIncident(now);
+  for (const car of movingCars) {
+    car.offset = (car.offset + delta * car.speed * 0.9 * state.flowSpeed) % 1;
+    const point = car.curve.getPointAt(car.offset);
+    car.group.position.copy(point);
+    const tangent = car.curve.getTangentAt(car.offset);
+    car.group.rotation.y = Math.atan2(-tangent.z, tangent.x);
+  }
+  for (let i = 0; i < gateGlows.length; i++) {
+    gateGlows[i].material.opacity = 0.26 + 0.08 * Math.sin(now * 1.6 + i);
+  }
   updateFlowsAnimated(delta);
 
   simAccumulator += delta;
@@ -4412,7 +4458,7 @@ requestAnimationFrame(() => {
 });
 
 /* 调试钩子：便于验证渲染与交互，不包含任何敏感信息 */
-window.__CITY__ = { scene, camera, renderer, composer, controls, state, netState, facilityIndex, THREE, windowUniforms, shadowLight, campusMeshes, selectFacility };
+window.__CITY__ = { scene, camera, renderer, composer, controls, state, netState, facilityIndex, THREE, windowUniforms, shadowLight, campusMeshes, selectFacility, bootMs: performance.now() - bootStarted };
 
 /* 首次交互关闭巡游 */
 controls.addEventListener('start', () => {
