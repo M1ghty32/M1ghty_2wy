@@ -1271,67 +1271,28 @@
     display: none !important;
   }
 
-  #plan-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 170;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    background: rgba(3, 7, 14, .84);
-    backdrop-filter: blur(6px);
+  .cam-presets {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 6px;
   }
 
-  #plan-modal[hidden] { display: none !important; }
-
-  .plan-card {
-    display: flex;
-    flex-direction: column;
-    width: min(1100px, 94vw);
-    max-height: 92vh;
-    overflow: hidden;
-    border: 1px solid var(--line-2);
-    border-radius: 14px;
-    background: #08111c;
-    box-shadow: 0 40px 100px rgba(0, 0, 0, .7);
-  }
-
-  .plan-head {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .plan-head b { font-size: 12px; }
-  .plan-head span { color: var(--dim); font-family: var(--mono); font-size: 8px; letter-spacing: .08em; }
-  .plan-head button {
-    margin-left: auto;
-    width: 26px;
-    height: 26px;
+  .cam-btn {
+    padding: 6px 4px;
     border: 1px solid var(--line);
     border-radius: 7px;
-    background: transparent;
-    color: var(--muted);
-    font-size: 16px;
+    background: rgba(12, 22, 36, .6);
+    color: #9fb4c9;
+    font-family: var(--mono);
+    font-size: 8.5px;
+    transition: border-color .15s ease, color .15s ease, background .15s ease;
   }
 
-  .plan-card img {
-    width: 100%;
-    height: auto;
-    max-height: 72vh;
-    object-fit: contain;
-    background: #0b1119;
-  }
-
-  .plan-note {
-    padding: 8px 14px;
-    border-top: 1px solid var(--line);
-    color: #6d8299;
-    font-size: 9px;
-    line-height: 1.6;
+  .cam-btn:hover {
+    border-color: var(--line-2);
+    background: rgba(56, 225, 255, .1);
+    color: #e8fbff;
   }
 
   /* =====================================================================
@@ -1485,8 +1446,6 @@
       <span class="chip mono" id="sim-clock">--:--:--</span>
     </div>
     <div class="top-actions">
-      <a class="tb-btn" href="https://map.guc.edu.cn/#/" target="_blank" rel="noopener" title="打开学校官方可视化地图">官方地图 ↗</a>
-      <button id="btn-plan" class="tb-btn" type="button" title="打开高德校园平面图对照">🗺 平面图</button>
       <button id="btn-daynight" class="tb-btn" type="button">☾ 夜间模式</button>
       <button id="btn-xray" class="tb-btn" type="button">X-RAY 地下透视</button>
       <button id="btn-tour" class="tb-btn" type="button">▶ 自动巡游</button>
@@ -1506,6 +1465,9 @@
     <div class="panel-split"></div>
     <div class="layer-sub">场景图层</div>
     <div id="scene-layers" class="layer-list"></div>
+    <div class="panel-split"></div>
+    <div class="layer-sub">快速视角</div>
+    <div id="cam-presets" class="cam-presets"></div>
   </aside>
 
   <aside id="detail-panel" class="panel">
@@ -1536,18 +1498,6 @@
       <div id="event-log" class="event-log"></div>
     </section>
   </footer>
-
-  <div id="plan-modal" hidden>
-    <div class="plan-card">
-      <div class="plan-head">
-        <b>吉利学院 · 校园平面图</b>
-        <span>AMAP · 对照底图</span>
-        <button id="btn-plan-close" type="button" aria-label="关闭平面图">×</button>
-      </div>
-      <img src="amap-plan.png" alt="吉利学院校园平面图（高德地图）" />
-      <div class="plan-note">高德地图平面图，用于对照校内道路与四个校门的位置；三维楼栋轮廓来自学校官方可视化位置服务平台。</div>
-    </div>
-  </div>
 
   <div id="tooltip" hidden></div>
   <div id="alert-banner" hidden></div>
@@ -4052,11 +4002,29 @@ function initUI() {
   document.getElementById('btn-tour')?.addEventListener('click', toggleTour);
   document.getElementById('btn-reset')?.addEventListener('click', resetView);
 
-  const planModal = document.getElementById('plan-modal');
-  document.getElementById('btn-plan')?.addEventListener('click', () => { if (planModal) planModal.hidden = false; });
-  document.getElementById('btn-plan-close')?.addEventListener('click', () => { if (planModal) planModal.hidden = true; });
-  planModal?.addEventListener('click', (event) => { if (event.target === planModal) planModal.hidden = true; });
-  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && planModal && !planModal.hidden) planModal.hidden = true; });
+
+  const camPresets = [
+    ['总览', [196, 132, 246], [-6, 0, 26]],
+    ['教学区', [40, 80, 190], [-10, 12, 60]],
+    ['生活区', [-150, 95, 90], [-90, 10, -60]],
+    ['运动区', [160, 85, 280], [40, 8, 130]],
+    ['图书馆', [170, 80, 120], [60, 22, 20]],
+    ['实训区', [-160, 90, 120], [-90, 10, -20]]
+  ];
+  const presetBox = document.getElementById('cam-presets');
+  if (presetBox) {
+    for (const item of camPresets) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cam-btn';
+      btn.textContent = item[0];
+      btn.addEventListener('click', () => {
+        stopTour();
+        flyTo(new THREE.Vector3(item[1][0], item[1][1], item[1][2]), new THREE.Vector3(item[2][0], item[2][1], item[2][2]), 1.8);
+      });
+      presetBox.appendChild(btn);
+    }
+  }
 
   const speed = document.getElementById('flow-speed');
   const speedOut = document.getElementById('flow-speed-out');
