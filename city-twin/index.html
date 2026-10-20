@@ -1403,6 +1403,59 @@
     font-size: 8px;
   }
 
+  @media (max-width: 900px) {
+    #layer-panel, #detail-panel { max-height: 46px; overflow: hidden; }
+    #layer-panel.is-open, #detail-panel.is-open { max-height: 64vh; overflow: auto; }
+    .panel-head { cursor: pointer; }
+  }
+
+  #mobile-tools {
+    display: none;
+  }
+
+  @media (max-width: 760px) {
+    #topbar { height: 54px; padding: 0 10px; gap: 6px; }
+    .brand-copy h1 { max-width: 138px; overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .brand-copy p { display: none; }
+    .topstats { display: none; }
+    .top-actions { gap: 4px; }
+    #btn-tour, #btn-reset { display: none; }
+    .tb-btn { height: 26px; padding: 0 7px; font-size: 8px; }
+    #mobile-tools {
+      position: fixed;
+      top: 60px;
+      left: 8px;
+      right: 8px;
+      z-index: 24;
+      display: flex;
+      gap: 6px;
+    }
+    #mobile-tools button {
+      flex: 1;
+      height: 30px;
+      border: 1px solid var(--line-2);
+      border-radius: 8px;
+      background: rgba(8, 17, 28, .86);
+      color: #cfeaff;
+      font-family: var(--mono);
+      font-size: 10px;
+      backdrop-filter: blur(8px);
+    }
+    #layer-panel, #detail-panel {
+      display: none;
+      top: 96px !important;
+      left: 8px !important;
+      right: 8px !important;
+      width: auto !important;
+      max-height: 62vh;
+      z-index: 26;
+    }
+    #layer-panel.is-open, #detail-panel.is-open { display: flex; }
+    #bottombar { left: 8px; right: 8px; bottom: 8px; height: 118px; grid-template-columns: 1fr; }
+    .flow-list { grid-template-columns: repeat(3, 1fr); }
+    .space-panel { width: 100%; }
+  }
+
   /* =====================================================================
      7. 响应式
      ===================================================================== */
@@ -1520,6 +1573,11 @@
       <div id="event-log" class="event-log"></div>
     </section>
   </footer>
+
+  <div id="mobile-tools">
+    <button id="btn-mobile-layers" type="button">图层控制</button>
+    <button id="btn-mobile-detail" type="button">运行监测</button>
+  </div>
 
   <div id="tooltip" hidden></div>
   <div id="alert-banner" hidden></div>
@@ -2729,6 +2787,67 @@ function buildLamps() {
   campusMeshes.lampPools = pools;
 }
 
+function buildDetails() {
+  // 南门旗阵
+  for (let i = 0; i < 3; i++) {
+    const x = -86 + i * 8;
+    const pole = new THREE.CylinderGeometry(0.08, 0.1, 9, 6);
+    pole.translate(x, 4.5, 116);
+    geoTrim.push(pole);
+    const flag = new THREE.BoxGeometry(2.6, 1.5, 0.08);
+    flag.translate(x + 1.3, 7.6, 116);
+    geoBeacon.push(flag);
+  }
+  // 停车场
+  const lots = [[228, -18, 26, 16], [-112, 100, 30, 14]];
+  for (const lot of lots) {
+    const x = lot[0], z = lot[1], w = lot[2], d = lot[3];
+    const plane = new THREE.PlaneGeometry(w, d);
+    plane.rotateX(-Math.PI / 2);
+    plane.translate(x, 0.07, z);
+    geoRoad.push(plane);
+    for (let i = 0; i < 4; i++) {
+      const line = new THREE.BoxGeometry(0.15, 0.03, d - 2);
+      line.translate(x - w / 2 + (i + 0.5) * (w / 4), 0.1, z);
+      geoMark.push(line);
+    }
+    for (let i = 0; i < 6; i++) {
+      const cx = x - w / 2 + 2.4 + (i % 3) * (w / 3);
+      const cz = z - d / 2 + 3 + Math.floor(i / 3) * 6;
+      const car = new THREE.BoxGeometry(3.6, 1.2, 1.8);
+      car.translate(cx, 0.7, cz);
+      geoTrim.push(car);
+      const roof = new THREE.BoxGeometry(2.0, 0.7, 1.7);
+      roof.translate(cx, 1.7, cz);
+      geoTrim.push(roof);
+    }
+  }
+  // 长椅
+  const benches = [[30, 55], [50, 42], [-12, 72], [-70, 112]];
+  for (const spot of benches) {
+    const seat = new THREE.BoxGeometry(2.4, 0.18, 0.7);
+    seat.translate(spot[0], 0.55, spot[1]);
+    geoTrim.push(seat);
+    const back = new THREE.BoxGeometry(2.4, 0.5, 0.12);
+    back.translate(spot[0], 0.9, spot[1] - 0.32);
+    geoTrim.push(back);
+  }
+  // 入口雨棚
+  for (const item of CAMPUS_BUILDINGS) {
+    if (item.area < 600 || item.t === 'part_entrance' || item.t === 'gymnasium') continue;
+    const z = item.bbox.maxZ;
+    const w = Math.min(8, Math.max(4, (item.bbox.maxX - item.bbox.minX) * 0.28));
+    const canopy = new THREE.BoxGeometry(w, 0.28, 2.2);
+    canopy.translate(item.cx, 3.4, z + 0.6);
+    geoTrim.push(canopy);
+    for (const side of [-1, 1]) {
+      const post = new THREE.BoxGeometry(0.16, 3.4, 0.16);
+      post.translate(item.cx + side * (w / 2 - 0.4), 1.7, z + 1.5);
+      geoTrim.push(post);
+    }
+  }
+}
+
 /* ---------------------------- 地面与合并 ---------------------------- */
 function buildGround() {
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), groundMat);
@@ -2809,6 +2928,7 @@ function buildCampus() {
   buildPlazas();
   buildTrees();
   buildLamps();
+  buildDetails();
   buildLabels();
   mergeAll();
 }
@@ -4071,6 +4191,28 @@ function initUI() {
       presetBox.appendChild(btn);
     }
   }
+
+  for (const panel of [document.getElementById('layer-panel'), document.getElementById('detail-panel')]) {
+    const head = panel && panel.querySelector('.panel-head');
+    if (!head) continue;
+    head.addEventListener('click', () => {
+      if (window.innerWidth > 900) return;
+      panel.classList.toggle('is-open');
+    });
+  }
+
+  const mLayers = document.getElementById('btn-mobile-layers');
+  const mDetail = document.getElementById('btn-mobile-detail');
+  const layerPanelEl = document.getElementById('layer-panel');
+  const detailPanelEl = document.getElementById('detail-panel');
+  mLayers?.addEventListener('click', () => {
+    layerPanelEl?.classList.toggle('is-open');
+    detailPanelEl?.classList.remove('is-open');
+  });
+  mDetail?.addEventListener('click', () => {
+    detailPanelEl?.classList.toggle('is-open');
+    layerPanelEl?.classList.remove('is-open');
+  });
 
   const speed = document.getElementById('flow-speed');
   const speedOut = document.getElementById('flow-speed-out');

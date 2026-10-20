@@ -4,6 +4,21 @@
 
 入口仍是 `index.html`，不依赖应用框架或打包器；Three.js 以本地 ES module vendored 到 `vendor/three.module.js`（v0.160.1，MIT），UI 样式已编译到 `assets/styles.css`。运行时不需要 npm，也不需要构建步骤。
 
+## 配套项目：校园数字孪生 Demo
+
+同一仓库下的第二个独立项目，单文件 Three.js 数字孪生演示：
+
+- 在线体验：**https://wangweiye.top/city-twin/**
+- 源码：[city-twin/index.html](city-twin/index.html)（单文件，含校园数据与全部逻辑）
+- 说明：[city-twin/README.md](city-twin/README.md)
+
+**51 栋楼栋**的轮廓、层高、名称来自学校官方可视化位置服务平台；在此之上叠加供水、电力、算力、通信、地下管廊、物流六张网，支持单网聚焦、设施详情、事故演练、90 秒趋势、X-RAY 透视、日夜切换、快速视角与触屏抽屉面板。
+
+| 夜间校园 | 移动端监测面板 |
+| --- | --- |
+| ![校园数字孪生](docs/screenshots/campus-twin-night.png) | ![移动端](docs/screenshots/campus-twin-mobile.png) |
+
+
 ## 视觉预览
 
 | 庭院夜景 | 室内工作室 |
