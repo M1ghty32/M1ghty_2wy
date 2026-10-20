@@ -1,0 +1,3970 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#04070d" />
+<title>四川吉利学院 · 校园数字孪生 | Campus Digital Twin</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23081018'/%3E%3Ctext x='50' y='70' font-size='56' text-anchor='middle' fill='%2338e1ff' font-family='sans-serif'%3E%E5%90%89%3C/text%3E%3C/svg%3E" />
+<style>
+  /* =====================================================================
+     0. 设计变量与基础
+     ===================================================================== */
+  :root {
+    --bg: #04070d;
+    --bg-2: #070d17;
+    --panel: rgba(7, 13, 23, .78);
+    --panel-solid: #0a1320;
+    --line: rgba(110, 190, 255, .13);
+    --line-2: rgba(110, 190, 255, .3);
+    --text: #dbe8f6;
+    --muted: #8aa0b8;
+    --dim: #4e647c;
+    --cyan: #38e1ff;
+    --blue: #4c8dff;
+    --amber: #ffb648;
+    --red: #ff5c6c;
+    --green: #3ee08f;
+    --purple: #a78bfa;
+    --pink: #f472b6;
+    --water: #38bdf8;
+    --power: #ffb648;
+    --compute: #a78bfa;
+    --comms: #3ee08f;
+    --tunnel: #f472b6;
+    --logistics: #ff8a4c;
+    --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --sans: "Inter", "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+
+  #scene {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+  }
+
+  #scene canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    outline: none;
+  }
+
+  /* 屏幕暗角 + 扫描线，压出指挥中心质感 */
+  #vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse at 50% 46%, transparent 42%, rgba(2, 5, 10, .55) 100%),
+      linear-gradient(180deg, rgba(3, 7, 14, .5) 0%, transparent 16%, transparent 78%, rgba(2, 5, 11, .68) 100%);
+  }
+
+  #vignette::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: .16;
+    background: repeating-linear-gradient(180deg, rgba(140, 210, 255, .08) 0 1px, transparent 1px 3px);
+    mix-blend-mode: screen;
+  }
+
+  .mono { font-family: var(--mono); }
+
+  /* =====================================================================
+     1. 顶部栏
+     ===================================================================== */
+  #topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    height: 62px;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(5, 10, 18, .94), rgba(5, 10, 18, .72));
+    backdrop-filter: blur(14px);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+  }
+
+  .brand-mark {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 auto;
+    border: 1px solid rgba(56, 225, 255, .45);
+    border-radius: 9px;
+    background:
+      linear-gradient(135deg, rgba(56, 225, 255, .26), rgba(76, 141, 255, .08));
+    box-shadow: 0 0 22px rgba(56, 225, 255, .22), inset 0 0 14px rgba(56, 225, 255, .12);
+    color: #d9f8ff;
+    font-size: 17px;
+    font-weight: 800;
+  }
+
+  .brand-copy h1 {
+    margin: 0;
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .brand-copy p {
+    margin: 3px 0 0;
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: .18em;
+    white-space: nowrap;
+  }
+
+  .topstats {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-left: 8px;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 9px;
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    background: rgba(12, 22, 36, .7);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .06em;
+    white-space: nowrap;
+  }
+
+  .chip .dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px rgba(62, 224, 143, .9);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: .45; }
+    50% { opacity: 1; }
+  }
+
+  .top-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .tb-btn {
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: rgba(12, 22, 36, .72);
+    color: #b7c9dc;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .04em;
+    white-space: nowrap;
+    transition: border-color .16s ease, background .16s ease, color .16s ease;
+  }
+
+  .tb-btn:hover {
+    border-color: var(--line-2);
+    background: rgba(28, 52, 76, .72);
+    color: #eaf7ff;
+  }
+
+  .tb-btn.is-on {
+    border-color: rgba(56, 225, 255, .5);
+    background: rgba(56, 225, 255, .14);
+    color: #c9f6ff;
+    box-shadow: 0 0 16px rgba(56, 225, 255, .16);
+  }
+
+  /* =====================================================================
+     2. 通用面板
+     ===================================================================== */
+  .panel {
+    position: fixed;
+    top: 74px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 236px);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background:
+      linear-gradient(180deg, rgba(10, 18, 30, .9), rgba(6, 11, 20, .86));
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .42), inset 0 1px 0 rgba(160, 220, 255, .05);
+    backdrop-filter: blur(16px);
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 34px;
+    height: 1px;
+    background: var(--cyan);
+    box-shadow: 0 0 10px var(--cyan);
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 13px 9px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .panel-head h2 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .06em;
+  }
+
+  .panel-head p {
+    margin: 4px 0 0;
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 7.5px;
+    letter-spacing: .14em;
+  }
+
+  .panel-index {
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 9px;
+  }
+
+  #layer-panel {
+    left: 16px;
+    width: 238px;
+  }
+
+  #detail-panel {
+    right: 16px;
+    width: 356px;
+  }
+
+  .layer-list {
+    display: flex;
+    flex-direction: column;
+    padding: 6px 6px 8px;
+    overflow-y: auto;
+  }
+
+  .layer-row {
+    display: grid;
+    grid-template-columns: 14px 1fr auto;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 8px 7px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: #b6c8da;
+    font-size: 11px;
+    text-align: left;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+
+  .layer-row + .layer-row { margin-top: 2px; }
+
+  .layer-row:hover {
+    background: rgba(56, 225, 255, .06);
+    color: #eaf7ff;
+  }
+
+  .layer-row.is-active {
+    border-color: rgba(56, 225, 255, .34);
+    background: rgba(56, 225, 255, .1);
+    color: #e8fbff;
+  }
+
+  .layer-row.is-off {
+    color: #54697f;
+  }
+
+  .layer-row.is-off .swatch {
+    opacity: .28;
+    box-shadow: none;
+  }
+
+  .swatch {
+    width: 9px;
+    height: 9px;
+    border-radius: 3px;
+    background: var(--c, var(--cyan));
+    box-shadow: 0 0 9px var(--c, var(--cyan));
+  }
+
+  .layer-name {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .layer-name b {
+    overflow: hidden;
+    font-size: 11px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .layer-name span {
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 7px;
+    letter-spacing: .08em;
+    white-space: nowrap;
+  }
+
+  .layer-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .layer-count {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 8px;
+  }
+
+  .layer-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--c, var(--cyan));
+    opacity: .9;
+  }
+
+  .panel-split {
+    height: 1px;
+    margin: 2px 12px;
+    background: var(--line);
+  }
+
+  .layer-sub {
+    padding: 8px 13px 2px;
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 7.5px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+  }
+
+  .scene-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 1px 6px;
+    padding: 7px 7px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: #93a8bd;
+    font-size: 10px;
+    text-align: left;
+  }
+
+  .scene-toggle:hover {
+    background: rgba(255, 255, 255, .04);
+    color: #e6f4ff;
+  }
+
+  .switch {
+    position: relative;
+    width: 26px;
+    height: 14px;
+    flex: 0 0 auto;
+    border: 1px solid rgba(120, 180, 220, .3);
+    border-radius: 99px;
+    background: rgba(20, 34, 50, .9);
+    transition: background .18s ease, border-color .18s ease;
+  }
+
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6d859c;
+    transition: transform .18s ease, background .18s ease;
+  }
+
+  .scene-toggle.is-on .switch {
+    border-color: rgba(56, 225, 255, .55);
+    background: rgba(56, 225, 255, .22);
+  }
+
+  .scene-toggle.is-on .switch::after {
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    transform: translateX(12px);
+  }
+
+  .scene-toggle.is-on { color: #d9f4ff; }
+
+  /* =====================================================================
+     3. 右侧总览 / 详情
+     ===================================================================== */
+  #detail-view {
+    flex: 1;
+    min-height: 0;
+    padding: 11px 13px 13px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(56, 225, 255, .26) transparent;
+  }
+
+  #detail-view::-webkit-scrollbar { width: 5px; }
+  #detail-view::-webkit-scrollbar-thumb { border-radius: 99px; background: rgba(56, 225, 255, .24); }
+
+  .ov-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 9px;
+  }
+
+  .ov-title h3 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .ov-title span {
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 8px;
+  }
+
+  .hero-score {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background:
+      radial-gradient(circle at 100% 0, rgba(56, 225, 255, .14), transparent 55%),
+      rgba(8, 16, 27, .7);
+  }
+
+  .hero-score .value {
+    font-family: var(--mono);
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -.02em;
+  }
+
+  .hero-score .value small {
+    color: var(--dim);
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .hero-score .label {
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 9px;
+  }
+
+  .hero-score .side {
+    text-align: right;
+  }
+
+  .hero-score .side b {
+    display: block;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .hero-score .side span {
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 7.5px;
+    letter-spacing: .1em;
+  }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .kpi {
+    padding: 8px 9px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(8, 15, 26, .58);
+  }
+
+  .kpi span {
+    display: block;
+    color: var(--dim);
+    font-size: 8px;
+    letter-spacing: .04em;
+  }
+
+  .kpi b {
+    display: block;
+    margin-top: 3px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .kpi b em {
+    margin-left: 3px;
+    color: var(--dim);
+    font-size: 8px;
+    font-style: normal;
+    font-weight: 400;
+  }
+
+  .kpi.warn { border-color: rgba(255, 92, 108, .35); background: rgba(255, 92, 108, .06); }
+  .kpi.warn b { color: var(--red); }
+
+  .net-mini-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 10px;
+  }
+
+  .net-mini {
+    display: grid;
+    grid-template-columns: 34px 1fr 40px;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 7px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+    color: #b9cbdd;
+    font-size: 10px;
+    text-align: left;
+  }
+
+  .net-mini:hover {
+    border-color: var(--line);
+    background: rgba(255, 255, 255, .03);
+  }
+
+  .net-mini b {
+    color: var(--c, var(--cyan));
+    font-weight: 600;
+  }
+
+  .mini-bar {
+    position: relative;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: rgba(120, 170, 210, .12);
+  }
+
+  .mini-bar i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--w, 40%);
+    border-radius: 99px;
+    background: var(--c, var(--cyan));
+    box-shadow: 0 0 8px var(--c, var(--cyan));
+    transition: width .5s ease;
+  }
+
+  .net-mini em {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 8px;
+    font-style: normal;
+    text-align: right;
+  }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0 6px;
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 7.5px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+  }
+
+  .section-label i {
+    flex: 1;
+    height: 1px;
+    margin-left: 0;
+    background: var(--line);
+  }
+
+  .alert-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .alert-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 7px 8px;
+    border: 1px solid rgba(255, 182, 72, .22);
+    border-radius: 7px;
+    background: rgba(255, 182, 72, .05);
+    color: #d9c9a8;
+    font-size: 9.5px;
+    line-height: 1.5;
+  }
+
+  .alert-row.crit {
+    border-color: rgba(255, 92, 108, .3);
+    background: rgba(255, 92, 108, .06);
+    color: #ffc7cd;
+  }
+
+  .alert-row .tag {
+    flex: 0 0 auto;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: rgba(255, 182, 72, .18);
+    color: var(--amber);
+    font-family: var(--mono);
+    font-size: 7px;
+  }
+
+  .alert-row.crit .tag {
+    background: rgba(255, 92, 108, .18);
+    color: var(--red);
+  }
+
+  /* 详情 */
+  .detail-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin-bottom: 10px;
+  }
+
+  .back-btn {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: rgba(12, 22, 36, .7);
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .back-btn:hover { color: #fff; border-color: var(--line-2); }
+
+  .detail-head h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .detail-head p {
+    margin: 3px 0 0;
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 7.5px;
+    letter-spacing: .12em;
+  }
+
+  .status-pill {
+    margin-left: auto;
+    padding: 3px 7px;
+    border: 1px solid rgba(62, 224, 143, .3);
+    border-radius: 99px;
+    background: rgba(62, 224, 143, .08);
+    color: var(--green);
+    font-family: var(--mono);
+    font-size: 8px;
+    white-space: nowrap;
+  }
+
+  .status-pill.warn { border-color: rgba(255, 182, 72, .35); background: rgba(255, 182, 72, .09); color: var(--amber); }
+  .status-pill.crit { border-color: rgba(255, 92, 108, .4); background: rgba(255, 92, 108, .1); color: var(--red); }
+
+  .spark-wrap {
+    margin-top: 8px;
+    padding: 8px 9px 5px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: rgba(6, 13, 23, .62);
+  }
+
+  .spark-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 7.5px;
+    letter-spacing: .1em;
+  }
+
+  .spark-head b {
+    color: var(--c, var(--cyan));
+    font-size: 9px;
+  }
+
+  #spark-canvas {
+    display: block;
+    width: 100%;
+    height: 74px;
+    margin-top: 3px;
+  }
+
+  .fac-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .fac-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px;
+    padding: 6px 7px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, .018);
+    cursor: pointer;
+  }
+
+  .fac-row:hover { border-color: var(--line); background: rgba(255, 255, 255, .04); }
+  .fac-row.is-active { border-color: var(--line-2); background: rgba(56, 225, 255, .08); }
+
+  .fac-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: 10px;
+    color: #c6d7e8;
+  }
+
+  .fac-name i {
+    width: 5px;
+    height: 5px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  .fac-name i.warn { background: var(--amber); }
+  .fac-name i.crit { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .fac-name i.off { background: #465a70; }
+
+  .fac-name span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .fac-val {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 8.5px;
+  }
+
+  .incident-box {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px dashed rgba(255, 92, 108, .34);
+    border-radius: 9px;
+    background: linear-gradient(180deg, rgba(255, 92, 108, .07), rgba(255, 92, 108, .02));
+  }
+
+  .incident-box h4 {
+    margin: 0;
+    color: #ffc5cb;
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+
+  .incident-box p {
+    margin: 4px 0 8px;
+    color: #a98d92;
+    font-size: 8.5px;
+    line-height: 1.6;
+  }
+
+  .incident-btn {
+    width: 100%;
+    height: 30px;
+    border: 1px solid rgba(255, 92, 108, .4);
+    border-radius: 7px;
+    background: rgba(255, 92, 108, .12);
+    color: #ffd2d6;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .06em;
+    transition: background .16s ease;
+  }
+
+  .incident-btn:hover { background: rgba(255, 92, 108, .24); }
+  .incident-btn:disabled { opacity: .5; cursor: default; }
+
+  .incident-progress {
+    height: 3px;
+    margin-top: 7px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, .08);
+  }
+
+  .incident-progress i {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: 99px;
+    background: var(--red);
+    box-shadow: 0 0 8px var(--red);
+    transition: width .25s linear;
+  }
+
+  /* =====================================================================
+     4. 底部：流速 + 日志
+     ===================================================================== */
+  #bottombar {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: 14px;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 10px;
+    height: 140px;
+  }
+
+  .bottom-panel {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(9, 17, 28, .88), rgba(6, 11, 20, .92));
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .4);
+    backdrop-filter: blur(16px);
+    overflow: hidden;
+  }
+
+  .bottom-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 11px 6px;
+    border-bottom: 1px solid var(--line);
+    color: #b9cbdd;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .bottom-head span:last-child {
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 7.5px;
+    font-weight: 400;
+    letter-spacing: .12em;
+  }
+
+  .bottom-head .bottom-meta {
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 7.5px;
+    font-weight: 400;
+    letter-spacing: .12em;
+  }
+
+  .flow-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px 12px;
+    padding: 8px 11px 10px;
+    overflow-y: auto;
+  }
+
+  .flow-row {
+    display: grid;
+    grid-template-columns: 42px 1fr auto;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: 9px;
+  }
+
+  .flow-row b {
+    overflow: hidden;
+    color: var(--c, var(--cyan));
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .flow-track {
+    position: relative;
+    height: 5px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: rgba(120, 170, 210, .1);
+  }
+
+  .flow-track i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--w, 50%);
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--c, var(--cyan)), color-mix(in srgb, var(--c, var(--cyan)) 45%, transparent));
+    box-shadow: 0 0 10px var(--c, var(--cyan));
+    transition: width .6s ease;
+  }
+
+  .flow-row em {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 8px;
+    font-style: normal;
+    text-align: right;
+    min-width: 52px;
+  }
+
+  .event-log {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 11px 8px;
+    overflow-y: auto;
+    font-family: var(--mono);
+    font-size: 8.5px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(56, 225, 255, .22) transparent;
+  }
+
+  .event-log::-webkit-scrollbar,
+  .flow-list::-webkit-scrollbar { width: 4px; }
+  .event-log::-webkit-scrollbar-thumb,
+  .flow-list::-webkit-scrollbar-thumb { border-radius: 99px; background: rgba(56, 225, 255, .2); }
+
+  .log-row {
+    display: grid;
+    grid-template-columns: 50px 40px 1fr;
+    gap: 7px;
+    padding: 2px 0;
+    color: #93a9bf;
+    line-height: 1.5;
+    animation: logIn .22s ease both;
+  }
+
+  @keyframes logIn {
+    from { opacity: 0; transform: translateX(-4px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .log-row time { color: #4e647c; }
+  .log-row .lv { color: var(--cyan); }
+  .log-row.warn .lv { color: var(--amber); }
+  .log-row.crit .lv { color: var(--red); }
+  .log-row.ok .lv { color: var(--green); }
+  .log-row.crit { color: #ffc3c9; }
+  .log-row.ok { color: #a9e8c8; }
+
+  /* =====================================================================
+     5. 悬浮提示 / 告警横幅 / 加载
+     ===================================================================== */
+  #tooltip {
+    position: fixed;
+    z-index: 60;
+    min-width: 150px;
+    max-width: 240px;
+    padding: 8px 10px;
+    border: 1px solid var(--line-2);
+    border-radius: 8px;
+    background: rgba(6, 12, 21, .96);
+    box-shadow: 0 16px 44px rgba(0, 0, 0, .55);
+    pointer-events: none;
+    transform: translate(12px, 12px);
+  }
+
+  #tooltip h5 {
+    margin: 0;
+    color: #e9f7ff;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  #tooltip p {
+    margin: 3px 0 0;
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 7.5px;
+    letter-spacing: .06em;
+  }
+
+  #tooltip .tt-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 9px;
+    margin-top: 6px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 8px;
+  }
+
+  #tooltip .tt-metrics b { color: var(--cyan); font-weight: 500; }
+
+  #alert-banner {
+    position: fixed;
+    top: 74px;
+    left: 50%;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    max-width: min(560px, calc(100vw - 700px));
+    padding: 8px 14px;
+    border: 1px solid rgba(255, 92, 108, .45);
+    border-radius: 9px;
+    background: rgba(38, 10, 16, .92);
+    box-shadow: 0 0 34px rgba(255, 92, 108, .18);
+    color: #ffd6da;
+    font-size: 10px;
+    line-height: 1.5;
+    transform: translateX(-50%);
+    animation: bannerIn .25s ease both;
+  }
+
+  #alert-banner.warn {
+    border-color: rgba(255, 182, 72, .45);
+    background: rgba(38, 27, 10, .92);
+    box-shadow: 0 0 34px rgba(255, 182, 72, .16);
+    color: #ffe6bd;
+  }
+
+  #alert-banner b {
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: .1em;
+    color: var(--red);
+  }
+
+  #alert-banner.warn b { color: var(--amber); }
+
+  @keyframes bannerIn {
+    from { opacity: 0; transform: translate(-50%, -8px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+
+  #loading {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background:
+      radial-gradient(circle at 50% 42%, rgba(30, 74, 112, .28), transparent 52%),
+      #04070d;
+    transition: opacity .5s ease, visibility .5s ease;
+  }
+
+  #loading.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  .load-ring {
+    position: relative;
+    width: 54px;
+    height: 54px;
+    border: 1px solid rgba(56, 225, 255, .2);
+    border-radius: 50%;
+  }
+
+  .load-ring::before,
+  .load-ring::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+  }
+
+  .load-ring::before {
+    inset: 7px;
+    border-top: 2px solid var(--cyan);
+    border-right: 2px solid transparent;
+    animation: spin 1.1s linear infinite;
+  }
+
+  .load-ring::after {
+    inset: 14px;
+    border-bottom: 1px solid rgba(255, 182, 72, .8);
+    border-left: 1px solid transparent;
+    animation: spin 1.7s linear infinite reverse;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #loading h2 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .08em;
+  }
+
+  #loading p {
+    margin: 0;
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .1em;
+  }
+
+  .load-bar {
+    width: 220px;
+    height: 2px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: rgba(120, 170, 210, .14);
+  }
+
+  .load-bar i {
+    display: block;
+    width: 40%;
+    height: 100%;
+    border-radius: 99px;
+    background: var(--cyan);
+    box-shadow: 0 0 10px var(--cyan);
+    animation: loadSlide 1.4s ease-in-out infinite;
+  }
+
+  @keyframes loadSlide {
+    0% { transform: translateX(-110%); }
+    100% { transform: translateX(360%); }
+  }
+
+  .error-note {
+    max-width: 420px;
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 92, 108, .35);
+    border-radius: 9px;
+    background: rgba(255, 92, 108, .07);
+    color: #ffc7cd;
+    font-size: 11px;
+    line-height: 1.7;
+    text-align: center;
+  }
+
+  .layer-eye {
+    position: relative;
+    width: 24px;
+    height: 13px;
+    flex: 0 0 auto;
+    border: 1px solid rgba(120, 180, 220, .28);
+    border-radius: 99px;
+    background: rgba(18, 32, 48, .9);
+    transition: border-color .16s ease, background .16s ease;
+  }
+
+  .layer-eye i {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #5b7186;
+    transition: transform .16s ease, background .16s ease;
+  }
+
+  .layer-eye.is-on {
+    border-color: rgba(56, 225, 255, .5);
+    background: rgba(56, 225, 255, .18);
+  }
+
+  .layer-eye.is-on i {
+    background: var(--cyan);
+    box-shadow: 0 0 6px var(--cyan);
+    transform: translateX(11px);
+  }
+
+  .detail-desc {
+    margin: 0 0 9px;
+    color: #8ba1b7;
+    font-size: 9.5px;
+    line-height: 1.75;
+  }
+
+  .panel-note {
+    margin: 10px 0 0;
+    color: #4e647c;
+    font-size: 8px;
+    line-height: 1.7;
+  }
+
+  #tooltip[hidden],
+  #alert-banner[hidden] {
+    display: none !important;
+  }
+
+  /* =====================================================================
+     6. 3D 标签 / 底部流速倍速
+     ===================================================================== */
+  #label-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 12;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .map-label {
+    padding: 2px 6px;
+    border: 1px solid rgba(90, 160, 210, .2);
+    border-radius: 4px;
+    background: rgba(4, 10, 18, .62);
+    color: #a9c4da;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .04em;
+    white-space: nowrap;
+    transform: translate(-50%, -50%);
+    backdrop-filter: blur(3px);
+  }
+
+  .map-label.major {
+    padding: 3px 8px;
+    border-color: rgba(56, 225, 255, .3);
+    background: rgba(4, 14, 24, .74);
+    color: #dcf7ff;
+    font-size: 10px;
+    font-weight: 600;
+    box-shadow: 0 0 16px rgba(56, 225, 255, .08);
+  }
+
+  .map-label.fac {
+    padding: 1px 5px;
+    border-color: rgba(110, 190, 255, .16);
+    color: #8fb8d6;
+    font-size: 8px;
+  }
+
+  .map-label.fac.hot {
+    border-color: rgba(255, 92, 108, .5);
+    color: #ffd2d6;
+  }
+
+  .map-label.hidden { display: none; }
+
+  .flow-speed {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 7.5px;
+    letter-spacing: .08em;
+  }
+
+  .flow-speed input {
+    width: 96px;
+    height: 3px;
+    appearance: none;
+    border-radius: 99px;
+    background: linear-gradient(90deg, rgba(56, 225, 255, .55), rgba(56, 225, 255, .12));
+    outline: none;
+  }
+
+  .flow-speed input::-webkit-slider-thumb {
+    width: 10px;
+    height: 10px;
+    appearance: none;
+    border: 1px solid rgba(56, 225, 255, .8);
+    border-radius: 50%;
+    background: #07131f;
+    box-shadow: 0 0 8px rgba(56, 225, 255, .8);
+    cursor: pointer;
+  }
+
+  .flow-speed output {
+    min-width: 30px;
+    color: #bfeaff;
+    font-size: 8px;
+  }
+
+  /* =====================================================================
+     7. 响应式
+     ===================================================================== */
+  @media (max-width: 1280px) {
+    #layer-panel { width: 216px; }
+    #detail-panel { width: 320px; }
+    .topstats { display: none; }
+  }
+
+  @media (max-width: 1024px) {
+    #topbar { gap: 10px; padding: 0 12px; }
+    .brand-copy h1 { font-size: 12px; }
+    .brand-copy p { display: none; }
+    #layer-panel { left: 10px; top: 68px; width: 196px; }
+    #detail-panel { right: 10px; top: 68px; width: 290px; }
+    #bottombar { left: 10px; right: 10px; bottom: 10px; height: 124px; grid-template-columns: 1fr; }
+    .flow-list { grid-template-columns: repeat(3, 1fr); }
+    #alert-banner { top: 68px; max-width: calc(100vw - 40px); }
+  }
+
+  @media (max-width: 760px) {
+    #layer-panel { width: 158px; max-height: 42vh; }
+    #detail-panel { width: min(300px, 44vw); max-height: 52vh; }
+    #bottombar { height: 108px; }
+    .top-actions .tb-btn:nth-child(3) { display: none; }
+    .brand-mark { width: 30px; height: 30px; font-size: 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+    }
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+  <div id="scene" aria-label="四川吉利学院校园三维数字孪生场景"></div>
+  <div id="label-layer"></div>
+  <div id="vignette"></div>
+
+  <header id="topbar">
+    <div class="brand">
+      <span class="brand-mark">吉</span>
+      <div class="brand-copy">
+        <h1>四川吉利学院 · 校园数字孪生</h1>
+        <p>SICHUAN GEELY UNIVERSITY · CAMPUS DIGITAL TWIN</p>
+      </div>
+    </div>
+    <div class="topstats">
+      <span class="chip"><i class="dot"></i>实时模拟</span>
+      <span class="chip">六网融合</span>
+      <span class="chip">数据本地生成</span>
+      <span class="chip mono" id="sim-clock">--:--:--</span>
+    </div>
+    <div class="top-actions">
+      <button id="btn-daynight" class="tb-btn" type="button">☾ 夜间模式</button>
+      <button id="btn-xray" class="tb-btn" type="button">X-RAY 地下透视</button>
+      <button id="btn-tour" class="tb-btn" type="button">▶ 自动巡游</button>
+      <button id="btn-reset" class="tb-btn" type="button">⟲ 复位视角</button>
+    </div>
+  </header>
+
+  <aside id="layer-panel" class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>图层控制</h2>
+        <p>LAYER CONTROL · SIX NETWORKS</p>
+      </div>
+      <span class="panel-index">01</span>
+    </div>
+    <div id="layer-list" class="layer-list"></div>
+    <div class="panel-split"></div>
+    <div class="layer-sub">场景图层</div>
+    <div id="scene-layers" class="layer-list"></div>
+  </aside>
+
+  <aside id="detail-panel" class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>运行监测</h2>
+        <p>OPERATION MONITOR · LIVE</p>
+      </div>
+      <span class="panel-index">02</span>
+    </div>
+    <div id="detail-view"></div>
+  </aside>
+
+  <footer id="bottombar">
+    <section class="bottom-panel">
+      <div class="bottom-head">
+        <span>六网流速</span>
+        <span class="bottom-meta">FLOW RATE · LIVE</span>
+        <label class="flow-speed">SPEED
+          <input id="flow-speed" type="range" min="0.2" max="2.5" step="0.1" value="1" aria-label="粒子流速倍率" />
+          <output id="flow-speed-out">1.0x</output>
+        </label>
+      </div>
+      <div id="flow-list" class="flow-list"></div>
+    </section>
+    <section class="bottom-panel">
+      <div class="bottom-head"><span>事件日志</span><span class="bottom-meta" id="log-count">0 EVENTS</span></div>
+      <div id="event-log" class="event-log"></div>
+    </section>
+  </footer>
+
+  <div id="tooltip" hidden></div>
+  <div id="alert-banner" hidden></div>
+
+  <div id="loading">
+    <div class="load-ring"></div>
+    <h2>正在构建校园数字孪生</h2>
+    <p id="loading-status">LOADING CAMPUS GEOMETRY…</p>
+    <div class="load-bar"><i></i></div>
+  </div>
+
+<script>
+  (function () {
+    function fail(message) {
+      var loading = document.getElementById('loading');
+      if (!loading) return;
+      loading.classList.remove('is-done');
+      loading.innerHTML = '<div class="error-note">三维场景加载失败：' + String(message) +
+        '<br>Three.js 通过 CDN 加载，请检查网络后刷新页面。</div>';
+    }
+    window.addEventListener('error', function (event) {
+      if (event.target && event.target.tagName === 'SCRIPT') fail('脚本或依赖加载失败');
+    }, true);
+    window.addEventListener('unhandledrejection', function (event) {
+      fail(event.reason && event.reason.message ? event.reason.message : event.reason);
+    });
+  })();
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+/* =======================================================================
+   1. 数据层：六张网、设施、路由、事故脚本、8×8 街区规划
+   ======================================================================= */
+
+const NET_ORDER = ['water', 'power', 'compute', 'comms', 'tunnel', 'logistics'];
+
+const NET_STYLE = {
+  water:     { css: '#38bdf8', hex: 0x38bdf8, icon: '💧', flowUnit: 'm³/h' },
+  power:     { css: '#ffb648', hex: 0xffb648, icon: '⚡', flowUnit: 'MW' },
+  compute:   { css: '#a78bfa', hex: 0xa78bfa, icon: '▣', flowUnit: 'PFLOPS' },
+  comms:     { css: '#3ee08f', hex: 0x3ee08f, icon: '◉', flowUnit: 'Gb/s' },
+  tunnel:    { css: '#f472b6', hex: 0xf472b6, icon: '⬒', flowUnit: 'km' },
+  logistics: { css: '#ff8a4c', hex: 0xff8a4c, icon: '▤', flowUnit: 't/day' }
+};
+
+const NET_SHORT = {
+  water: '供水',
+  power: '电力',
+  compute: '算力',
+  comms: '通信',
+  tunnel: '管廊',
+  logistics: '物流'
+};
+
+const NETWORKS = {
+  water: {
+    key: 'water',
+    name: '供水管网',
+    en: 'WATER SUPPLY NETWORK',
+    summary: '取水、制水、加压、蓄水与末端计量构成校园闭环供水，重点保障食堂、公寓与实验楼用水。',
+    metrics: [
+      { key: 'flow', label: '瞬时流量', unit: 'm³/h', digits: 0 },
+      { key: 'pressure', label: '管网压力', unit: 'MPa', digits: 2 },
+      { key: 'quality', label: '水质达标率', unit: '%', digits: 1, max: 100 }
+    ],
+    trendKey: 'flow',
+    trendUnit: 'm³/h',
+    base: { flow: 18229, pressure: 0.42, quality: 99.2 },
+    facilities: [
+      { id: 'water-plant', name: '板框式水厂', x: 40, z: -52, base: 0.9, metrics: { flow: 4200, pressure: 0.52 } },
+      { id: 'water-pump', name: '加压泵站', x: -52, z: -42, base: 0.72, metrics: { flow: 3100, pressure: 0.46 } },
+      { id: 'water-tank', name: '高位蓄水池', x: -56, z: -52, base: 0.6, metrics: { flow: 1800, pressure: 0.38 } },
+      { id: 'water-valve', name: '中区阀门井', x: 0, z: -8, base: 0.55, metrics: { flow: 2400, pressure: 0.41 } },
+      { id: 'water-dorm', name: '俊园供水节点', x: -16, z: 6, base: 0.48, metrics: { flow: 2050, pressure: 0.36 } }
+    ],
+    routes: [
+      [[40, -52], [40, -48], [0, -48], [0, -16], [0, -8], [-16, -8], [-16, 6]],
+      [[-52, -42], [-48, -42], [-48, -48], [0, -48]],
+      [[-56, -52], [-56, -48], [-48, -48]]
+    ],
+    incident: {
+      name: '供水主管爆管',
+      brief: '压力骤降 → 自动关阀 → 切换备用水源 → 抢修恢复',
+      focus: 'water-valve',
+      steps: [
+        { t: 0.0, level: 'warn', msg: '压力传感器 W-03 读数异常，中区主管压力下降 38%', levelState: 'warn', flow: 0.72 },
+        { t: 3.5, level: 'crit', msg: '确认 DN400 主管爆管，西区转入降压运行', levelState: 'crit', flow: 0.45 },
+        { t: 7.0, level: 'ok', msg: '自动关闭 V-12 / V-15 阀门，故障管段已隔离', levelState: 'crit', flow: 0.6 },
+        { t: 11.0, level: 'ok', msg: '切换高位蓄水池与备用水源，西区压力回升至 0.34 MPa', levelState: 'warn', flow: 0.86 },
+        { t: 16.0, level: 'ok', msg: '抢修班组到场，供水恢复 92%，预计 40 分钟完成修复', levelState: 'ok', flow: 0.94 },
+        { t: 21.0, level: 'ok', msg: '事故处置完成，管网恢复稳态运行', levelState: 'ok', flow: 1 }
+      ]
+    }
+  },
+  power: {
+    key: 'power',
+    name: '电力配电',
+    en: 'POWER DISTRIBUTION NETWORK',
+    summary: '110kV 进线经变电站降压后环网供配电，覆盖教学、实训、公寓与数据中心，配置双电源与备自投。',
+    metrics: [
+      { key: 'load', label: '实时负荷', unit: 'MW', digits: 2 },
+      { key: 'voltage', label: '母线电压', unit: 'kV', digits: 1 },
+      { key: 'reliability', label: '供电可靠率', unit: '%', digits: 2, max: 100 }
+    ],
+    trendKey: 'load',
+    trendUnit: 'MW',
+    base: { load: 7.15, voltage: 10.4, reliability: 99.98 },
+    facilities: [
+      { id: 'power-sub', name: '110kV 变电站', x: 44, z: -52, base: 0.82, metrics: { load: 3.4, voltage: 10.5 } },
+      { id: 'power-lib', name: '图书馆配电房', x: 24, z: -36, base: 0.6, metrics: { load: 1.1, voltage: 10.4 } },
+      { id: 'power-lab', name: '实训楼配电房', x: 24, z: -52, base: 0.58, metrics: { load: 1.3, voltage: 10.3 } },
+      { id: 'power-canteen', name: '一食堂箱变', x: -38, z: 4, base: 0.5, metrics: { load: 0.8, voltage: 10.4 } },
+      { id: 'power-east', name: '东门环网柜', x: 52, z: -16, base: 0.45, metrics: { load: 0.55, voltage: 10.4 } }
+    ],
+    routes: [
+      [[44, -52], [44, -48], [32, -48], [32, -16], [24, -16], [24, -36]],
+      [[44, -48], [44, 0], [0, 0], [0, 4], [-38, 4]],
+      [[44, -48], [48, -48], [48, -16], [52, -16]]
+    ],
+    incident: {
+      name: '110kV 进线失压',
+      brief: '备自投动作 → 负荷转供 → 数据中心保电 → 恢复',
+      focus: 'power-sub',
+      steps: [
+        { t: 0.0, level: 'crit', msg: '110kV 进线 I 段失压，母线电压跌落至 8.2kV', levelState: 'crit', flow: 0.55 },
+        { t: 3.0, level: 'warn', msg: '备自投装置动作，0.6s 内切换至 II 段进线', levelState: 'warn', flow: 0.8 },
+        { t: 6.5, level: 'warn', msg: '非重要负荷自动切除 1.8MW，数据中心切换 UPS 保电', levelState: 'warn', flow: 0.7 },
+        { t: 11.0, level: 'ok', msg: '环网转供完成，教学区与公寓恢复供电', levelState: 'warn', flow: 0.92 },
+        { t: 16.0, level: 'ok', msg: '进线 I 段检修隔离，当前由 II 段单电源供电', levelState: 'ok', flow: 0.97 },
+        { t: 21.0, level: 'ok', msg: '供电恢复稳态，备用电源自动投入运行', levelState: 'ok', flow: 1 }
+      ]
+    }
+  },
+  compute: {
+    key: 'compute',
+    name: '算力网络',
+    en: 'COMPUTING NETWORK',
+    summary: '校园数据中心与边缘机房组成算力底座，承载教务、科研训练与数字孪生渲染任务，支持跨节点调度。',
+    metrics: [
+      { key: 'throughput', label: '算力吞吐', unit: 'PFLOPS', digits: 0 },
+      { key: 'util', label: '集群利用率', unit: '%', digits: 0, max: 100 },
+      { key: 'latency', label: '调度时延', unit: 'ms', digits: 1 }
+    ],
+    trendKey: 'util',
+    trendUnit: '%',
+    base: { throughput: 418, util: 71, latency: 4.1 },
+    facilities: [
+      { id: 'compute-dc', name: '校园数据中心', x: 40, z: -42, base: 0.88, metrics: { throughput: 186, util: 78 } },
+      { id: 'compute-edge', name: '实训楼边缘机房', x: 8, z: -52, base: 0.62, metrics: { throughput: 64, util: 66 } },
+      { id: 'compute-lib', name: '图书馆算力节点', x: 24, z: -36, base: 0.55, metrics: { throughput: 42, util: 58 } },
+      { id: 'compute-lab', name: '计算中心集群', x: 40, z: -24, base: 0.7, metrics: { throughput: 126, util: 74 } }
+    ],
+    routes: [
+      [[40, -42], [40, -48], [8, -48], [8, -52]],
+      [[40, -42], [40, -24]],
+      [[40, -42], [40, -48], [24, -48], [24, -36]]
+    ],
+    arcs: [
+      ['compute-dc', 'compute-lib', 9],
+      ['compute-dc', 'compute-edge', 11],
+      ['compute-lab', 'compute-lib', 8]
+    ],
+    incident: {
+      name: '算力负载洪峰',
+      brief: '利用率飙升 → 任务迁移 → 液冷提升 → 恢复',
+      focus: 'compute-dc',
+      steps: [
+        { t: 0.0, level: 'warn', msg: '数据中心 GPU 利用率 5 分钟内升至 94%，任务队列积压', levelState: 'warn', flow: 0.7 },
+        { t: 3.2, level: 'crit', msg: '机房冷通道温度 31.6℃，触发一级告警', levelState: 'crit', flow: 0.55 },
+        { t: 7.0, level: 'warn', msg: '调度器将 62 个训练任务迁移至边缘机房与计算中心', levelState: 'warn', flow: 0.78 },
+        { t: 11.5, level: 'ok', msg: '液冷系统提升至 85% 功率，热点温度回落至 26.4℃', levelState: 'warn', flow: 0.9 },
+        { t: 16.0, level: 'ok', msg: '集群利用率稳定在 76%，任务队列恢复正常', levelState: 'ok', flow: 0.96 },
+        { t: 21.0, level: 'ok', msg: '洪峰处置完成，算力网络恢复稳态', levelState: 'ok', flow: 1 }
+      ]
+    }
+  },
+  comms: {
+    key: 'comms',
+    name: '通信网络',
+    en: 'COMMUNICATION NETWORK',
+    summary: '核心机房、5G 宏站与室内分布系统组成校园通信网，支撑教学直播、物联感知与数字孪生实时回传。',
+    metrics: [
+      { key: 'traffic', label: '实时流量', unit: 'Gb/s', digits: 0 },
+      { key: 'latency', label: '端到端时延', unit: 'ms', digits: 1 },
+      { key: 'online', label: '设备在线率', unit: '%', digits: 1, max: 100 }
+    ],
+    trendKey: 'traffic',
+    trendUnit: 'Gb/s',
+    base: { traffic: 12884, latency: 6.2, online: 99.6 },
+    facilities: [
+      { id: 'comms-core', name: '核心通信枢纽', x: 56, z: -42, base: 0.8, metrics: { traffic: 4200, latency: 3.8 } },
+      { id: 'comms-lib', name: '图书馆 5G 宏站', x: 24, z: -36, base: 0.66, metrics: { traffic: 2600, latency: 5.4 } },
+      { id: 'comms-dorm', name: '俊园基站', x: -8, z: 4, base: 0.5, metrics: { traffic: 2100, latency: 6.8 } },
+      { id: 'comms-track', name: '田径场基站', x: -40, z: -40, base: 0.45, metrics: { traffic: 980, latency: 7.2 } },
+      { id: 'comms-east', name: '东门基站', x: 52, z: -12, base: 0.4, metrics: { traffic: 860, latency: 7.6 } }
+    ],
+    routes: [
+      [[56, -42], [56, -48], [24, -48], [24, -36]],
+      [[24, -36], [24, -16], [-8, -16], [-8, 4]],
+      [[24, -36], [0, -36], [0, -16], [52, -16], [52, -12]]
+    ],
+    arcs: [
+      ['comms-core', 'comms-dorm', 13],
+      ['comms-core', 'comms-track', 10]
+    ],
+    incident: {
+      name: '核心链路中断',
+      brief: '链路告警 → 路由切换 → 基站补盲 → 恢复',
+      focus: 'comms-core',
+      steps: [
+        { t: 0.0, level: 'crit', msg: '核心枢纽至数据中心主干链路中断，丢包率 42%', levelState: 'crit', flow: 0.4 },
+        { t: 3.0, level: 'warn', msg: 'SR 路由自动切换至备用光纤，业务恢复 68%', levelState: 'warn', flow: 0.72 },
+        { t: 7.0, level: 'warn', msg: '俊园基站开启临时补盲，公寓区信号回升', levelState: 'warn', flow: 0.84 },
+        { t: 11.5, level: 'ok', msg: '抢修定位光缆断点（东门管廊 K2+300）', levelState: 'warn', flow: 0.9 },
+        { t: 16.0, level: 'ok', msg: '备用链路承载全部业务，时延稳定在 6.8ms', levelState: 'ok', flow: 0.97 },
+        { t: 21.0, level: 'ok', msg: '通信网络恢复稳态，故障链路进入检修', levelState: 'ok', flow: 1 }
+      ]
+    }
+  },
+  tunnel: {
+    key: 'tunnel',
+    name: '地下管廊',
+    en: 'UTILITY TUNNEL',
+    summary: '北环、东环、南环、西环四段综合管廊敷设水、电、通信管线，配置排水、通风、消防与巡检机器人。',
+    metrics: [
+      { key: 'length', label: '管廊里程', unit: 'km', digits: 1 },
+      { key: 'temp', label: '廊内温度', unit: '℃', digits: 1 },
+      { key: 'humidity', label: '廊内湿度', unit: '%', digits: 0 }
+    ],
+    trendKey: 'temp',
+    trendUnit: '℃',
+    base: { length: 186, temp: 21.4, humidity: 62 },
+    facilities: [
+      { id: 'tunnel-main', name: '管廊主环节点', x: 0, z: 0, base: 0.7, y: -5.6, metrics: { temp: 21.2, humidity: 61 } },
+      { id: 'tunnel-north', name: '北环检修井', x: -16, z: -48, base: 0.6, y: -5.6, metrics: { temp: 20.6, humidity: 64 } },
+      { id: 'tunnel-east', name: '东环检修井', x: 48, z: -8, base: 0.55, y: -5.6, metrics: { temp: 22.1, humidity: 59 } },
+      { id: 'tunnel-south', name: '南环检修井', x: 16, z: 40, base: 0.5, y: -5.6, metrics: { temp: 21.8, humidity: 63 } },
+      { id: 'tunnel-west', name: '西环检修井', x: -48, z: 8, base: 0.45, y: -5.6, metrics: { temp: 20.9, humidity: 66 } }
+    ],
+    routes: [
+      [[-48, -48], [48, -48], [48, 48], [-48, 48], [-48, -48]],
+      [[0, 48], [0, -48]]
+    ],
+    incident: {
+      name: '管廊积水告警',
+      brief: '液位告警 → 排水泵启动 → 通风联动 → 恢复',
+      focus: 'tunnel-east',
+      steps: [
+        { t: 0.0, level: 'warn', msg: '东环管廊集水坑液位 0.62m，超过预警阈值', levelState: 'warn', flow: 0.75 },
+        { t: 3.0, level: 'crit', msg: '液位升至 0.91m，K2 段排水泵组自动启动', levelState: 'crit', flow: 0.6 },
+        { t: 7.0, level: 'warn', msg: '通风机组联动至 80% 功率，廊内湿度开始下降', levelState: 'warn', flow: 0.8 },
+        { t: 11.5, level: 'ok', msg: '排水流量 42m³/h，液位回落至 0.38m', levelState: 'warn', flow: 0.9 },
+        { t: 16.0, level: 'ok', msg: '巡检机器人完成 K2 段排查，未发现结构渗漏', levelState: 'ok', flow: 0.96 },
+        { t: 21.0, level: 'ok', msg: '管廊环境恢复稳态，排水泵转待机', levelState: 'ok', flow: 1 }
+      ]
+    }
+  },
+  logistics: {
+    key: 'logistics',
+    name: '物流配送',
+    en: 'LOGISTICS NETWORK',
+    summary: '快递物流中心、食堂配送与无人机停机坪组成校园物流网，承担快递、食材与实验物资的末端配送。',
+    metrics: [
+      { key: 'volume', label: '日均处理量', unit: '件', digits: 0 },
+      { key: 'vehicles', label: '在线车辆', unit: '辆', digits: 0 },
+      { key: 'ontime', label: '准时送达率', unit: '%', digits: 1, max: 100 }
+    ],
+    trendKey: 'volume',
+    trendUnit: '件/h',
+    base: { volume: 1842, vehicles: 26, ontime: 97.4 },
+    facilities: [
+      { id: 'logi-center', name: '快递物流中心', x: 8, z: 24, base: 0.75, metrics: { volume: 760, vehicles: 12 } },
+      { id: 'logi-canteen', name: '一食堂配送站', x: -38, z: 8, base: 0.5, metrics: { volume: 240, vehicles: 4 } },
+      { id: 'logi-dorm', name: '俊园配送站', x: -8, z: 8, base: 0.55, metrics: { volume: 380, vehicles: 6 } },
+      { id: 'logi-drone', name: '图书馆无人机坪', x: 24, z: -32, base: 0.6, metrics: { volume: 120, vehicles: 4 } }
+    ],
+    routes: [
+      [[8, 24], [8, 16], [0, 16], [0, 8], [-8, 8]],
+      [[8, 24], [8, 48], [16, 48], [16, 40]],
+      [[8, 24], [8, 16], [24, 16], [24, -32]]
+    ],
+    incident: {
+      name: '物流高峰拥堵',
+      brief: '分拣积压 → 无人机调度 → 运力分流 → 恢复',
+      focus: 'logi-center',
+      steps: [
+        { t: 0.0, level: 'warn', msg: '快递中心分拣线积压 1,240 件，车辆排队 9 辆', levelState: 'warn', flow: 0.68 },
+        { t: 3.2, level: 'crit', msg: '东门通道拥堵指数 8.4，配送时效下降 26%', levelState: 'crit', flow: 0.52 },
+        { t: 7.0, level: 'warn', msg: '启用无人机停机坪，优先配送图书馆与实验楼急件', levelState: 'warn', flow: 0.74 },
+        { t: 11.5, level: 'ok', msg: '开放南门备用通道，12 辆配送车分流至公寓区', levelState: 'warn', flow: 0.88 },
+        { t: 16.0, level: 'ok', msg: '积压降至 210 件，准时率回升至 96.2%', levelState: 'ok', flow: 0.96 },
+        { t: 21.0, level: 'ok', msg: '物流网络恢复稳态，无人机转例行巡检', levelState: 'ok', flow: 1 }
+      ]
+    }
+  }
+};
+
+/* 8×8 街区规划：j=0 为北（-Z），j=7 为南（+Z）；i=0 为西（-X）。 */
+const BLOCK_PLAN = [
+  [
+    { kind: 'lake', name: '北湖' },
+    { kind: 'hangar', name: '汽车工程实验实训中心', h: 10, style: 'warm' },
+    { kind: 'lab', name: '工程训练中心', h: 13 },
+    { kind: 'teaching', name: '科研楼', h: 15 },
+    { kind: 'lab', name: '实训楼 A', h: 12 },
+    { kind: 'lab', name: '实训楼 B', h: 12 },
+    { kind: 'utility', name: '能源中心' },
+    { kind: 'parking', name: '北门停车场' }
+  ],
+  [
+    { kind: 'green', name: '湖畔绿地' },
+    { kind: 'hall', name: '体育馆', h: 9, style: 'warm' },
+    { kind: 'track', name: '田径场' },
+    { kind: 'teaching', name: '立德楼', h: 16 },
+    { kind: 'teaching', name: '明德楼', h: 16 },
+    { kind: 'library', name: '图书馆', h: 26 },
+    { kind: 'utility', name: '信息中心' },
+    { kind: 'utility', name: '通信枢纽' }
+  ],
+  [
+    { kind: 'green', name: '东侧绿地' },
+    { kind: 'teaching', name: '教学楼 C', h: 14 },
+    { kind: 'lab', name: '实验楼', h: 12 },
+    { kind: 'hall', name: '学术交流中心', h: 10, style: 'warm' },
+    { kind: 'hall', name: '校史馆', h: 9, style: 'warm' },
+    { kind: 'office', name: '行政楼', h: 13 },
+    { kind: 'lab', name: '计算中心', h: 12 },
+    { kind: 'parking', name: '东门停车场' }
+  ],
+  [
+    { kind: 'green', name: '西侧绿地' },
+    { kind: 'hall', name: '学生活动中心', h: 9, style: 'warm' },
+    { kind: 'shops', name: '商业街' },
+    { kind: 'plaza', name: '中心广场' },
+    { kind: 'plaza', name: '中心广场' },
+    { kind: 'hall', name: '大礼堂', h: 12, style: 'warm' },
+    { kind: 'teaching', name: '研究生院', h: 14 },
+    { kind: 'dorm', name: '专家公寓' }
+  ],
+  [
+    { kind: 'green', name: '西门绿地' },
+    { kind: 'canteen', name: '一食堂', h: 9, style: 'warm' },
+    { kind: 'dorm', name: '俊园 1 栋' },
+    { kind: 'dorm', name: '俊园 2 栋' },
+    { kind: 'dorm', name: '俊园 3 栋' },
+    { kind: 'dorm', name: '俊园 4 栋' },
+    { kind: 'dorm', name: '留学生公寓' },
+    { kind: 'utility', name: '后勤服务楼' }
+  ],
+  [
+    { kind: 'courts', name: '篮球场' },
+    { kind: 'courts', name: '网球场' },
+    { kind: 'dorm', name: '俊园 5 栋' },
+    { kind: 'dorm', name: '俊园 6 栋' },
+    { kind: 'logistics', name: '快递物流中心' },
+    { kind: 'clinic', name: '校医院' },
+    { kind: 'dorm', name: '教师公寓' },
+    { kind: 'green', name: '东南绿地' }
+  ],
+  [
+    { kind: 'plaza', name: '南门广场' },
+    { kind: 'green', name: '迎宾绿地' },
+    { kind: 'parking', name: '访客停车场' },
+    { kind: 'hall', name: '游泳馆', h: 8, style: 'warm' },
+    { kind: 'office', name: '大学生创业园', h: 10 },
+    { kind: 'office', name: '科技园 B', h: 13 },
+    { kind: 'utility', name: '后勤车库' },
+    { kind: 'green', name: '东南绿地' }
+  ],
+  [
+    { kind: 'plaza', name: '迎宾广场' },
+    { kind: 'green', name: '南校门绿地' },
+    { kind: 'parking', name: '南停车场' },
+    { kind: 'green', name: '南校门绿地' },
+    { kind: 'green', name: '南校门绿地' },
+    { kind: 'office', name: '科技园 A', h: 12 },
+    { kind: 'parking', name: '公交场站' },
+    { kind: 'green', name: '东南绿地' }
+  ]
+];
+
+/* 自动巡游机位 */
+const TOUR_STOPS = [
+  { pos: [96, 86, 104], target: [0, 0, 6], name: '校园全景' },
+  { pos: [10, 34, 42], target: [18, 12, -34], name: '图书馆与中轴' },
+  { pos: [-70, 30, 30], target: [-34, 8, -6], name: '一食堂与俊园' },
+  { pos: [-64, 26, -48], target: [-40, 6, -44], name: '田径场与体育馆' },
+  { pos: [66, 26, -66], target: [40, 6, -50], name: '实训与能源区' },
+  { pos: [16, 58, 96], target: [0, 6, 56], name: '南校门迎宾轴' }
+];
+
+/* =======================================================================
+   2. 渲染基础、程序化材质与校区几何
+   ======================================================================= */
+
+const container = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.92;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+container.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(window.innerWidth, window.innerHeight);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0';
+labelRenderer.domElement.style.left = '0';
+labelRenderer.domElement.style.pointerEvents = 'none';
+document.getElementById('label-layer').appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x04070d);
+scene.fog = new THREE.FogExp2(0x04070d, 0.0034);
+
+const camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.5, 1600);
+camera.position.set(92, 104, 142);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0, 4);
+controls.enableDamping = true;
+controls.dampingFactor = 0.07;
+controls.rotateSpeed = 0.55;
+controls.zoomSpeed = 0.8;
+controls.panSpeed = 0.7;
+controls.minDistance = 22;
+controls.maxDistance = 340;
+controls.maxPolarAngle = Math.PI * 0.485;
+controls.screenSpacePanning = false;
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.55, 0.62, 0.32);
+composer.addPass(bloomPass);
+composer.addPass(new OutputPass());
+
+/* ---------------------------- 灯光 ---------------------------- */
+const hemiLight = new THREE.HemisphereLight(0x35597d, 0x070c12, 0.95);
+scene.add(hemiLight);
+const ambientLight = new THREE.AmbientLight(0x16232f, 1.55);
+scene.add(ambientLight);
+const moonLight = new THREE.DirectionalLight(0xbcd4ff, 0.85);
+moonLight.position.set(70, 130, 46);
+scene.add(moonLight);
+const fillLight = new THREE.DirectionalLight(0x2b6a8c, 0.35);
+fillLight.position.set(-80, 60, -70);
+scene.add(fillLight);
+
+/* ---------------------------- 纹理工具 ---------------------------- */
+function makeGlowTexture(rgb = '190,240,255') {
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  grad.addColorStop(0, `rgba(${rgb},1)`);
+  grad.addColorStop(0.28, `rgba(${rgb},.55)`);
+  grad.addColorStop(1, `rgba(${rgb},0)`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+function makeGridTexture() {
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#6f7f8d';
+  ctx.fillRect(0, 0, size, size);
+  ctx.strokeStyle = 'rgba(200,232,255,.3)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= size; i += 32) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i, size);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, i);
+    ctx.lineTo(size, i);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(210,242,255,.5)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(0, 0, size, size);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(26, 26);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  return texture;
+}
+
+function makeSignTexture(title, subtitle) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#081522';
+  ctx.fillRect(0, 0, 1024, 256);
+  ctx.strokeStyle = 'rgba(56,225,255,.55)';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(8, 8, 1008, 240);
+  ctx.fillStyle = '#e8fbff';
+  ctx.font = '700 96px "Microsoft YaHei", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(title, 512, 116);
+  ctx.fillStyle = '#63b8d8';
+  ctx.font = '500 30px monospace';
+  ctx.fillText(subtitle, 512, 196);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+const glowTexture = makeGlowTexture('190,240,255');
+
+/* ---------------------------- 材质 ---------------------------- */
+const buildingMat = new THREE.MeshStandardMaterial({
+  color: 0xffffff,
+  vertexColors: true,
+  roughness: 0.8,
+  metalness: 0.2,
+  emissive: 0x0c1725,
+  emissiveIntensity: 1
+});
+
+const windowUniforms = { night: { value: 1 } };
+
+buildingMat.onBeforeCompile = (shader) => {
+  shader.uniforms.uNight = windowUniforms.night;
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNormal;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvWNormal = normalize(mat3(modelMatrix) * objectNormal);');
+  shader.fragmentShader = shader.fragmentShader
+    .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNormal;\nuniform float uNight;')
+    .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+      if (abs(vWNormal.y) < 0.4) {
+        vec2 face = abs(vWNormal.x) > 0.5 ? vec2(vWPos.z, vWPos.y) : vec2(vWPos.x, vWPos.y);
+        vec2 cell = vec2(2.25, 2.65);
+        vec2 id = floor(face / cell);
+        vec2 f = fract(face / cell);
+        float win = step(0.3, f.x) * step(f.x, 0.7) * step(0.3, f.y) * step(f.y, 0.72);
+        float h = fract(sin(dot(id, vec2(127.1, 311.7))) * 43758.5453);
+        float lit = step(0.46, h);
+        float warmPick = step(0.62, fract(h * 5.73));
+        vec3 tint = mix(vec3(1.0, 0.78, 0.46), vec3(0.58, 0.84, 1.0), warmPick);
+        float band = 1.0 - step(0.92, fract(vWPos.y / 3.6)) * 0.65;
+        totalEmissiveRadiance += tint * win * lit * band * 0.62 * uNight;
+      }
+    `);
+};
+buildingMat.customProgramCacheKey = () => 'twin-window-v1';
+
+const roofMat = new THREE.MeshStandardMaterial({ color: 0x151f2b, roughness: 0.62, metalness: 0.38 });
+const roadMat = new THREE.MeshStandardMaterial({ color: 0x152130, roughness: 0.92, metalness: 0.08 });
+const markMat = new THREE.MeshBasicMaterial({ color: 0x3a87a8, transparent: true, opacity: 0.9 });
+const lawnMat = new THREE.MeshStandardMaterial({ color: 0x0b1a17, roughness: 0.96 });
+const plazaMat = new THREE.MeshStandardMaterial({ color: 0x121b25, roughness: 0.9 });
+const waterMat = new THREE.MeshStandardMaterial({
+  color: 0x0a2a42,
+  emissive: 0x11527a,
+  emissiveIntensity: 0.8,
+  roughness: 0.22,
+  metalness: 0.6
+});
+const trackMat = new THREE.MeshStandardMaterial({ color: 0x2b1a1d, roughness: 0.94 });
+const courtMat = new THREE.MeshStandardMaterial({ color: 0x0d2119, roughness: 0.95 });
+const poleMat = new THREE.MeshStandardMaterial({ color: 0x2a3644, roughness: 0.6, metalness: 0.5 });
+const lampMat = new THREE.MeshBasicMaterial({ color: 0xffe2b0 });
+const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff5c6c });
+const cyanGlowMat = new THREE.MeshBasicMaterial({ color: 0x66e6ff });
+
+/* ---------------------------- 几何收集器 ---------------------------- */
+const geoBuilding = [];
+const geoRoof = [];
+const geoMark = [];
+const geoLawn = [];
+const geoPlaza = [];
+const geoRoad = [];
+const geoTrim = [];
+const geoBeacon = [];
+const geoFlags = [];
+const seeds = [];
+const campusMeshes = {};
+const buildingLabels = [];
+
+function rng(seed) {
+  let s = seed % 2147483647;
+  if (s <= 0) s += 2147483646;
+  return () => {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+function pushColored(list, geometry, colorHex) {
+  const count = geometry.attributes.position.count;
+  const colors = new Float32Array(count * 3);
+  const color = new THREE.Color(colorHex);
+  for (let i = 0; i < count; i++) {
+    colors[i * 3] = color.r;
+    colors[i * 3 + 1] = color.g;
+    colors[i * 3 + 2] = color.b;
+  }
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  list.push(geometry);
+}
+
+const _brightenColor = new THREE.Color();
+
+function brightenHex(hex, factor) {
+  _brightenColor.setHex(hex).multiplyScalar(factor);
+  return _brightenColor.getHex();
+}
+
+function boxAt(w, h, d, x, y, z, list, colorHex = 0x1a2433, rotY = 0) {
+  const geometry = new THREE.BoxGeometry(w, h, d);
+  if (rotY) geometry.rotateY(rotY);
+  geometry.translate(x, y + h / 2, z);
+  if (colorHex === null) list.push(geometry);
+  else pushColored(list, geometry, list === geoBuilding ? brightenHex(colorHex, 1.7) : colorHex);
+  return geometry;
+}
+
+function planeAt(w, d, x, y, z, list, colorHex = 0x0e151e, rotY = 0) {
+  const geometry = new THREE.PlaneGeometry(w, d);
+  geometry.rotateX(-Math.PI / 2);
+  if (rotY) geometry.rotateY(rotY);
+  geometry.translate(x, y, z);
+  if (colorHex === null) list.push(geometry);
+  else pushColored(list, geometry, colorHex);
+  return geometry;
+}
+
+function addBeacon(x, y, z, scale = 0.16) {
+  const geometry = new THREE.SphereGeometry(scale, 8, 8);
+  geometry.translate(x, y, z);
+  geoBeacon.push(geometry);
+}
+
+/* ---------------------------- 校区构建 ---------------------------- */
+const MAJOR_LABELS = new Set([
+  '图书馆', '立德楼', '明德楼', '汽车工程实验实训中心', '一食堂', '田径场', '体育馆',
+  '北湖', '学生活动中心', '大礼堂', '南校门', '东门', '西门'
+]);
+
+const labelDefs = [];
+
+function addLabel(text, x, y, z, kind = 'minor') {
+  labelDefs.push({ text, x, y, z, kind });
+}
+
+function addLawn(cx, cz, size = 11.4) {
+  planeAt(size, size, cx, 0.045, cz, geoLawn, 0x0b1a17);
+}
+
+function addPlaza(cx, cz, size = 11.8) {
+  planeAt(size, size, cx, 0.05, cz, geoPlaza, 0x0e151e);
+}
+
+function scatterTrees(cx, cz, count, random, radius = 4.6) {
+  for (let i = 0; i < count; i++) {
+    const angle = random() * Math.PI * 2;
+    const r = 1.6 + random() * radius;
+    seeds.push({
+      x: cx + Math.cos(angle) * r,
+      z: cz + Math.sin(angle) * r,
+      s: 0.8 + random() * 0.7,
+      pine: random() > 0.72
+    });
+  }
+}
+
+function addTrack(cx, cz) {
+  planeAt(12.2, 12.2, cx, 0.04, cz, geoLawn, 0x0c2018);
+  const ring = new THREE.TorusGeometry(6.8, 0.34, 8, 64);
+  ring.rotateX(-Math.PI / 2);
+  ring.scale(1, 1, 0.68);
+  ring.translate(cx, 0.09, cz);
+  pushColored(geoTrim, ring, 0x4a2730);
+  const field = new THREE.CircleGeometry(5.6, 40);
+  field.rotateX(-Math.PI / 2);
+  field.scale(1, 1, 0.66);
+  field.translate(cx, 0.075, cz);
+  pushColored(geoLawn, field, 0x102a1d);
+}
+
+function addLake(cx, cz) {
+  const water = new THREE.CircleGeometry(6.6, 48);
+  water.rotateX(-Math.PI / 2);
+  water.scale(1, 1, 0.86);
+  const mesh = new THREE.Mesh(water, waterMat);
+  mesh.position.set(cx, 0.06, cz);
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+  const shore = new THREE.TorusGeometry(6.7, 0.22, 6, 56);
+  shore.rotateX(-Math.PI / 2);
+  shore.scale(1, 1, 0.86);
+  shore.translate(cx, 0.1, cz);
+  pushColored(geoTrim, shore, 0x1c3a44);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    seeds.push({ x: cx + Math.cos(a) * 7.4, z: cz + Math.sin(a) * 7.4 * 0.86, s: 0.9, pine: false });
+  }
+}
+
+function addCourts(cx, cz) {
+  planeAt(11.6, 11.6, cx, 0.04, cz, geoLawn, 0x0d2019);
+  for (let i = 0; i < 2; i++) {
+    const ox = cx + (i - 0.5) * 4.6;
+    const line = new THREE.BoxGeometry(4.1, 0.03, 0.1);
+    line.translate(ox, 0.07, cz - 2.6);
+    pushColored(geoMark, line, 0x3b6f7d);
+    const line2 = new THREE.BoxGeometry(4.1, 0.03, 0.1);
+    line2.translate(ox, 0.07, cz + 2.6);
+    pushColored(geoMark, line2, 0x3b6f7d);
+    const side = new THREE.BoxGeometry(0.1, 0.03, 5.2);
+    side.translate(ox - 2.05, 0.07, cz);
+    pushColored(geoMark, side, 0x3b6f7d);
+    const side2 = new THREE.BoxGeometry(0.1, 0.03, 5.2);
+    side2.translate(ox + 2.05, 0.07, cz);
+    pushColored(geoMark, side2, 0x3b6f7d);
+  }
+}
+
+function addParking(cx, cz, random) {
+  planeAt(11.6, 11.6, cx, 0.04, cz, geoPlaza, 0x0b1219);
+  for (let i = 0; i < 4; i++) {
+    const x = cx - 4.2 + i * 2.8;
+    const line = new THREE.BoxGeometry(0.08, 0.03, 4.6);
+    line.translate(x, 0.07, cz);
+    pushColored(geoMark, line, 0x2b4d5c);
+  }
+  for (let i = 0; i < 3; i++) {
+    boxAt(1.1, 0.42, 2.0, cx - 3.2 + i * 3.0, 0.06, cz + (random() - 0.5) * 2, geoRoof, null);
+  }
+}
+
+function addBuildingBase(cx, cz, w, d, h, color, extra = 0) {
+  boxAt(w, h, d, cx, 0, cz, geoBuilding, color);
+  boxAt(w + 0.7, 0.55, d + 0.7, cx, h, cz, geoRoof, null);
+  if (extra) {
+    boxAt(w * 0.42, extra, d * 0.34, cx + w * 0.18, h + 0.55, cz - d * 0.12, geoRoof, null);
+  }
+}
+
+function addAntenna(x, y, z) {
+  const mast = new THREE.CylinderGeometry(0.05, 0.05, 2.6, 5);
+  mast.translate(x, y + 1.3, z);
+  pushColored(geoTrim, mast, 0x31414f);
+  addBeacon(x, y + 2.7, z, 0.12);
+}
+
+function addTeaching(cx, cz, h, style) {
+  const warm = style === 'warm';
+  addBuildingBase(cx, cz, 9.2, 8.2, h, warm ? 0x2a2620 : 0x19222f, 1.4);
+  boxAt(3.0, h * 0.52, 3.2, cx - 5.4, 0, cz - 1.6, geoBuilding, warm ? 0x24211c : 0x151d29);
+  // 入口雨棚
+  boxAt(4.4, 0.28, 1.8, cx, 3.5, cz + 4.2, geoTrim);
+  addAntenna(cx + 2.6, h + 1.4, cz + 1.6);
+  if (h >= 15) addAntenna(cx - 2.2, h + 1.4, cz - 1.8);
+}
+
+function addLab(cx, cz, h) {
+  addBuildingBase(cx, cz, 10.0, 8.4, h, 0x172029, 1.0);
+  boxAt(2.2, 1.8, 2.2, cx + 2.8, h + 0.55, cz - 2.2, geoRoof, null);
+  const tank = new THREE.CylinderGeometry(1.05, 1.05, 2.2, 14);
+  tank.translate(cx - 2.8, h + 1.6, cz + 2.0);
+  geoRoof.push(tank);
+  addAntenna(cx - 2.4, h + 2.6, cz + 1.9);
+}
+
+function addLibrary(cx, cz) {
+  boxAt(12.4, 6.2, 11.2, cx, 0, cz, geoBuilding, 0x1d2a38);
+  boxAt(8.8, 20.0, 8.8, cx, 6.2, cz, geoBuilding, 0x223140);
+  boxAt(10.0, 1.0, 10.0, cx, 26.2, cz, geoRoof, null);
+  const crown = new THREE.TorusGeometry(4.9, 0.12, 8, 56);
+  crown.rotateX(-Math.PI / 2);
+  crown.translate(cx, 27.1, cz);
+  geoFlags.push(crown);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    addBeacon(cx + Math.cos(a) * 4.9, 27.1, cz + Math.sin(a) * 4.9, 0.1);
+  }
+  boxAt(2.0, 0.4, 4.0, cx, 0.1, cz + 5.4, geoTrim);
+  addLabel('图书馆', cx, 30.4, cz, 'major');
+}
+
+function addHangar(cx, cz, h) {
+  boxAt(11.6, h, 9.2, cx, 0, cz, geoBuilding, 0x24262c);
+  const arch = new THREE.CylinderGeometry(5.5, 5.5, 9.0, 22, 1, true, 0, Math.PI);
+  arch.rotateZ(Math.PI / 2);
+  arch.rotateY(Math.PI / 2);
+  arch.translate(cx, h, cz);
+  geoRoof.push(arch);
+  boxAt(11.6, 0.2, 0.2, cx, h + 5.4, cz + 4.4, geoTrim);
+  addBeacon(cx, h + 5.6, cz, 0.12);
+}
+
+function addHall(cx, cz, h, style) {
+  const warm = style === 'warm';
+  boxAt(10.6, h, 8.8, cx, 0, cz + 1.2, geoBuilding, warm ? 0x2b2722 : 0x1c2532);
+  const roof = new THREE.CylinderGeometry(4.4, 4.4, 9.6, 18, 1, true, 0, Math.PI);
+  roof.rotateZ(Math.PI / 2);
+  roof.rotateY(Math.PI / 2);
+  roof.translate(cx, h, cz + 0.4);
+  geoRoof.push(roof);
+  boxAt(7.0, 0.5, 2.0, cx, 4.2, cz + 5.6, geoTrim);
+  boxAt(4.6, 0.18, 1.4, cx, 4.7, cz + 5.7, geoRoof, null);
+}
+
+function addUtility(cx, cz) {
+  boxAt(7.6, 6.4, 6.8, cx, 0, cz, geoBuilding, 0x151c24);
+  boxAt(8.4, 0.4, 7.6, cx, 6.4, cz, geoRoof, null);
+  for (let i = 0; i < 2; i++) {
+    const tank = new THREE.CylinderGeometry(1.25, 1.25, 3.4, 14);
+    tank.translate(cx - 2.0 + i * 4.0, 1.7, cz - 4.8);
+    geoRoof.push(tank);
+  }
+  const pipe = new THREE.CylinderGeometry(0.18, 0.18, 7.0, 8);
+  pipe.rotateZ(Math.PI / 2);
+  pipe.translate(cx, 1.0, cz + 3.4);
+  pushColored(geoTrim, pipe, 0x31414f);
+  addBeacon(cx + 3.0, 7.0, cz + 2.6, 0.1);
+}
+
+function addOffice(cx, cz, h) {
+  addBuildingBase(cx, cz, 8.0, 8.0, h, 0x1a2432, 1.2);
+  boxAt(2.6, 0.5, 2.6, cx - 1.6, h + 0.55, cz + 1.8, geoRoof, null);
+  addAntenna(cx + 1.8, h + 1.0, cz - 1.6);
+}
+
+function addDorm(cx, cz) {
+  for (let i = 0; i < 3; i++) {
+    const x = cx - 4.0 + i * 4.0;
+    boxAt(3.3, 15.5, 9.4, x, 0, cz, geoBuilding, 0x1c2533);
+    boxAt(3.9, 0.4, 10.0, x, 15.5, cz, geoRoof, null);
+    for (let f = 1; f < 5; f++) {
+      const balcony = new THREE.BoxGeometry(3.4, 0.12, 0.3);
+      balcony.translate(x, f * 3.1, cz + 4.8);
+      pushColored(geoTrim, balcony, 0x2b3a48);
+    }
+  }
+  addBeacon(cx, 17.0, cz, 0.1);
+}
+
+function addCanteen(cx, cz) {
+  boxAt(10.4, 8.6, 9.2, cx, 0, cz + 0.8, geoBuilding, 0x2a2620);
+  boxAt(11.4, 0.5, 10.2, cx, 8.6, cz + 0.8, geoRoof, null);
+  boxAt(9.0, 0.3, 2.4, cx, 4.4, cz + 5.8, geoTrim);
+  addBeacon(cx - 3.6, 9.4, cz + 3.6, 0.1);
+}
+
+function addClinic(cx, cz) {
+  boxAt(8.2, 8.0, 7.2, cx, 0, cz, geoBuilding, 0x20262a);
+  boxAt(9.0, 0.4, 8.0, cx, 8.0, cz, geoRoof, null);
+  const crossA = new THREE.BoxGeometry(1.9, 0.52, 0.16);
+  crossA.translate(cx, 6.9, cz + 3.95);
+  const crossB = new THREE.BoxGeometry(0.52, 1.9, 0.16);
+  crossB.translate(cx, 6.9, cz + 3.95);
+  geoBeacon.push(crossA, crossB);
+}
+
+function addShops(cx, cz) {
+  for (let i = 0; i < 3; i++) {
+    const x = cx - 3.6 + i * 3.6;
+    boxAt(3.0, 4.6, 8.4, x, 0, cz, geoBuilding, 0x20262e);
+    boxAt(3.4, 0.35, 8.8, x, 4.6, cz, geoRoof, null);
+    boxAt(2.4, 0.16, 1.6, x, 3.0, cz + 4.4, geoTrim);
+  }
+}
+
+function addLogistics(cx, cz) {
+  boxAt(10.2, 7.6, 8.4, cx, 0, cz, geoBuilding, 0x1b232c);
+  boxAt(11.0, 0.5, 9.2, cx, 7.6, cz, geoRoof, null);
+  for (let i = 0; i < 3; i++) {
+    boxAt(2.4, 0.2, 1.6, cx - 3.0 + i * 3.0, 0.06, cz + 5.0, geoPlaza, 0x0d141b);
+  }
+  addBeacon(cx, 8.2, cz, 0.1);
+}
+
+function buildBlock(block, cx, cz, i, j, random) {
+  planeAt(12.6, 12.6, cx, 0.04, cz, geoPlaza, 0x111a25);
+  // 地块轮廓：让 8×8 街区在夜景里保持可读
+  boxAt(12.7, 0.05, 0.1, cx, 0.055, cz - 6.32, geoMark, 0x1d4c60);
+  boxAt(12.7, 0.05, 0.1, cx, 0.055, cz + 6.32, geoMark, 0x1d4c60);
+  boxAt(0.1, 0.05, 12.7, cx - 6.32, 0.055, cz, geoMark, 0x1d4c60);
+  boxAt(0.1, 0.05, 12.7, cx + 6.32, 0.055, cz, geoMark, 0x1d4c60);
+
+  switch (block.kind) {
+    case 'green':
+      addLawn(cx, cz, 11.2);
+      scatterTrees(cx, cz, 3 + Math.floor(random() * 3), random);
+      break;
+    case 'plaza':
+      addPlaza(cx, cz, 11.8);
+      if (i === 3 && j === 3) {
+        const basin = new THREE.CylinderGeometry(1.6, 1.8, 0.5, 18);
+        basin.translate(0, 0.3, cz);
+        pushColored(geoTrim, basin, 0x21404e);
+        const water = new THREE.CylinderGeometry(1.35, 1.35, 0.12, 18);
+        water.translate(0, 0.6, cz);
+        pushColored(geoPlaza, water, 0x0b2b3d);
+      }
+      scatterTrees(cx, cz, 2, random, 4.8);
+      break;
+    case 'lake':
+      addLake(cx, cz);
+      break;
+    case 'track':
+      addTrack(cx, cz);
+      break;
+    case 'courts':
+      addCourts(cx, cz);
+      break;
+    case 'parking':
+      addParking(cx, cz, random);
+      break;
+    default: {
+      addLawn(cx, cz, 11.0);
+      switch (block.kind) {
+        case 'teaching': addTeaching(cx, cz, block.h || 14, block.style); break;
+        case 'lab': addLab(cx, cz, block.h || 12); break;
+        case 'library': addLibrary(cx, cz); break;
+        case 'hangar': addHangar(cx, cz, block.h || 10); break;
+        case 'hall': addHall(cx, cz, block.h || 9, block.style); break;
+        case 'utility': addUtility(cx, cz); break;
+        case 'office': addOffice(cx, cz, block.h || 12); break;
+        case 'dorm': addDorm(cx, cz); break;
+        case 'canteen': addCanteen(cx, cz); break;
+        case 'clinic': addClinic(cx, cz); break;
+        case 'shops': addShops(cx, cz); break;
+        case 'logistics': addLogistics(cx, cz); break;
+        default: addOffice(cx, cz, block.h || 12);
+      }
+      scatterTrees(cx, cz, 2, random, 4.9);
+      if (MAJOR_LABELS.has(block.name)) {
+        const y = block.kind === 'library' ? 30.4 : (block.h || 12) + 3.2;
+        if (block.kind !== 'library') addLabel(block.name, cx, y, cz, 'major');
+      }
+      if (block.kind === 'dorm' && i === 3 && j === 4) addLabel('俊园公寓', cx, 19.5, cz, 'major');
+    }
+  }
+}
+
+/* 路网 */
+function buildRoads() {
+  for (let k = 0; k <= 8; k++) {
+    const p = -64 + k * 16;
+    const isAxis = k === 4;
+    const width = isAxis ? 6.2 : 3.8;
+    boxAt(width, 0.04, 132, p, 0.015, 0, geoRoad, 0x0a111b);
+    boxAt(132, 0.04, width, 0, 0.015, p, geoRoad, 0x0a111b);
+    // 快车道虚线
+    const dash = isAxis ? 2.6 : 2.0;
+    for (let t = -62; t <= 62; t += 6.2) {
+      const lineV = new THREE.BoxGeometry(0.14, 0.03, dash);
+      lineV.translate(p, 0.05, t);
+      pushColored(geoMark, lineV, isAxis ? 0x2f6f8c : 0x1d4658);
+      const lineH = new THREE.BoxGeometry(dash, 0.03, 0.14);
+      lineH.translate(t, 0.05, p);
+      pushColored(geoMark, lineH, isAxis ? 0x2f6f8c : 0x1d4658);
+    }
+  }
+  // 校门斑马线
+  for (let i = 0; i < 6; i++) {
+    const stripe = new THREE.BoxGeometry(5.4, 0.03, 0.42);
+    stripe.translate(0, 0.055, 59 + i * 0.9);
+    pushColored(geoMark, stripe, 0x50839a);
+  }
+  // 环路边界
+  const border = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-68, 0.08, -68),
+    new THREE.Vector3(68, 0.08, -68),
+    new THREE.Vector3(68, 0.08, 68),
+    new THREE.Vector3(-68, 0.08, 68),
+    new THREE.Vector3(-68, 0.08, -68)
+  ]);
+  const borderLine = new THREE.Line(border, new THREE.LineBasicMaterial({ color: 0x2f6d8c, transparent: true, opacity: 0.55 }));
+  scene.add(borderLine);
+}
+
+/* 校门 */
+function buildGates() {
+  const signTexture = makeSignTexture('四川吉利学院', 'SICHUAN GEELY UNIVERSITY');
+  const signMat = new THREE.MeshBasicMaterial({ map: signTexture, color: 0x9fb4c2, transparent: true });
+
+  function gate(x, z, rotY, label, simple = false) {
+    const cos = Math.cos(rotY);
+    const sin = Math.sin(rotY);
+    const place = (lx, lz) => ({ x: x + lx * cos + lz * sin, z: z - lx * sin + lz * cos });
+
+    [-5.2, 5.2].forEach((px) => {
+      const p = place(px, 0);
+      boxAt(1.1, 6.4, 1.1, p.x, 0, p.z, geoBuilding, 0x202a36, rotY);
+      addBeacon(p.x, 6.6, p.z, 0.12);
+    });
+    const center = place(0, 0);
+    boxAt(11.6, 0.7, 0.9, center.x, 6.4, center.z, geoRoof, null, rotY);
+    if (!simple) {
+      [0, Math.PI].forEach((flip) => {
+        const board = new THREE.Mesh(new THREE.PlaneGeometry(9.4, 2.35), signMat);
+        const angle = rotY + flip;
+        board.position.set(
+          center.x + Math.sin(angle) * 0.54,
+          5.0,
+          center.z + Math.cos(angle) * 0.54
+        );
+        board.rotation.y = angle;
+        scene.add(board);
+      });
+    }
+    const guard = place(7.6, 1.4);
+    boxAt(2.6, 2.8, 2.4, guard.x, 0, guard.z, geoBuilding, 0x1c2530, rotY);
+    addLabel(label, x, 8.6, z, 'major');
+    return center;
+  }
+
+  gate(0, 64, 0, '南校门', false);
+  gate(64, -16, -Math.PI / 2, '东门', true);
+  gate(-64, 0, Math.PI / 2, '西门', true);
+}
+
+/* 路灯 */
+const lampPositions = [];
+function buildLamps() {
+  for (let k = 0; k <= 8; k++) {
+    for (let m = 0; m <= 8; m++) {
+      const x = -64 + k * 16;
+      const z = -64 + m * 16;
+      if (Math.abs(x) > 60 && Math.abs(z) > 60) continue;
+      lampPositions.push({ x: x + 2.4, z: z + 2.4 });
+    }
+  }
+  const poleGeo = new THREE.CylinderGeometry(0.07, 0.09, 4.4, 6);
+  const poles = new THREE.InstancedMesh(poleGeo, poleMat, lampPositions.length);
+  const headGeo = new THREE.SphereGeometry(0.13, 8, 8);
+  const heads = new THREE.InstancedMesh(headGeo, lampMat, lampPositions.length);
+  const poolGeo = new THREE.PlaneGeometry(8, 8);
+  poolGeo.rotateX(-Math.PI / 2);
+  const poolMat = new THREE.MeshBasicMaterial({
+    map: glowTexture,
+    color: 0xffd9a0,
+    transparent: true,
+    opacity: 0.1,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  const pools = new THREE.InstancedMesh(poolGeo, poolMat, lampPositions.length);
+  const dummy = new THREE.Object3D();
+  lampPositions.forEach((lamp, index) => {
+    dummy.position.set(lamp.x, 2.2, lamp.z);
+    dummy.updateMatrix();
+    poles.setMatrixAt(index, dummy.matrix);
+    dummy.position.set(lamp.x, 4.5, lamp.z);
+    dummy.updateMatrix();
+    heads.setMatrixAt(index, dummy.matrix);
+    dummy.position.set(lamp.x, 0.06, lamp.z);
+    dummy.updateMatrix();
+    pools.setMatrixAt(index, dummy.matrix);
+  });
+  scene.add(poles, heads, pools);
+}
+
+/* 树木 */
+function buildTrees() {
+  const broad = seeds.filter((seed) => !seed.pine);
+  const pines = seeds.filter((seed) => seed.pine);
+  const trunkGeo = new THREE.CylinderGeometry(0.12, 0.2, 1.6, 6);
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x241a14, roughness: 0.95 });
+  const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, seeds.length);
+  const leafGeo = new THREE.IcosahedronGeometry(1.35, 0);
+  const leafMat = new THREE.MeshStandardMaterial({ color: 0x123026, roughness: 0.92, flatShading: true });
+  const broadMesh = new THREE.InstancedMesh(leafGeo, leafMat, Math.max(broad.length, 1));
+  const pineGeo = new THREE.ConeGeometry(1.15, 3.1, 7);
+  const pineMat = new THREE.MeshStandardMaterial({ color: 0x0f2a24, roughness: 0.92, flatShading: true });
+  const pineMesh = new THREE.InstancedMesh(pineGeo, pineMat, Math.max(pines.length, 1));
+  const dummy = new THREE.Object3D();
+  seeds.forEach((seed, index) => {
+    dummy.position.set(seed.x, 0.8 * seed.s, seed.z);
+    dummy.scale.setScalar(seed.s);
+    dummy.rotation.set(0, seed.x * 0.3 + seed.z * 0.2, 0);
+    dummy.updateMatrix();
+    trunks.setMatrixAt(index, dummy.matrix);
+  });
+  broad.forEach((seed, index) => {
+    dummy.position.set(seed.x, 2.4 * seed.s, seed.z);
+    dummy.scale.set(seed.s, seed.s * 1.1, seed.s);
+    dummy.rotation.set(0, seed.x + seed.z, 0);
+    dummy.updateMatrix();
+    broadMesh.setMatrixAt(index, dummy.matrix);
+  });
+  pines.forEach((seed, index) => {
+    dummy.position.set(seed.x, 2.5 * seed.s, seed.z);
+    dummy.scale.set(seed.s, seed.s, seed.s);
+    dummy.rotation.set(0, seed.z * 0.4, 0);
+    dummy.updateMatrix();
+    pineMesh.setMatrixAt(index, dummy.matrix);
+  });
+  scene.add(trunks, broadMesh, pineMesh);
+}
+
+/* 地面与星空 */
+function buildGround() {
+  const groundMat = new THREE.MeshStandardMaterial({
+    map: makeGridTexture(),
+    color: 0x2b3946,
+    roughness: 0.95,
+    metalness: 0.05
+  });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.02;
+  scene.add(ground);
+  campusMeshes.ground = ground;
+
+  const starCount = 700;
+  const positions = new Float32Array(starCount * 3);
+  const random = rng(97);
+  for (let i = 0; i < starCount; i++) {
+    const radius = 420 + random() * 260;
+    const theta = random() * Math.PI * 2;
+    const phi = random() * Math.PI * 0.42;
+    positions[i * 3] = Math.cos(theta) * Math.cos(phi) * radius;
+    positions[i * 3 + 1] = Math.sin(phi) * radius + 40;
+    positions[i * 3 + 2] = Math.sin(theta) * Math.cos(phi) * radius;
+  }
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+    color: 0x9dc4ee,
+    size: 1.4,
+    sizeAttenuation: false,
+    transparent: true,
+    opacity: 0.65,
+    depthWrite: false
+  }));
+  scene.add(stars);
+}
+
+/* ---------------------------- 组装校区 ---------------------------- */
+function buildCampus() {
+  buildGround();
+  buildRoads();
+  for (let j = 0; j < 8; j++) {
+    for (let i = 0; i < 8; i++) {
+      const cx = -56 + i * 16;
+      const cz = -56 + j * 16;
+      buildBlock(BLOCK_PLAN[j][i], cx, cz, i, j, rng(i * 131 + j * 71 + 13));
+    }
+  }
+  buildGates();
+  buildLamps();
+  buildTrees();
+
+  const merge = (list) => (list.length ? mergeGeometries(list, false) : null);
+  const meshes = [
+    ['building', geoBuilding, buildingMat],
+    ['roof', geoRoof, roofMat],
+    ['mark', geoMark, markMat],
+    ['lawn', geoLawn, lawnMat],
+    ['plaza', geoPlaza, plazaMat],
+    ['road', geoRoad, roadMat],
+    ['trim', geoTrim, new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.7, metalness: 0.35 })],
+    ['beacon', geoBeacon, beaconMat],
+    ['flags', geoFlags, cyanGlowMat]
+  ];
+  for (const [name, list, mat] of meshes) {
+    const geometry = merge(list);
+    if (!geometry) continue;
+    const mesh = new THREE.Mesh(geometry, mat);
+    mesh.name = `campus-${name}`;
+    mesh.matrixAutoUpdate = false;
+    scene.add(mesh);
+    campusMeshes[name] = mesh;
+  }
+}
+
+buildCampus();
+
+/* 建筑标签 */
+function buildLabels() {
+  for (const def of labelDefs) {
+    const el = document.createElement('div');
+    el.className = `map-label${def.kind === 'major' ? ' major' : ''}`;
+    el.textContent = def.text;
+    const label = new CSS2DObject(el);
+    label.position.set(def.x, def.y, def.z);
+    scene.add(label);
+    buildingLabels.push(label);
+  }
+}
+
+buildLabels();
+
+/* =======================================================================
+   3. 六张网：设施、管线、流动粒子与事故演练
+   ======================================================================= */
+
+const state = {
+  timeOfDay: 'night',
+  labels: true,
+  xray: false,
+  tour: false,
+  flowSpeed: 1,
+  activeNet: null,
+  selectedFacility: null,
+  incident: null,
+  layers: { water: true, power: true, compute: true, comms: true, tunnel: true, logistics: true }
+};
+
+const netState = {};
+const facilityIndex = new Map();
+const facilityLabels = [];
+const hitMeshes = [];
+const raycaster = new THREE.Raycaster();
+const pointerVec = new THREE.Vector2();
+
+function netColor(key) {
+  return NET_STYLE[key].hex;
+}
+
+/* 设施信标抬升到建筑屋顶以上，避免被楼体遮挡 */
+function buildingHeightAt(x, z) {
+  const i = Math.max(0, Math.min(7, Math.round((x + 56) / 16)));
+  const j = Math.max(0, Math.min(7, Math.round((z + 56) / 16)));
+  const block = BLOCK_PLAN[j][i];
+  if (!block) return 6;
+  switch (block.kind) {
+    case 'library': return 27.5;
+    case 'teaching': return (block.h || 14) + 1.4;
+    case 'lab': return (block.h || 12) + 1.4;
+    case 'office': return (block.h || 12) + 1.4;
+    case 'hall': return (block.h || 9) + 4.2;
+    case 'hangar': return (block.h || 10) + 5.6;
+    case 'dorm': return 17.2;
+    case 'canteen': return 9.6;
+    case 'utility': return 7.4;
+    case 'logistics': return 8.6;
+    case 'clinic': return 8.8;
+    case 'shops': return 5.4;
+    default: return 5;
+  }
+}
+
+function createFlow(net, curve, options = {}) {
+  const samples = curve.getSpacedPoints(220);
+  const count = options.count || 40;
+  const positions = new Float32Array(count * 3);
+  const offsets = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    offsets[i] = (i / count + Math.random() * 0.02) % 1;
+    const p = samples[0];
+    positions[i * 3] = p.x;
+    positions[i * 3 + 1] = p.y;
+    positions[i * 3 + 2] = p.z;
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const material = new THREE.PointsMaterial({
+    color: options.color ?? netColor(net.key),
+    size: options.size || 0.42,
+    map: glowTexture,
+    transparent: true,
+    opacity: options.opacity ?? 0.9,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  const points = new THREE.Points(geometry, material);
+  points.frustumCulled = false;
+  net.group.add(points);
+
+  const linePoints = samples.filter((_, i) => i % 4 === 0);
+  const lineGeometry = new THREE.BufferGeometry().setFromPoints(linePoints);
+  const lineMaterial = new THREE.LineBasicMaterial({
+    color: options.lineColor ?? netColor(net.key),
+    transparent: true,
+    opacity: options.lineOpacity ?? 0.34
+  });
+  const line = new THREE.Line(lineGeometry, lineMaterial);
+  net.group.add(line);
+
+  net.flows.push({
+    samples,
+    offsets,
+    positions,
+    geometry,
+    speed: options.speed || 0.055,
+    size: count
+  });
+}
+
+function buildNetworks() {
+  for (const key of NET_ORDER) {
+    const def = NETWORKS[key];
+    const group = new THREE.Group();
+    group.name = `net-${key}`;
+    scene.add(group);
+
+    const net = {
+      key,
+      def,
+      group,
+      facilities: [],
+      flows: [],
+      alert: 'ok',
+      flowFactor: 1,
+      metrics: { ...def.base },
+      trend: []
+    };
+    netState[key] = net;
+
+    for (const item of def.facilities) {
+      const fg = new THREE.Group();
+      const baseY = item.y ?? (buildingHeightAt(item.x, item.z) + 1.6);
+      fg.position.set(item.x, baseY, item.z);
+      const color = netColor(key);
+
+      const coreMat = new THREE.MeshBasicMaterial({ color });
+      const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.58, 0), coreMat);
+      core.position.y = 1.6;
+
+      const ringGeo = new THREE.RingGeometry(1.0, 1.28, 30);
+      ringGeo.rotateX(-Math.PI / 2);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.6,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.y = 0.08;
+
+      const beamMat = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.28,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.6, 6, 1, true), beamMat);
+      beam.position.y = 1.8;
+
+      const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: glowTexture,
+        color,
+        transparent: true,
+        opacity: 0.68,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      }));
+      glow.scale.setScalar(4.2);
+      glow.position.y = 1.7;
+
+      const hit = new THREE.Mesh(
+        new THREE.SphereGeometry(2.1, 10, 8),
+        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+      );
+      hit.position.y = 1.4;
+      hit.userData.facilityId = item.id;
+      hit.userData.netKey = key;
+      hitMeshes.push(hit);
+
+      fg.add(ring, beam, core, glow, hit);
+
+      const el = document.createElement('div');
+      el.className = 'map-label fac';
+      el.textContent = item.name;
+      const label = new CSS2DObject(el);
+      label.position.set(0, 4.3, 0);
+      label.userData.netKey = key;
+      label.visible = false;
+      fg.add(label);
+      facilityLabels.push(label);
+
+      group.add(fg);
+
+      const fac = {
+        def: item,
+        netKey: key,
+        group: fg,
+        core,
+        ring,
+        beam,
+        glow,
+        label,
+        labelEl: el,
+        status: 'ok',
+        load: item.base,
+        metrics: { ...item.metrics }
+      };
+      net.facilities.push(fac);
+      facilityIndex.set(item.id, fac);
+    }
+
+    const routeY = key === 'tunnel' ? -5.2 : 0.55;
+    def.routes.forEach((route, index) => {
+      const points = route.map(([x, z]) => new THREE.Vector3(x, routeY, z));
+      const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0);
+      createFlow(net, curve, {
+        count: key === 'tunnel' ? 32 : 44,
+        size: key === 'tunnel' ? 0.55 : 0.7,
+        speed: key === 'logistics' ? 0.07 : 0.052,
+        lineOpacity: index === 0 ? 0.4 : 0.22
+      });
+    });
+
+    if (def.arcs) {
+      def.arcs.forEach(([fromId, toId, height]) => {
+        const from = facilityIndex.get(fromId);
+        const to = facilityIndex.get(toId);
+        if (!from || !to) return;
+        const a = new THREE.Vector3(from.def.x, from.group.position.y + 1.8, from.def.z);
+        const b = new THREE.Vector3(to.def.x, to.group.position.y + 1.8, to.def.z);
+        const mid = a.clone().add(b).multiplyScalar(0.5);
+        mid.y += height;
+        const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
+        createFlow(net, curve, {
+          count: 24,
+          size: 0.5,
+          speed: 0.045,
+          opacity: 0.75,
+          lineOpacity: 0.4,
+          lineColor: 0x9ef0ff
+        });
+      });
+    }
+
+    for (let i = 0; i < 90; i++) {
+      net.trend.push(def.base[def.trendKey] * (0.94 + Math.random() * 0.12));
+    }
+  }
+}
+
+buildNetworks();
+
+/* ---------------------------- 设施状态 ---------------------------- */
+function setFacilityStatus(fac, status) {
+  if (!fac) return;
+  fac.status = status;
+  const color = status === 'crit' ? 0xff5c6c : status === 'warn' ? 0xffb648 : netColor(fac.netKey);
+  fac.core.material.color.setHex(color);
+  fac.ring.material.color.setHex(color);
+  fac.beam.material.color.setHex(color);
+  fac.glow.material.color.setHex(color);
+  fac.labelEl.classList.toggle('hot', status !== 'ok');
+}
+
+/* ---------------------------- 事故演练 ---------------------------- */
+function startIncident(key) {
+  if (state.incident) return;
+  const def = NETWORKS[key];
+  const script = def.incident;
+  const net = netState[key];
+  state.incident = {
+    key,
+    script,
+    start: performance.now() / 1000,
+    stepIndex: -1,
+    duration: script.steps[script.steps.length - 1].t + 2.5,
+    net
+  };
+  net.alert = 'warn';
+  addEvent('crit', `${def.name}：启动「${script.name}」应急演练`);
+  showAlert('crit', `${script.name} · 自动处置演练开始`);
+  focusNetwork(key, { fly: true });
+  const focusFac = script.focus ? facilityIndex.get(script.focus) : null;
+  if (focusFac) {
+    setFacilityStatus(focusFac, 'warn');
+    const baseY = focusFac.group.position.y;
+    const target = new THREE.Vector3(focusFac.def.x, baseY + 1, focusFac.def.z);
+    flyTo(new THREE.Vector3(focusFac.def.x + 40, baseY + 32, focusFac.def.z + 42), target, 1.8);
+  }
+  renderDetail();
+}
+
+function updateIncident(now) {
+  const inc = state.incident;
+  if (!inc) return;
+  const elapsed = now - inc.start;
+  const steps = inc.script.steps;
+  while (inc.stepIndex + 1 < steps.length && steps[inc.stepIndex + 1].t <= elapsed) {
+    inc.stepIndex += 1;
+    const step = steps[inc.stepIndex];
+    inc.net.alert = step.levelState || 'ok';
+    inc.net.flowFactor = step.flow;
+    addEvent(step.level, `${NETWORKS[inc.key].name}：${step.msg}`);
+    showAlert(step.level === 'ok' ? 'info' : step.level, step.msg);
+    const focusFac = inc.script.focus ? facilityIndex.get(inc.script.focus) : null;
+    if (focusFac) {
+      setFacilityStatus(focusFac, step.levelState === 'crit' ? 'crit' : step.levelState === 'warn' ? 'warn' : 'ok');
+    }
+    renderDetail();
+  }
+  const progress = Math.min(elapsed / inc.duration, 1);
+  const bar = document.querySelector('.incident-progress i');
+  if (bar) bar.style.width = `${progress * 100}%`;
+  if (elapsed >= inc.duration) {
+    state.incident = null;
+    inc.net.alert = 'ok';
+    inc.net.flowFactor = 1;
+    const focusFac = inc.script.focus ? facilityIndex.get(inc.script.focus) : null;
+    if (focusFac) setFacilityStatus(focusFac, 'ok');
+    addEvent('ok', `${NETWORKS[inc.key].name}：演练结束，系统恢复稳态`);
+    renderDetail();
+    setTimeout(() => hideAlert(), 2600);
+  }
+}
+
+/* ---------------------------- 网络聚焦 ---------------------------- */
+function setNetworkVisible(key, visible) {
+  const net = netState[key];
+  if (!net) return;
+  state.layers[key] = visible;
+  updateNetworkVisibility();
+}
+
+/* 聚焦单网时保留其它网的流动管线，但只显示当前网的设施信标 */
+function updateNetworkVisibility() {
+  for (const key of NET_ORDER) {
+    const net = netState[key];
+    const layerOn = key === 'tunnel' ? (state.layers[key] || state.xray) : state.layers[key];
+    net.group.visible = layerOn;
+    const showMarker = layerOn && (!state.activeNet || state.activeNet === key || (key === 'tunnel' && state.xray));
+    for (const fac of net.facilities) {
+      fac.group.visible = showMarker;
+    }
+  }
+  refreshFacilityLabels();
+}
+
+function focusNetwork(key, { fly = false } = {}) {
+  state.activeNet = key;
+  state.selectedFacility = null;
+  if (!state.layers[key]) state.layers[key] = true;
+  updateNetworkVisibility();
+  if (fly) {
+    const net = netState[key];
+    const points = net.def.facilities;
+    const cx = points.reduce((sum, f) => sum + f.x, 0) / points.length;
+    const cz = points.reduce((sum, f) => sum + f.z, 0) / points.length;
+    const target = new THREE.Vector3(cx, 6, cz);
+    flyTo(new THREE.Vector3(cx + 64, 62, cz + 70), target, 2.0);
+  }
+  renderLayerPanel();
+  renderDetail();
+}
+
+/* =======================================================================
+   4. 界面：图层、总览、单网详情、事件日志与交互
+   ======================================================================= */
+
+const detailView = document.getElementById('detail-view');
+const layerList = document.getElementById('layer-list');
+const sceneLayerList = document.getElementById('scene-layers');
+const tooltipEl = document.getElementById('tooltip');
+const alertEl = document.getElementById('alert-banner');
+const logEl = document.getElementById('event-log');
+
+const ALERT_TEXT = { ok: '稳态运行', warn: '预警中', crit: '应急处置' };
+const eventLog = [];
+let alertTimer = null;
+let tooltipTimer = null;
+
+function fmtNumber(value, digits = 0) {
+  if (!Number.isFinite(value)) return '—';
+  return value.toLocaleString('zh-CN', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits
+  });
+}
+
+function metricDef(netKey, metricKey) {
+  return NETWORKS[netKey].metrics.find((item) => item.key === metricKey) || null;
+}
+
+function facReading(fac) {
+  const [key, value] = Object.entries(fac.metrics)[0] || [];
+  const def = metricDef(fac.netKey, key) || { unit: '', digits: 0 };
+  return `${fmtNumber(value, def.digits)} ${def.unit}`;
+}
+
+function addEvent(level, message) {
+  const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  eventLog.unshift({ level, message, time });
+  if (eventLog.length > 80) eventLog.pop();
+  const row = document.createElement('div');
+  row.className = `log-row ${level}`;
+  const timeEl = document.createElement('time');
+  timeEl.textContent = time;
+  const levelEl = document.createElement('span');
+  levelEl.className = 'lv';
+  levelEl.textContent = level === 'crit' ? 'CRIT' : level === 'warn' ? 'WARN' : level === 'ok' ? 'OK' : 'INFO';
+  const msgEl = document.createElement('span');
+  msgEl.textContent = message;
+  row.append(timeEl, levelEl, msgEl);
+  logEl.prepend(row);
+  while (logEl.children.length > 36) logEl.lastChild.remove();
+  document.getElementById('log-count').textContent = `${eventLog.length} EVENTS`;
+}
+
+function showAlert(level, message) {
+  if (!alertEl) return;
+  alertEl.hidden = false;
+  alertEl.className = level === 'warn' || level === 'info' ? 'warn' : '';
+  alertEl.innerHTML = '';
+  const tag = document.createElement('b');
+  tag.textContent = level === 'crit' ? 'CRITICAL' : level === 'warn' ? 'WARNING' : level === 'info' ? 'HANDLING' : 'RECOVERED';
+  const text = document.createElement('span');
+  text.textContent = message;
+  alertEl.append(tag, text);
+  if (alertTimer) clearTimeout(alertTimer);
+  if (level === 'ok') alertTimer = setTimeout(hideAlert, 4600);
+}
+
+function hideAlert() {
+  if (alertEl) alertEl.hidden = true;
+}
+
+function renderLayerPanel() {
+  if (!layerList) return;
+  layerList.innerHTML = '';
+  for (const key of NET_ORDER) {
+    const def = NETWORKS[key];
+    const net = netState[key];
+    const style = NET_STYLE[key];
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'layer-row';
+    row.style.setProperty('--c', style.css);
+    if (state.activeNet === key) row.classList.add('is-active');
+    if (!state.layers[key]) row.classList.add('is-off');
+    row.dataset.net = key;
+
+    const swatch = document.createElement('span');
+    swatch.className = 'swatch';
+    const name = document.createElement('span');
+    name.className = 'layer-name';
+    const label = document.createElement('b');
+    label.textContent = NET_SHORT[key];
+    row.title = def.name;
+    const sub = document.createElement('span');
+    sub.textContent = `${style.icon} ${net.facilities.length} 设施`;
+    name.append(label, sub);
+
+    const meta = document.createElement('span');
+    meta.className = 'layer-meta';
+    const count = document.createElement('span');
+    count.className = 'layer-count';
+    const metric = def.metrics[0];
+    count.textContent = `${fmtNumber(net.metrics[metric.key], metric.digits)} ${metric.unit}`;
+    count.dataset.layerCount = key;
+    const eye = document.createElement('span');
+    eye.className = `layer-eye${state.layers[key] ? ' is-on' : ''}`;
+    eye.setAttribute('role', 'switch');
+    eye.setAttribute('aria-checked', state.layers[key] ? 'true' : 'false');
+    eye.setAttribute('aria-label', `显示或隐藏${def.name}`);
+    const knob = document.createElement('i');
+    eye.appendChild(knob);
+    eye.addEventListener('click', (event) => {
+      event.stopPropagation();
+      toggleNetworkLayer(key);
+    });
+    meta.append(count, eye);
+
+    row.append(swatch, name, meta);
+    row.addEventListener('click', () => {
+      if (!state.layers[key]) toggleNetworkLayer(key);
+      focusNetwork(key, { fly: true });
+    });
+    layerList.appendChild(row);
+  }
+}
+
+function renderSceneLayers() {
+  if (!sceneLayerList) return;
+  sceneLayerList.innerHTML = '';
+  const items = [
+    { id: 'buildings', label: '建筑体块', on: state.buildings !== false, aria: '显示或隐藏建筑体块' },
+    { id: 'roads', label: '路网与铺装', on: state.roads !== false, aria: '显示或隐藏路网' },
+    { id: 'labels', label: '名称标签', on: state.labels, aria: '显示或隐藏名称标签' },
+    { id: 'xray', label: '地下管廊透视 X-RAY', on: state.xray, aria: '切换地下管廊透视' }
+  ];
+  for (const item of items) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = `scene-toggle${item.on ? ' is-on' : ''}`;
+    row.setAttribute('aria-pressed', item.on ? 'true' : 'false');
+    row.setAttribute('aria-label', item.aria);
+    const text = document.createElement('span');
+    text.textContent = item.label;
+    const sw = document.createElement('span');
+    sw.className = 'switch';
+    row.append(text, sw);
+    row.addEventListener('click', () => {
+      if (item.id === 'buildings') setBuildingsVisible(state.buildings === false);
+      if (item.id === 'roads') setRoadsVisible(state.roads === false);
+      if (item.id === 'labels') setLabelsVisible(!state.labels);
+      if (item.id === 'xray') setXray(!state.xray);
+      renderSceneLayers();
+    });
+    sceneLayerList.appendChild(row);
+  }
+}
+
+function healthScore() {
+  const alerts = NET_ORDER.filter((key) => netState[key].alert !== 'ok').length;
+  const load = NET_ORDER.reduce((sum, key) => sum + loadOf(key), 0) / NET_ORDER.length;
+  const score = 100 - alerts * 2.6 - Math.max(0, load * 100 - 62) * 0.12;
+  return Math.max(72, Math.min(99.9, score));
+}
+
+function loadOf(key) {
+  const net = netState[key];
+  return net.facilities.reduce((sum, fac) => sum + fac.load, 0) / net.facilities.length;
+}
+
+function activeAlerts() {
+  return NET_ORDER
+    .filter((key) => netState[key].alert !== 'ok')
+    .map((key) => ({
+      key,
+      level: netState[key].alert,
+      text: `${NETWORKS[key].name}·${ALERT_TEXT[netState[key].alert]}`
+    }));
+}
+
+function renderOverview() {
+  const total = NET_ORDER.reduce((sum, key) => sum + netState[key].facilities.length, 0);
+  const alerts = activeAlerts();
+  const health = healthScore();
+  const avgLoad = NET_ORDER.reduce((sum, key) => sum + loadOf(key), 0) / NET_ORDER.length * 100;
+
+  detailView.innerHTML = `
+    <div class="ov-title">
+      <h3>校园总览</h3>
+      <span>ALL NETWORKS · 六网融合</span>
+    </div>
+    <div class="hero-score">
+      <div>
+        <div class="value" data-health>${health.toFixed(1)}<small>%</small></div>
+        <div class="label">综合健康度 · CAMPUS HEALTH</div>
+      </div>
+      <div class="side">
+        <b>${total}</b>
+        <span>FACILITIES<br />接入设施</span>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><span>在线设施</span><b data-online>${total}<em>/ ${total}</em></b></div>
+      <div class="kpi"><span>活动告警</span><b data-alert-count>${alerts.length}</b></div>
+      <div class="kpi"><span>平均负载</span><b data-avg-load>${avgLoad.toFixed(0)}<em>%</em></b></div>
+      <div class="kpi"><span>事故演练</span><b>${state.incident ? '进行中' : '待命'}</b></div>
+    </div>
+    <div class="section-label">六张网<span>NETWORKS</span><i></i></div>
+    <div class="net-mini-list" id="overview-net-list"></div>
+    <div class="section-label">当前告警<span>ALERTS</span><i></i></div>
+    <div class="alert-list" id="overview-alerts"></div>
+    <p class="panel-note">数据由本地模型实时生成，用于演示监测、告警与自动处置流程，不代表真实校区运行数据。</p>
+  `;
+
+  const list = document.getElementById('overview-net-list');
+  for (const key of NET_ORDER) {
+    const def = NETWORKS[key];
+    const style = NET_STYLE[key];
+    const metric = def.metrics[0];
+    const value = netState[key].metrics[metric.key];
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'net-mini';
+    row.style.setProperty('--c', style.css);
+    row.innerHTML = `
+      <b>${NET_SHORT[key]}</b>
+      <span class="mini-bar"><i data-mini-bar="${key}" style="width:${Math.min(96, loadOf(key) * 100)}%"></i></span>
+      <em data-mini-val="${key}">${fmtNumber(value, metric.digits)}</em>
+    `;
+    row.addEventListener('click', () => focusNetwork(key, { fly: true }));
+    list.appendChild(row);
+  }
+
+  const alertBox = document.getElementById('overview-alerts');
+  if (!alerts.length) {
+    const empty = document.createElement('div');
+    empty.className = 'alert-row';
+    empty.innerHTML = '<span class="tag">OK</span><span>六网运行平稳，暂无活动告警。</span>';
+    alertBox.appendChild(empty);
+  } else {
+    for (const alert of alerts) {
+      const row = document.createElement('div');
+      row.className = `alert-row ${alert.level}`;
+      row.innerHTML = `<span class="tag">${alert.level.toUpperCase()}</span><span>${alert.text}</span>`;
+      alertBox.appendChild(row);
+    }
+  }
+}
+
+function drawSpark(net) {
+  const canvas = document.getElementById('spark-canvas');
+  if (!canvas) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const width = canvas.clientWidth || 300;
+  const height = canvas.clientHeight || 74;
+  if (canvas.width !== Math.floor(width * dpr) || canvas.height !== Math.floor(height * dpr)) {
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  const values = net.trend;
+  const color = NET_STYLE[net.key].css;
+  let min = Math.min(...values);
+  let max = Math.max(...values);
+  if (max - min < 0.001) max = min + 1;
+  const pad = (max - min) * 0.25;
+  min -= pad;
+  max += pad;
+
+  ctx.strokeStyle = 'rgba(120, 170, 210, 0.1)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 4; i++) {
+    const y = (height / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+
+  const points = values.map((value, index) => ({
+    x: (index / (values.length - 1)) * width,
+    y: height - ((value - min) / (max - min)) * height
+  }));
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, height);
+  gradient.addColorStop(0, `${color}55`);
+  gradient.addColorStop(1, `${color}00`);
+  ctx.beginPath();
+  ctx.moveTo(0, height);
+  for (const p of points) ctx.lineTo(p.x, p.y);
+  ctx.lineTo(width, height);
+  ctx.closePath();
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  ctx.beginPath();
+  points.forEach((p, index) => {
+    if (index === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  });
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.6;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 8;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  const last = points[points.length - 1];
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 2.6, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function renderDetail() {
+  if (!detailView) return;
+  updateNetworkVisibility();
+  const key = state.activeNet;
+  if (!key) {
+    renderOverview();
+    return;
+  }
+  const net = netState[key];
+  const def = NETWORKS[key];
+  const style = NET_STYLE[key];
+  const metric = def.metrics[0];
+  const trendMetric = def.metrics.find((item) => item.key === def.trendKey) || metric;
+  const index = NET_ORDER.indexOf(key) + 1;
+
+  const kpis = def.metrics.map((item) => `
+    <div class="kpi">
+      <span>${item.label}</span>
+      <b data-live-kpi="${item.key}">${fmtNumber(net.metrics[item.key], item.digits)}<em>${item.unit}</em></b>
+    </div>
+  `).join('');
+
+  const facilities = net.facilities.map((fac) => `
+    <div class="fac-row${state.selectedFacility === fac.def.id ? ' is-active' : ''}" data-fac-row="${fac.def.id}">
+      <span class="fac-name"><i class="${fac.status === 'ok' ? '' : fac.status}"></i><span>${fac.def.name}</span></span>
+      <span class="fac-val" data-fac-val="${fac.def.id}">${facReading(fac)}</span>
+    </div>
+  `).join('');
+
+  detailView.innerHTML = `
+    <div class="detail-head">
+      <button class="back-btn" type="button" id="btn-detail-back" aria-label="返回总览">←</button>
+      <div>
+        <h3>${def.name}</h3>
+        <p>${def.en} · ${index} / 6</p>
+      </div>
+      <span class="status-pill ${net.alert}" data-status-pill>${ALERT_TEXT[net.alert]}</span>
+    </div>
+    <p class="detail-desc">${def.summary}</p>
+    <div class="kpi-grid">${kpis}</div>
+    <div class="spark-wrap" style="--c:${style.css}">
+      <div class="spark-head">
+        <span>LAST 90s · ${def.trendKey.toUpperCase()}</span>
+        <b data-spark-value>${fmtNumber(net.metrics[def.trendKey], trendMetric.digits)} ${trendMetric.unit}</b>
+      </div>
+      <canvas id="spark-canvas" aria-label="最近 90 秒趋势"></canvas>
+    </div>
+    <div class="section-label">设施清单<span>FACILITIES</span><i></i></div>
+    <div class="fac-list">${facilities}</div>
+    <div class="incident-box">
+      <h4>${def.incident.name}</h4>
+      <p>${def.incident.brief}</p>
+      <button class="incident-btn" type="button" id="btn-incident" ${state.incident ? 'disabled' : ''}>
+        ${state.incident ? '演练进行中…' : '▶ 模拟事故并自动处置'}
+      </button>
+      <div class="incident-progress"><i style="width:${incidentProgress(key)}%"></i></div>
+    </div>
+  `;
+
+  document.getElementById('btn-detail-back')?.addEventListener('click', () => {
+    state.activeNet = null;
+    state.selectedFacility = null;
+    renderLayerPanel();
+    renderDetail();
+  });
+  document.getElementById('btn-incident')?.addEventListener('click', () => startIncident(key));
+  detailView.querySelectorAll('[data-fac-row]').forEach((row) => {
+    row.addEventListener('click', () => selectFacility(row.getAttribute('data-fac-row')));
+    row.addEventListener('mouseenter', () => {
+      const fac = facilityIndex.get(row.getAttribute('data-fac-row'));
+      if (fac) highlightFacility(fac, true);
+    });
+    row.addEventListener('mouseleave', () => {
+      const fac = facilityIndex.get(row.getAttribute('data-fac-row'));
+      if (fac) highlightFacility(fac, false);
+    });
+  });
+
+  drawSpark(net);
+}
+
+function incidentProgress(key) {
+  const inc = state.incident;
+  if (!inc || inc.key !== key) return 0;
+  const elapsed = performance.now() / 1000 - inc.start;
+  return Math.min(100, (elapsed / inc.duration) * 100);
+}
+
+function highlightFacility(fac, on) {
+  fac.glow.material.opacity = on ? 1 : 0.72;
+  fac.ring.scale.setScalar(on ? 1.5 : 1);
+}
+
+function selectFacility(id) {
+  const fac = facilityIndex.get(id);
+  if (!fac) return;
+  state.selectedFacility = id;
+  if (state.activeNet !== fac.netKey) {
+    state.activeNet = fac.netKey;
+    renderLayerPanel();
+  }
+  renderDetail();
+  const baseY = fac.group.position.y;
+  const target = new THREE.Vector3(fac.def.x, baseY + 1, fac.def.z);
+  flyTo(new THREE.Vector3(fac.def.x + 34, baseY + 26, fac.def.z + 36), target, 1.4);
+}
+
+function updateLive() {
+  const key = state.activeNet;
+  if (key) {
+    const net = netState[key];
+    const def = NETWORKS[key];
+    for (const item of def.metrics) {
+      const node = detailView.querySelector(`[data-live-kpi="${item.key}"]`);
+      if (node && node.firstChild) {
+        node.firstChild.nodeValue = fmtNumber(net.metrics[item.key], item.digits);
+      }
+    }
+    const sparkValue = detailView.querySelector('[data-spark-value]');
+    if (sparkValue) {
+      const trendMetric = def.metrics.find((item) => item.key === def.trendKey) || def.metrics[0];
+      sparkValue.textContent = `${fmtNumber(net.metrics[def.trendKey], trendMetric.digits)} ${trendMetric.unit}`;
+    }
+    for (const fac of net.facilities) {
+      const node = detailView.querySelector(`[data-fac-val="${fac.def.id}"]`);
+      if (node) node.textContent = facReading(fac);
+      const dot = detailView.querySelector(`[data-fac-row="${fac.def.id}"] i`);
+      if (dot) dot.className = fac.status === 'ok' ? '' : fac.status;
+    }
+    const pill = detailView.querySelector('[data-status-pill]');
+    if (pill) {
+      pill.className = `status-pill ${net.alert}`;
+      pill.textContent = ALERT_TEXT[net.alert];
+    }
+    drawSpark(net);
+  } else {
+    const health = detailView.querySelector('[data-health]');
+    if (health) health.innerHTML = `${healthScore().toFixed(1)}<small>%</small>`;
+    const load = NET_ORDER.reduce((sum, k) => sum + loadOf(k), 0) / NET_ORDER.length * 100;
+    const avg = detailView.querySelector('[data-avg-load]');
+    if (avg) avg.innerHTML = `${load.toFixed(0)}<em>%</em>`;
+    const alerts = activeAlerts();
+    const count = detailView.querySelector('[data-alert-count]');
+    if (count) count.textContent = String(alerts.length);
+  }
+
+  for (const k of NET_ORDER) {
+    const def = NETWORKS[k];
+    const metric = def.metrics[0];
+    const node = document.querySelector(`[data-layer-count="${k}"]`);
+    if (node) node.textContent = `${fmtNumber(netState[k].metrics[metric.key], metric.digits)} ${metric.unit}`;
+    const bar = document.querySelector(`[data-mini-bar="${k}"]`);
+    if (bar) bar.style.width = `${Math.min(96, loadOf(k) * 100)}%`;
+    const value = document.querySelector(`[data-mini-val="${k}"]`);
+    if (value) value.textContent = `${fmtNumber(netState[k].metrics[metric.key], metric.digits)} ${metric.unit}`;
+  }
+  updateFlows();
+}
+
+/* ---------------------------- 底部流速 ---------------------------- */
+function buildFlows() {
+  const list = document.getElementById('flow-list');
+  if (!list) return;
+  list.innerHTML = '';
+  for (const key of NET_ORDER) {
+    const def = NETWORKS[key];
+    const style = NET_STYLE[key];
+    const row = document.createElement('div');
+    row.className = 'flow-row';
+    row.style.setProperty('--c', style.css);
+    row.dataset.flowRow = key;
+    row.innerHTML = `
+      <b>${NET_SHORT[key]}</b>
+      <span class="flow-track"><i data-flow-bar="${key}" style="width:${Math.min(96, loadOf(key) * 100)}%"></i></span>
+      <em data-flow-val="${key}">${fmtNumber(netState[key].metrics[def.metrics[0].key], def.metrics[0].digits)}</em>
+    `;
+    list.appendChild(row);
+  }
+}
+
+function updateFlows() {
+  for (const key of NET_ORDER) {
+    const def = NETWORKS[key];
+    const metric = def.metrics[0];
+    const bar = document.querySelector(`[data-flow-bar="${key}"]`);
+    if (bar) bar.style.width = `${Math.min(96, loadOf(key) * 100)}%`;
+    const val = document.querySelector(`[data-flow-val="${key}"]`);
+    if (val) val.textContent = fmtNumber(netState[key].metrics[metric.key], metric.digits);
+  }
+}
+
+/* ---------------------------- 图层动作 ---------------------------- */
+function refreshFacilityLabels() {
+  for (const label of facilityLabels) {
+    const key = label.userData.netKey;
+    label.visible = Boolean(state.labels && state.layers[key] && state.activeNet === key);
+  }
+}
+
+function toggleNetworkLayer(key) {
+  const next = !state.layers[key];
+  state.layers[key] = next;
+  if (!next && state.activeNet === key) state.activeNet = null;
+  updateNetworkVisibility();
+  renderLayerPanel();
+  renderDetail();
+  addEvent('info', `${NETWORKS[key].name}图层已${next ? '显示' : '隐藏'}`);
+}
+
+function setBuildingsVisible(visible) {
+  state.buildings = visible;
+  if (campusMeshes.building) campusMeshes.building.visible = visible;
+  if (campusMeshes.roof) campusMeshes.roof.visible = visible;
+  if (campusMeshes.trim) campusMeshes.trim.visible = visible;
+}
+
+function setRoadsVisible(visible) {
+  state.roads = visible;
+  if (campusMeshes.road) campusMeshes.road.visible = visible;
+  if (campusMeshes.mark) campusMeshes.mark.visible = visible;
+}
+
+function setLabelsVisible(visible) {
+  state.labels = visible;
+  buildingLabels.forEach((label) => { label.visible = visible; });
+  refreshFacilityLabels();
+  renderSceneLayers();
+  addEvent('info', `名称标签已${visible ? '显示' : '隐藏'}`);
+}
+
+function setXray(on) {
+  state.xray = on;
+  if (campusMeshes.building) {
+    const mat = campusMeshes.building.material;
+    mat.transparent = on;
+    mat.opacity = on ? 0.3 : 1;
+    mat.depthWrite = !on;
+    mat.needsUpdate = true;
+  }
+  if (campusMeshes.roof) {
+    campusMeshes.roof.material.transparent = on;
+    campusMeshes.roof.material.opacity = on ? 0.3 : 1;
+    campusMeshes.roof.material.depthWrite = !on;
+    campusMeshes.roof.material.needsUpdate = true;
+  }
+  for (const name of ['ground', 'plaza', 'lawn', 'road', 'mark', 'trim']) {
+    const mesh = campusMeshes[name];
+    if (!mesh) continue;
+    const mat = mesh.material;
+    mat.transparent = on;
+    mat.opacity = on ? (name === 'ground' ? 0.22 : 0.2) : 1;
+    mat.depthWrite = !on;
+    mat.needsUpdate = true;
+  }
+  updateNetworkVisibility();
+  document.getElementById('btn-xray')?.classList.toggle('is-on', on);
+  renderSceneLayers();
+  addEvent('info', on ? '地下管廊透视已开启' : '地下管廊透视已关闭');
+}
+
+/* ---------------------------- 提示与拾取 ---------------------------- */
+function showTooltip(fac, x, y) {
+  tooltipEl.hidden = false;
+  tooltipEl.innerHTML = '';
+  const title = document.createElement('h5');
+  title.textContent = fac.def.name;
+  const sub = document.createElement('p');
+  sub.textContent = `${NETWORKS[fac.netKey].name} · 实时读数`;
+  const metrics = document.createElement('div');
+  metrics.className = 'tt-metrics';
+  for (const [key, value] of Object.entries(fac.metrics)) {
+    const def = metricDef(fac.netKey, key);
+    if (!def) continue;
+    const item = document.createElement('span');
+    item.innerHTML = `${def.label} <b>${fmtNumber(value, def.digits)} ${def.unit}</b>`;
+    metrics.appendChild(item);
+  }
+  tooltipEl.append(title, sub, metrics);
+  const pad = 14;
+  const rect = tooltipEl.getBoundingClientRect();
+  const left = Math.min(window.innerWidth - rect.width - pad, x + 14);
+  const top = Math.min(window.innerHeight - rect.height - pad, y + 14);
+  tooltipEl.style.left = `${left}px`;
+  tooltipEl.style.top = `${top}px`;
+}
+
+function hideTooltip() {
+  tooltipEl.hidden = true;
+}
+
+let hoveredFacility = null;
+
+function updateHover(event) {
+  if (state.tour) return;
+  pointerVec.x = (event.clientX / window.innerWidth) * 2 - 1;
+  pointerVec.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointerVec, camera);
+  const hits = raycaster.intersectObjects(hitMeshes, false);
+  const hit = hits.find((item) => {
+    const fac = facilityIndex.get(item.object.userData.facilityId);
+    if (!fac || !netState[fac.netKey].group.visible) return false;
+    if (fac.netKey === 'tunnel' && !state.xray) return false;
+    return true;
+  });
+  if (!hit) {
+    if (hoveredFacility) highlightFacility(hoveredFacility, false);
+    hoveredFacility = null;
+    hideTooltip();
+    renderer.domElement.style.cursor = '';
+    return;
+  }
+  const fac = facilityIndex.get(hit.object.userData.facilityId);
+  if (hoveredFacility && hoveredFacility !== fac) highlightFacility(hoveredFacility, false);
+  hoveredFacility = fac;
+  highlightFacility(fac, true);
+  showTooltip(fac, event.clientX, event.clientY);
+  renderer.domElement.style.cursor = 'pointer';
+}
+
+function onClick(event) {
+  if (state.tour) return;
+  if (!hoveredFacility) {
+    pointerVec.x = (event.clientX / window.innerWidth) * 2 - 1;
+    pointerVec.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(pointerVec, camera);
+    const hits = raycaster.intersectObjects(hitMeshes, false);
+    const hit = hits.find((item) => {
+      const fac = facilityIndex.get(item.object.userData.facilityId);
+      if (!fac || !netState[fac.netKey].group.visible) return false;
+      if (fac.netKey === 'tunnel' && !state.xray) return false;
+      return true;
+    });
+    if (hit) {
+      selectFacility(hit.object.userData.facilityId);
+      return;
+    }
+    if (state.activeNet) {
+      state.activeNet = null;
+      state.selectedFacility = null;
+      renderLayerPanel();
+      renderDetail();
+    }
+    return;
+  }
+  selectFacility(hoveredFacility.def.id);
+}
+
+/* ---------------------------- 镜头飞行与巡游 ---------------------------- */
+let flyState = null;
+let tourTimer = null;
+let tourIndex = 0;
+
+function flyTo(position, target, duration = 1.6) {
+  flyState = {
+    fromPos: camera.position.clone(),
+    toPos: position.clone(),
+    fromTarget: controls.target.clone(),
+    toTarget: target.clone(),
+    t: 0,
+    duration
+  };
+}
+
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function updateFly(dt) {
+  if (!flyState) return;
+  flyState.t = Math.min(1, flyState.t + dt / flyState.duration);
+  const k = easeInOutCubic(flyState.t);
+  camera.position.lerpVectors(flyState.fromPos, flyState.toPos, k);
+  controls.target.lerpVectors(flyState.fromTarget, flyState.toTarget, k);
+  if (flyState.t >= 1) flyState = null;
+}
+
+function startTour() {
+  state.tour = true;
+  tourIndex = 0;
+  document.getElementById('btn-tour')?.classList.add('is-on');
+  document.getElementById('btn-tour').textContent = '❚❚ 停止巡游';
+  stepTour();
+  tourTimer = setInterval(stepTour, 9000);
+  addEvent('info', '自动巡游已开启');
+}
+
+function stepTour() {
+  const stop = TOUR_STOPS[tourIndex % TOUR_STOPS.length];
+  tourIndex += 1;
+  flyTo(new THREE.Vector3(...stop.pos), new THREE.Vector3(...stop.target), 2.8);
+}
+
+function stopTour() {
+  if (!state.tour) return;
+  state.tour = false;
+  if (tourTimer) clearInterval(tourTimer);
+  tourTimer = null;
+  const btn = document.getElementById('btn-tour');
+  btn?.classList.remove('is-on');
+  if (btn) btn.textContent = '▶ 自动巡游';
+  addEvent('info', '自动巡游已停止');
+}
+
+function toggleTour() {
+  if (state.tour) stopTour();
+  else startTour();
+}
+
+function resetView() {
+  stopTour();
+  state.activeNet = null;
+  state.selectedFacility = null;
+  flyTo(new THREE.Vector3(92, 104, 142), new THREE.Vector3(0, 0, 4), 1.8);
+  renderLayerPanel();
+  renderDetail();
+  addEvent('info', '视角已复位');
+}
+
+/* ---------------------------- 昼夜 ---------------------------- */
+function setTimeOfDay(mode) {
+  state.timeOfDay = mode;
+  const day = mode === 'day';
+  scene.background.setHex(day ? 0x5b7f9e : 0x04070d);
+  scene.fog.color.setHex(day ? 0x5b7f9e : 0x04070d);
+  scene.fog.density = day ? 0.0019 : 0.0034;
+  hemiLight.intensity = day ? 1.55 : 0.95;
+  hemiLight.color.setHex(day ? 0xa9c9e4 : 0x35597d);
+  moonLight.intensity = day ? 1.5 : 0.85;
+  moonLight.color.setHex(day ? 0xfff0d8 : 0xbcd4ff);
+  ambientLight.intensity = day ? 2.1 : 1.55;
+  bloomPass.strength = day ? 0.3 : 0.55;
+  windowUniforms.night.value = day ? 0.08 : 1;
+  renderer.toneMappingExposure = day ? 1.04 : 0.92;
+  if (campusMeshes.ground) {
+    campusMeshes.ground.material.color.setHex(day ? 0x9db2c4 : 0x2b3946);
+    campusMeshes.ground.material.needsUpdate = true;
+  }
+  const btn = document.getElementById('btn-daynight');
+  if (btn) {
+    btn.textContent = day ? '☀ 白天模式' : '☾ 夜间模式';
+    btn.classList.toggle('is-on', day);
+  }
+  addEvent('info', `场景切换至${day ? '白天' : '夜间'}模式`);
+}
+
+/* ---------------------------- 初始化 UI ---------------------------- */
+function initUI() {
+  renderLayerPanel();
+  renderSceneLayers();
+  buildFlows();
+  renderDetail();
+
+  document.getElementById('btn-daynight')?.addEventListener('click', () => {
+    setTimeOfDay(state.timeOfDay === 'day' ? 'night' : 'day');
+  });
+  document.getElementById('btn-xray')?.addEventListener('click', () => setXray(!state.xray));
+  document.getElementById('btn-tour')?.addEventListener('click', toggleTour);
+  document.getElementById('btn-reset')?.addEventListener('click', resetView);
+
+  const speed = document.getElementById('flow-speed');
+  const speedOut = document.getElementById('flow-speed-out');
+  speed?.addEventListener('input', () => {
+    state.flowSpeed = Number(speed.value);
+    if (speedOut) speedOut.textContent = `${state.flowSpeed.toFixed(1)}x`;
+  });
+
+  addEvent('ok', '数字孪生底座启动，8×8 街区与 64 个地块加载完成');
+  addEvent('info', '六网数据接入：供水 / 电力 / 算力 / 通信 / 地下管廊 / 物流');
+  addEvent('info', '本地模拟时钟启动，监测周期 1s，趋势窗口 90s');
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    bloomPass.resolution.set(window.innerWidth, window.innerHeight);
+    drawSpark(netState[state.activeNet || 'water']);
+  });
+}
+
+/* =======================================================================
+   5. 模拟循环、粒子流动与渲染
+   ======================================================================= */
+
+initUI();
+
+let simAccumulator = 0;
+let lastFrame = performance.now() / 1000;
+
+function simulate() {
+  const t = performance.now() / 1000;
+  NET_ORDER.forEach((key, index) => {
+    const net = netState[key];
+    const def = NETWORKS[key];
+    const phase = index * 1.6;
+    const wobble = Math.sin(t * 0.55 + phase) * 0.03 + (Math.random() - 0.5) * 0.01;
+    for (const metric of def.metrics) {
+      let value = def.base[metric.key] * (1 + wobble);
+      if (metric.key === def.trendKey) value *= net.flowFactor;
+      if (net.alert === 'crit' && metric.key === def.trendKey) value *= 0.96;
+      if (metric.max) value = Math.min(metric.max, value);
+      net.metrics[metric.key] = value;
+    }
+    net.trend.push(net.metrics[def.trendKey]);
+    while (net.trend.length > 90) net.trend.shift();
+
+    for (const fac of net.facilities) {
+      const target = fac.def.base + Math.sin(t * 0.8 + fac.def.x * 0.12 + fac.def.z * 0.07) * 0.05;
+      fac.load += (target - fac.load) * 0.18;
+      for (const metricKey of Object.keys(fac.metrics)) {
+        const base = fac.def.metrics[metricKey] ?? fac.metrics[metricKey];
+        const statusFactor = fac.status === 'crit' ? 0.72 : fac.status === 'warn' ? 0.9 : 1;
+        fac.metrics[metricKey] = base * statusFactor * (1 + wobble * 1.2);
+      }
+    }
+  });
+  const clock = document.getElementById('sim-clock');
+  if (clock) clock.textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+}
+
+function updateFlowsAnimated(delta) {
+  const multiplier = state.flowSpeed;
+  for (const key of NET_ORDER) {
+    const net = netState[key];
+    const visible = net.group.visible;
+    for (const flow of net.flows) {
+      if (!visible) continue;
+      const advance = delta * flow.speed * net.flowFactor * multiplier;
+      const positions = flow.positions;
+      const samples = flow.samples;
+      const total = samples.length - 1;
+      for (let i = 0; i < flow.size; i++) {
+        flow.offsets[i] = (flow.offsets[i] + advance) % 1;
+        const point = samples[Math.floor(flow.offsets[i] * total)];
+        positions[i * 3] = point.x;
+        positions[i * 3 + 1] = point.y;
+        positions[i * 3 + 2] = point.z;
+      }
+      flow.geometry.attributes.position.needsUpdate = true;
+    }
+  }
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const now = performance.now() / 1000;
+  const delta = Math.min(0.12, now - lastFrame);
+  lastFrame = now;
+
+  updateFly(delta);
+  controls.update();
+  updateIncident(now);
+  updateFlowsAnimated(delta);
+
+  simAccumulator += delta;
+  if (simAccumulator >= 1) {
+    simAccumulator = 0;
+    simulate();
+    updateLive();
+  }
+
+  composer.render();
+  labelRenderer.render(scene, camera);
+}
+
+simulate();
+animate();
+
+requestAnimationFrame(() => {
+  const loading = document.getElementById('loading');
+  const status = document.getElementById('loading-status');
+  if (status) status.textContent = 'READY · 六网数据接入完成';
+  setTimeout(() => loading?.classList.add('is-done'), 220);
+});
+
+/* 调试钩子：便于验证渲染与交互，不包含任何敏感信息 */
+window.__CITY__ = { scene, camera, renderer, composer, controls, state, netState, facilityIndex, THREE };
+
+/* 首次交互关闭巡游 */
+controls.addEventListener('start', () => {
+  if (state.tour) stopTour();
+});
+
+renderer.domElement.addEventListener('pointermove', updateHover, { passive: true });
+renderer.domElement.addEventListener('pointerleave', () => {
+  hideTooltip();
+  if (hoveredFacility) highlightFacility(hoveredFacility, false);
+  hoveredFacility = null;
+});
+renderer.domElement.addEventListener('click', onClick);
+
+document.addEventListener('keydown', (event) => {
+  if (event.target instanceof HTMLInputElement) return;
+  const key = event.key.toLowerCase();
+  if (key === 'escape') {
+    if (state.activeNet) {
+      state.activeNet = null;
+      state.selectedFacility = null;
+      renderLayerPanel();
+      renderDetail();
+    }
+  }
+  if (key === 'x') setXray(!state.xray);
+  if (key === 'l') setLabelsVisible(!state.labels);
+  if (key === 't') toggleTour();
+  if (key === 'r') resetView();
+  if (key === 'n') setTimeOfDay(state.timeOfDay === 'day' ? 'night' : 'day');
+  const number = Number(event.key);
+  if (number >= 1 && number <= 6) {
+    const netKey = NET_ORDER[number - 1];
+    if (!state.layers[netKey]) toggleNetworkLayer(netKey);
+    focusNetwork(netKey, { fly: true });
+  }
+});
+</script>
+</body>
+</html>
