@@ -1295,6 +1295,28 @@
     color: #e8fbff;
   }
 
+  .fac-card {
+    margin: 0 0 9px;
+    padding: 9px 10px;
+    border: 1px solid rgba(56, 225, 255, .32);
+    border-radius: 9px;
+    background: linear-gradient(180deg, rgba(56, 225, 255, .1), rgba(56, 225, 255, .02));
+  }
+
+  .fac-card-head { display: flex; align-items: center; gap: 6px; }
+  .fac-card-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .fac-card-dot.warn { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+  .fac-card-dot.crit { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .fac-card-head b { font-size: 11px; }
+  .fac-card-tag { color: var(--dim); font-family: var(--mono); font-size: 7.5px; }
+  .fac-card-close { margin-left: auto; width: 20px; height: 20px; border: 0; border-radius: 50%; background: transparent; color: var(--dim); font-size: 13px; }
+  .fac-card-close:hover { background: rgba(255,255,255,.08); color: #fff; }
+  .fac-card-metrics { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; color: var(--muted); font-family: var(--mono); font-size: 8.5px; }
+  .fac-card-metrics b { color: var(--cyan); font-weight: 500; }
+  .fac-card-actions { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+  .fac-card-actions button { padding: 3px 8px; border: 1px solid rgba(56,225,255,.35); border-radius: 6px; background: rgba(56,225,255,.12); color: #cdf3ff; font-family: var(--mono); font-size: 8px; }
+  .fac-card-actions span { color: var(--dim); font-size: 8px; }
+
   /* =====================================================================
      6. 3D 标签 / 底部流速倍速
      ===================================================================== */
@@ -1817,6 +1839,7 @@ renderer.toneMappingExposure = 1.0;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.domElement.style.touchAction = 'none';
 container.appendChild(renderer.domElement);
 
 const labelRenderer = new CSS2DRenderer();
@@ -3551,6 +3574,26 @@ function renderDetail() {
   const trendMetric = def.metrics.find((item) => item.key === def.trendKey) || metric;
   const index = NET_ORDER.indexOf(key) + 1;
 
+  const selFac = state.selectedFacility ? facilityIndex.get(state.selectedFacility) : null;
+  const facCard = selFac && selFac.netKey === key ? `
+    <div class="fac-card">
+      <div class="fac-card-head">
+        <span class="fac-card-dot ${selFac.status}"></span>
+        <b>${selFac.def.name}</b>
+        <span class="fac-card-tag">${def.name} · 实时读数</span>
+        <button type="button" class="fac-card-close" id="btn-fac-close" aria-label="取消选中设施">×</button>
+      </div>
+      <div class="fac-card-metrics">${Object.entries(selFac.metrics).map(([mk, mv]) => {
+        const md = metricDef(key, mk);
+        return md ? `<span>${md.label} <b>${fmtNumber(mv, md.digits)} ${md.unit}</b></span>` : '';
+      }).join('')}</div>
+      <div class="fac-card-actions">
+        <button type="button" id="btn-fac-focus">定位设施</button>
+        <span>状态：${selFac.status === 'ok' ? '正常' : selFac.status === 'warn' ? '预警' : '故障'}</span>
+      </div>
+    </div>
+  ` : '';
+
   const kpis = def.metrics.map((item) => `
     <div class="kpi">
       <span>${item.label}</span>
@@ -3574,6 +3617,7 @@ function renderDetail() {
       </div>
       <span class="status-pill ${net.alert}" data-status-pill>${ALERT_TEXT[net.alert]}</span>
     </div>
+    ${facCard}
     <p class="detail-desc">${def.summary}</p>
     <div class="kpi-grid">${kpis}</div>
     <div class="spark-wrap" style="--c:${style.css}">
@@ -3602,6 +3646,8 @@ function renderDetail() {
     renderDetail();
   });
   document.getElementById('btn-incident')?.addEventListener('click', () => startIncident(key));
+  document.getElementById('btn-fac-close')?.addEventListener('click', () => { state.selectedFacility = null; renderDetail(); });
+  document.getElementById('btn-fac-focus')?.addEventListener('click', () => { if (state.selectedFacility) selectFacility(state.selectedFacility); });
   detailView.querySelectorAll('[data-fac-row]').forEach((row) => {
     row.addEventListener('click', () => selectFacility(row.getAttribute('data-fac-row')));
     row.addEventListener('mouseenter', () => {
@@ -4144,7 +4190,7 @@ requestAnimationFrame(() => {
 });
 
 /* 调试钩子：便于验证渲染与交互，不包含任何敏感信息 */
-window.__CITY__ = { scene, camera, renderer, composer, controls, state, netState, facilityIndex, THREE, windowUniforms, shadowLight, campusMeshes };
+window.__CITY__ = { scene, camera, renderer, composer, controls, state, netState, facilityIndex, THREE, windowUniforms, shadowLight, campusMeshes, selectFacility };
 
 /* 首次交互关闭巡游 */
 controls.addEventListener('start', () => {
