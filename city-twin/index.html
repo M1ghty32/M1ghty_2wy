@@ -2571,6 +2571,10 @@ function buildPlazas() {
   for (const p of plazas) {
     planeAt(p.w, p.d, p.x, 0.22, p.z, geoPlaza, p.rot);
   }
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    lampSpots.push({ x: 58 + Math.cos(a) * 27, z: 26 + Math.sin(a) * 19 });
+  }
   // 南门与西门
   buildGate(-71, 108, '四川吉利学院', 'SICHUAN GEELY UNIVERSITY', false, '南门');
   buildGate(-196, 128, '西南门', 'SOUTHWEST GATE', true, '西南门');
@@ -2660,6 +2664,11 @@ function buildTrees() {
       pine: random() > 0.78,
       tone: random()
     });
+  }
+  // 图书馆广场树池
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2;
+    seeds.push({ x: 58 + Math.cos(a) * 24, z: 26 + Math.sin(a) * 15, s: 0.9, pine: false, tone: 0.45 });
   }
   // 中央林荫道（南门 — 图书馆方向）
   const avenue = [];
@@ -4320,7 +4329,7 @@ function setTimeOfDay(mode) {
   skyUniforms.horizonColor.value.setHex(day ? 0xb6d6ea : 0x16283a);
   skyUniforms.groundColor.value.setHex(day ? 0x24343d : 0x05080d);
   scene.fog.color.setHex(day ? 0xb6d6ea : 0x05090f);
-  scene.fog.density = day ? 0.00028 : 0.0015;
+  scene.fog.density = day ? 0.00028 : 0.0019;
   hemiLight.intensity = day ? 0.62 : 0.85;
   hemiLight.color.setHex(day ? 0xcfe6f7 : 0x35597d);
   hemiLight.groundColor.setHex(day ? 0x44503f : 0x070c12);
@@ -4439,6 +4448,7 @@ let lastFrame = performance.now() / 1000;
 let fpsAccum = 0;
 let fpsFrames = 0;
 let fpsChecked = false;
+const perfOff = new URLSearchParams(window.location.search).has('perf-off');
 
 function simulate() {
   const t = performance.now() / 1000;
@@ -4505,13 +4515,14 @@ function animate() {
   if (!fpsChecked && fpsAccum > 4) {
     fpsChecked = true;
     const fps = fpsFrames / fpsAccum;
-    if (fps < 24) {
+    if (fps < 24 && !perfOff) {
       state.lowPerf = true;
       renderer.shadowMap.enabled = false;
       renderer.setPixelRatio(0.9);
       bloomPass.enabled = false;
       if (campusMeshes.hedge) campusMeshes.hedge.visible = false;
       if (campusMeshes.lampPools) campusMeshes.lampPools.visible = false;
+      for (const label of facilityLabels) label.visible = false;
       addEvent('warn', '检测到帧率偏低，已自动关闭阴影并降低渲染分辨率');
     }
   }
