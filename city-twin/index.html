@@ -1422,6 +1422,7 @@
       <span class="chip mono" id="sim-clock">--:--:--</span>
     </div>
     <div class="top-actions">
+      <a class="tb-btn" href="https://map.guc.edu.cn/#/" target="_blank" rel="noopener" title="打开学校官方可视化地图">官方地图 ↗</a>
       <button id="btn-daynight" class="tb-btn" type="button">☾ 夜间模式</button>
       <button id="btn-xray" class="tb-btn" type="button">X-RAY 地下透视</button>
       <button id="btn-tour" class="tb-btn" type="button">▶ 自动巡游</button>
@@ -2248,6 +2249,16 @@ const ROADS = [
     points: [[-32, 124], [-18, 132], [0, 138], [20, 142], [42, 142], [62, 138], [80, 132], [92, 124], [96, 114]]
   },
   {
+    id: 'northGate',
+    width: 8,
+    points: [[-40,-168],[-40,-140],[-38,-112],[-32,-86],[-24,-60],[-16,-36],[-8,-10],[0,16],[6,40]]
+  },
+  {
+    id: 'eastGate',
+    width: 8,
+    points: [[266,-30],[236,-30],[206,-34],[176,-40],[146,-46],[116,-52],[86,-58],[56,-64],[26,-72],[-2,-80]]
+  },
+  {
     id: 'hospitalSpur',
     width: 6,
     points: [[108, -98], [118, -112], [128, -126], [136, -138], [140, -148]]
@@ -2439,7 +2450,9 @@ function buildPlazas() {
   }
   // 南门与西门
   buildGate(-71, 108, '四川吉利学院', 'SICHUAN GEELY UNIVERSITY', false, '南门');
-  buildGate(-148, 8, '西门', 'WEST GATE', true);
+  buildGate(-148, 8, '西南门', 'SOUTHWEST GATE', true, '西南门');
+  buildGate(-40, -170, '北门', 'NORTH GATE', true, '北门');
+  buildGate(266, -30, '东门', 'EAST GATE', true, '东门');
 }
 
 function buildGate(x, z, title, subtitle, simple = false, labelText = title) {
