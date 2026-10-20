@@ -1194,12 +1194,12 @@
 
   .load-bar i {
     display: block;
-    width: 40%;
+    width: 6%;
     height: 100%;
     border-radius: 99px;
     background: var(--cyan);
     box-shadow: 0 0 10px var(--cyan);
-    animation: loadSlide 1.4s ease-in-out infinite;
+    transition: width .35s ease;
   }
 
   @keyframes loadSlide {
@@ -1898,6 +1898,12 @@ const container = document.getElementById('scene');
 function setLoadingText(text) {
   const el = document.getElementById('loading-status');
   if (el) el.textContent = text;
+}
+
+function setLoadingProgress(percent, text) {
+  setLoadingText(text);
+  const bar = document.querySelector('#loading .load-bar i');
+  if (bar) bar.style.width = percent + '%';
 }
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 const isSmallScreen = window.matchMedia('(max-width: 760px)').matches;
@@ -2668,7 +2674,12 @@ function buildTrees() {
   // 图书馆广场树池
   for (let i = 0; i < 10; i++) {
     const a = (i / 10) * Math.PI * 2;
-    seeds.push({ x: 58 + Math.cos(a) * 24, z: 26 + Math.sin(a) * 15, s: 0.9, pine: false, tone: 0.45 });
+    const px = 58 + Math.cos(a) * 24;
+    const pz = 26 + Math.sin(a) * 15;
+    seeds.push({ x: px, z: pz, s: 0.9, pine: false, tone: 0.45 });
+    const pit = new THREE.CylinderGeometry(1.35, 1.5, 0.28, 10);
+    pit.translate(px, 0.14, pz);
+    pushColored(geoTrim, pit, 0x6a747c);
   }
   // 中央林荫道（南门 — 图书馆方向）
   const avenue = [];
@@ -2773,6 +2784,7 @@ function buildTrees() {
     }
   }
   scene.add(trunks, broadMesh, pineMesh);
+  campusMeshes.trees = [trunks, broadMesh, pineMesh];
 }
 
 /* ---------------------------- 路灯 ---------------------------- */
@@ -3045,10 +3057,10 @@ function buildCampus() {
   mergeAll();
 }
 
-setLoadingText('构建校园几何、道路与绿化…');
+setLoadingProgress(34, '构建校园几何、道路与绿化…');
 await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 buildCampus();
-setLoadingText('接入六网设施与流动粒子…');
+setLoadingProgress(68, '接入六网设施与流动粒子…');
 
 /* 供六网与 UI 使用的真实路线（沿校园道路） */
 const FLOW_ROUTES = {
@@ -3366,7 +3378,7 @@ function buildNetworks() {
 
 await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 buildNetworks();
-setLoadingText('初始化运行监测与控制面板…');
+setLoadingProgress(92, '初始化运行监测与控制面板…');
 
 /* ---------------------------- 设施状态 ---------------------------- */
 function setFacilityStatus(fac, status) {
@@ -4267,7 +4279,7 @@ function flyTo(position, target, duration = 1.6) {
 }
 
 function easeInOutCubic(t) {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  return t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2;
 }
 
 function updateFly(dt) {
@@ -4523,6 +4535,9 @@ function animate() {
       if (campusMeshes.hedge) campusMeshes.hedge.visible = false;
       if (campusMeshes.lampPools) campusMeshes.lampPools.visible = false;
       for (const label of facilityLabels) label.visible = false;
+      for (const mesh of campusMeshes.trees || []) {
+        if (mesh.count) mesh.count = Math.max(1, Math.floor(mesh.count * 0.55));
+      }
       addEvent('warn', '检测到帧率偏低，已自动关闭阴影并降低渲染分辨率');
     }
   }
@@ -4560,6 +4575,8 @@ requestAnimationFrame(() => {
   const loading = document.getElementById('loading');
   const status = document.getElementById('loading-status');
   if (status) status.textContent = 'READY · 六网数据接入完成';
+  const bar = document.querySelector('#loading .load-bar i');
+  if (bar) bar.style.width = '100%';
   setTimeout(() => loading?.classList.add('is-done'), 220);
 });
 
