@@ -2924,6 +2924,24 @@ function buildCars() {
   }
 }
 
+function buildAxis() {
+  const points = [[-71, 106], [-60, 92], [-44, 80], [-24, 68], [-4, 56], [16, 46], [32, 36], [46, 28]];
+  const { geometry } = makeRibbon(points, 8, 0.13);
+  pushColored(geoPlaza, geometry, 0x8a97a4);
+  planeAt(30, 18, 6, 0.12, 54, geoPlaza);
+  // 中央水景
+  const basin = new THREE.CylinderGeometry(6, 6.4, 0.8, 28);
+  basin.translate(6, 0.4, 54);
+  pushColored(geoTrim, basin, 0x5a6670);
+  const water = new THREE.Mesh(new THREE.CircleGeometry(5.2, 28), new THREE.MeshStandardMaterial({ color: 0x1d4a66, emissive: 0x0d2e44, emissiveIntensity: 0.7, roughness: 0.2, metalness: 0.5 }));
+  water.rotation.x = -Math.PI / 2;
+  water.position.set(6, 0.82, 54);
+  scene.add(water);
+  const jet = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 4.2, 8), new THREE.MeshBasicMaterial({ color: 0x9fe8ff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
+  jet.position.set(6, 2.8, 54);
+  scene.add(jet);
+}
+
 /* ---------------------------- 地面与合并 ---------------------------- */
 function buildGround() {
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), groundMat);
@@ -3000,6 +3018,7 @@ function buildLabels() {
 function buildCampus() {
   buildGround();
   buildRoads();
+  buildAxis();
   buildBuildings();
   buildTrack();
   buildPlazas();
@@ -4474,11 +4493,13 @@ function animate() {
   if (!fpsChecked && fpsAccum > 4) {
     fpsChecked = true;
     const fps = fpsFrames / fpsAccum;
-    if (fps < 28) {
+    if (fps < 24) {
       state.lowPerf = true;
       renderer.shadowMap.enabled = false;
-      renderer.setPixelRatio(Math.min(1, window.devicePixelRatio || 1));
-      bloomPass.strength = 0.3;
+      renderer.setPixelRatio(0.9);
+      bloomPass.enabled = false;
+      if (campusMeshes.hedge) campusMeshes.hedge.visible = false;
+      if (campusMeshes.lampPools) campusMeshes.lampPools.visible = false;
       addEvent('warn', '检测到帧率偏低，已自动关闭阴影并降低渲染分辨率');
     }
   }
