@@ -1894,6 +1894,11 @@ const NETWORKS = {
 
 const bootStarted = performance.now();
 const container = document.getElementById('scene');
+
+function setLoadingText(text) {
+  const el = document.getElementById('loading-status');
+  if (el) el.textContent = text;
+}
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 const isSmallScreen = window.matchMedia('(max-width: 760px)').matches;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isSmallScreen ? 1.4 : 1.8));
@@ -2560,7 +2565,8 @@ function buildPlazas() {
     { x: 8, z: 82, w: 46, d: 26, rot: 0.05 },
     { x: 38, z: 48, w: 58, d: 36, rot: 0.02 },
     { x: -20, z: 66, w: 40, d: 20, rot: 0.03 },
-    { x: 88, z: 108, w: 36, d: 24, rot: 0.06 }
+    { x: 88, z: 108, w: 36, d: 24, rot: 0.06 },
+    { x: 58, z: 26, w: 64, d: 42, rot: 0.02 }
   ];
   for (const p of plazas) {
     planeAt(p.w, p.d, p.x, 0.22, p.z, geoPlaza, p.rot);
@@ -3030,7 +3036,10 @@ function buildCampus() {
   mergeAll();
 }
 
+setLoadingText('构建校园几何、道路与绿化…');
+await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 buildCampus();
+setLoadingText('接入六网设施与流动粒子…');
 
 /* 供六网与 UI 使用的真实路线（沿校园道路） */
 const FLOW_ROUTES = {
@@ -3346,7 +3355,9 @@ function buildNetworks() {
   }
 }
 
+await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 buildNetworks();
+setLoadingText('初始化运行监测与控制面板…');
 
 /* ---------------------------- 设施状态 ---------------------------- */
 function setFacilityStatus(fac, status) {
@@ -4153,7 +4164,8 @@ const demoSteps = [
   [6200, () => { if (!state.incident) startIncident('compute'); }],
   [32000, () => { state.activeNet = null; renderLayerPanel(); renderDetail(); flyTo(new THREE.Vector3(-150, 95, 90), new THREE.Vector3(-90, 10, -60), 2.2); }],
   [39000, () => { flyTo(new THREE.Vector3(160, 85, 280), new THREE.Vector3(40, 8, 130), 2.2); }],
-  [46000, () => { flyTo(new THREE.Vector3(196, 132, 246), new THREE.Vector3(-6, 0, 26), 2.2); }]
+  [43000, () => { flyTo(new THREE.Vector3(36, 34, 96), new THREE.Vector3(6, 2, 54), 1.8); }],
+  [48000, () => { flyTo(new THREE.Vector3(196, 132, 246), new THREE.Vector3(-6, 0, 26), 2.2); }]
 ];
 
 const demoState = { active: false, paused: false, startedAt: 0, pausedAt: 0, stepIndex: 0, timer: null };
