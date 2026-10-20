@@ -4128,42 +4128,87 @@ function onClick(event) {
   selectFacility(hoveredFacility.def.id);
 }
 
-let demoTimers = [];
+const demoSteps = [
+  [0, () => flyTo(new THREE.Vector3(196, 132, 246), new THREE.Vector3(-6, 0, 26), 1.6)],
+  [3600, () => { flyTo(new THREE.Vector3(170, 80, 120), new THREE.Vector3(60, 22, 20), 2.0); focusNetwork('compute', { fly: false }); }],
+  [6200, () => { if (!state.incident) startIncident('compute'); }],
+  [32000, () => { state.activeNet = null; renderLayerPanel(); renderDetail(); flyTo(new THREE.Vector3(-150, 95, 90), new THREE.Vector3(-90, 10, -60), 2.2); }],
+  [39000, () => { flyTo(new THREE.Vector3(160, 85, 280), new THREE.Vector3(40, 8, 130), 2.2); }],
+  [46000, () => { flyTo(new THREE.Vector3(196, 132, 246), new THREE.Vector3(-6, 0, 26), 2.2); }]
+];
 
-function stopDemo() {
-  for (const timer of demoTimers) clearTimeout(timer);
-  demoTimers = [];
-  state.demo = false;
+const demoState = { active: false, paused: false, startedAt: 0, pausedAt: 0, stepIndex: 0, timer: null };
+
+function setDemoButton() {
   const btn = document.getElementById('btn-demo');
-  if (btn) {
+  if (!btn) return;
+  if (!demoState.active) {
     btn.textContent = '▶ 演示模式';
     btn.classList.remove('is-on');
+  } else if (demoState.paused) {
+    btn.textContent = '▶ 继续演示';
+    btn.classList.add('is-on');
+  } else {
+    btn.textContent = '❚❚ 暂停演示';
+    btn.classList.add('is-on');
+  }
+}
+
+function stopDemo() {
+  if (!demoState.active) return;
+  clearInterval(demoState.timer);
+  demoState.active = false;
+  demoState.paused = false;
+  demoState.stepIndex = 0;
+  state.demo = false;
+  setDemoButton();
+}
+
+function toggleDemoPause() {
+  if (!demoState.active) return;
+  if (!demoState.paused) {
+    demoState.paused = true;
+    demoState.pausedAt = performance.now();
+    addEvent('info', '演示已暂停，按空格继续');
+  } else {
+    demoState.startedAt += performance.now() - demoState.pausedAt;
+    demoState.paused = false;
+    addEvent('info', '演示继续');
+  }
+  setDemoButton();
+}
+
+function tickDemo() {
+  if (!demoState.active || demoState.paused) return;
+  const elapsed = performance.now() - demoState.startedAt;
+  while (demoState.stepIndex < demoSteps.length && demoSteps[demoState.stepIndex][0] <= elapsed) {
+    const step = demoSteps[demoState.stepIndex];
+    demoState.stepIndex += 1;
+    step[1]();
+  }
+  if (demoState.stepIndex >= demoSteps.length) {
+    stopDemo();
+    addEvent('ok', '演示结束：六网运行恢复正常');
   }
 }
 
 function startDemo() {
-  if (state.demo) {
-    stopDemo();
-    addEvent('info', '演示已停止');
+  if (demoState.active) {
+    toggleDemoPause();
     return;
   }
+  demoState.active = true;
+  demoState.paused = false;
+  demoState.startedAt = performance.now();
+  demoState.stepIndex = 0;
   state.demo = true;
   stopTour();
-  const btn = document.getElementById('btn-demo');
-  if (btn) {
-    btn.textContent = '❚❚ 停止演示';
-    btn.classList.add('is-on');
-  }
-  addEvent('info', '演示开始：校园全景 → 图书馆算力中心 → 生活区 → 运动区');
-  const at = (t, fn) => demoTimers.push(setTimeout(() => { if (state.demo) fn(); }, t));
-  at(0, () => flyTo(new THREE.Vector3(196, 132, 246), new THREE.Vector3(-6, 0, 26), 1.6));
-  at(3600, () => { flyTo(new THREE.Vector3(170, 80, 120), new THREE.Vector3(60, 22, 20), 2.0); focusNetwork('compute', { fly: false }); });
-  at(6200, () => { if (!state.incident) startIncident('compute'); });
-  at(32000, () => { state.activeNet = null; renderLayerPanel(); renderDetail(); flyTo(new THREE.Vector3(-150, 95, 90), new THREE.Vector3(-90, 10, -60), 2.2); });
-  at(39000, () => { flyTo(new THREE.Vector3(160, 85, 280), new THREE.Vector3(40, 8, 130), 2.2); });
-  at(46000, () => { flyTo(new THREE.Vector3(196, 132, 246), new THREE.Vector3(-6, 0, 26), 2.2); });
-  at(52000, () => { stopDemo(); addEvent('ok', '演示结束：六网运行恢复正常'); });
+  setDemoButton();
+  addEvent('info', '演示开始：校园全景 → 图书馆算力中心 → 生活区 → 运动区（空格暂停）');
+  demoState.timer = setInterval(tickDemo, 140);
+  tickDemo();
 }
+
 
 /* ---------------------------- 镜头飞行与巡游 ---------------------------- */
 let flyState = null;
@@ -4360,6 +4405,9 @@ initUI();
 
 let simAccumulator = 0;
 let lastFrame = performance.now() / 1000;
+let fpsAccum = 0;
+let fpsFrames = 0;
+let fpsChecked = false;
 
 function simulate() {
   const t = performance.now() / 1000;
@@ -4421,6 +4469,20 @@ function animate() {
   const delta = Math.min(0.12, now - lastFrame);
   lastFrame = now;
 
+  fpsAccum += delta;
+  fpsFrames += 1;
+  if (!fpsChecked && fpsAccum > 4) {
+    fpsChecked = true;
+    const fps = fpsFrames / fpsAccum;
+    if (fps < 28) {
+      state.lowPerf = true;
+      renderer.shadowMap.enabled = false;
+      renderer.setPixelRatio(Math.min(1, window.devicePixelRatio || 1));
+      bloomPass.strength = 0.3;
+      addEvent('warn', '检测到帧率偏低，已自动关闭阴影并降低渲染分辨率');
+    }
+  }
+
   updateFly(delta);
   controls.update();
   updateIncident(now);
@@ -4476,6 +4538,16 @@ renderer.domElement.addEventListener('click', onClick);
 document.addEventListener('keydown', (event) => {
   if (event.target instanceof HTMLInputElement) return;
   const key = event.key.toLowerCase();
+  if (event.code === 'Space' && demoState.active) {
+    event.preventDefault();
+    toggleDemoPause();
+    return;
+  }
+  if (key === 'escape' && demoState.active) {
+    stopDemo();
+    addEvent('info', '演示已停止');
+    return;
+  }
   if (key === 'escape') {
     if (state.activeNet) {
       state.activeNet = null;
