@@ -1451,8 +1451,11 @@
       z-index: 26;
     }
     #layer-panel.is-open, #detail-panel.is-open { display: flex; }
-    #bottombar { left: 8px; right: 8px; bottom: 8px; height: 118px; grid-template-columns: 1fr; }
-    .flow-list { grid-template-columns: repeat(3, 1fr); }
+    #bottombar { left: 8px; right: 8px; bottom: 8px; height: 126px; grid-template-columns: 1fr; gap: 6px; }
+    .flow-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 8px; }
+    .flow-row { grid-template-columns: 32px 1fr auto; font-size: 8px; }
+    .flow-row em { font-size: 7px; min-width: 42px; }
+    .event-log { font-size: 8px; }
     .space-panel { width: 100%; }
   }
 
@@ -1890,7 +1893,8 @@ const NETWORKS = {
 
 const container = document.getElementById('scene');
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
+const isSmallScreen = window.matchMedia('(max-width: 760px)').matches;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isSmallScreen ? 1.4 : 1.8));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
@@ -2057,7 +2061,7 @@ scene.add(ambientLight);
 const shadowLight = new THREE.DirectionalLight(0xbcd4ff, 1.15);
 shadowLight.position.set(-180, 260, 160);
 shadowLight.castShadow = true;
-shadowLight.shadow.mapSize.set(2048, 2048);
+shadowLight.shadow.mapSize.set(isSmallScreen ? 1024 : 2048, isSmallScreen ? 1024 : 2048);
 shadowLight.shadow.camera.left = -340;
 shadowLight.shadow.camera.right = 340;
 shadowLight.shadow.camera.top = 340;
@@ -2193,6 +2197,7 @@ const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff5c6c });
 const flagMat = new THREE.MeshBasicMaterial({ color: 0x66e6ff });
 const hedgeMat = new THREE.MeshStandardMaterial({ color: 0x35634a, roughness: 0.95 });
 const edgeMat = new THREE.MeshBasicMaterial({ color: 0x2c6f8e, transparent: true, opacity: 0.45 });
+const warmLightMat = new THREE.MeshBasicMaterial({ color: 0xffd9a0 });
 const waterMat = new THREE.MeshStandardMaterial({ color: 0x1d4a66, emissive: 0x0d2e44, emissiveIntensity: 0.7, roughness: 0.2, metalness: 0.5 });
 
 /* ---------------------------- 几何收集 ---------------------------- */
@@ -2205,6 +2210,7 @@ const geoPlaza = [];
 const geoTrim = [];
 const geoHedge = [];
 const geoEdge = [];
+const geoWarm = [];
 const geoBeacon = [];
 const geoFlag = [];
 const campusMeshes = {};
@@ -2848,6 +2854,25 @@ function buildDetails() {
   }
 }
 
+  // 校门斑马线
+  const crossings = [[-71, 112, 0], [266, -30, Math.PI / 2], [-40, -164, 0], [-196, 126, Math.PI / 2]];
+  for (const cross of crossings) {
+    for (let i = 0; i < 5; i++) {
+      const stripe = new THREE.BoxGeometry(0.55, 0.03, 6);
+      stripe.rotateY(cross[2]);
+      const off = (i - 2) * 1.15;
+      stripe.translate(cross[0] + Math.cos(cross[2]) * off, 0.47, cross[1] + Math.sin(cross[2]) * off);
+      geoMark.push(stripe);
+    }
+  }
+  // 入口雨棚暖光
+  for (const item of CAMPUS_BUILDINGS) {
+    if (item.area < 600 || item.t === 'part_entrance' || item.t === 'gymnasium') continue;
+    const z = item.bbox.maxZ;
+    const lamp = new THREE.BoxGeometry(1.8, 0.12, 0.28);
+    lamp.translate(item.cx, 3.2, z + 0.6);
+    geoWarm.push(lamp);
+  }
 /* ---------------------------- 地面与合并 ---------------------------- */
 function buildGround() {
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), groundMat);
@@ -2879,6 +2904,7 @@ function mergeAll() {
     ['trim', geoTrim.slice(), trimMat],
     ['hedge', geoHedge.slice(), hedgeMat],
     ['edge', geoEdge.slice(), edgeMat],
+    ['warm', geoWarm.slice(), warmLightMat],
     ['beacon', geoBeacon.slice(), beaconMat],
     ['flag', geoFlag.slice(), flagMat]
   ];
