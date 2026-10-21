@@ -480,25 +480,32 @@ function ellipseField(cx, cz, rx, rz, color, y) {
   scene.add(mesh);
   return mesh;
 }
-ellipseField(-205, -140, 74, 104, 0x9d4b3f, 0.1);
-ellipseField(-205, -140, 54, 82, 0x2f6b3a, 0.14);
+ellipseField(-35, -196, 44, 72, 0x9d4b3f, 0.1);
+ellipseField(-35, -196, 28, 54, 0x2f6b3a, 0.14);
 const courtMat = new THREE.MeshStandardMaterial({ color: 0x3e6f8f, roughness: 0.9 });
 const courtLine = new THREE.MeshBasicMaterial({ color: 0xdbe7ee });
 for (let i = 0; i < 4; i++) {
-  const cx = -120 - (i % 2) * 34;
-  const cz = -268 - Math.floor(i / 2) * 34;
+  const cx = -58 - (i % 2) * 32;
+  const cz = -262 - Math.floor(i / 2) * 26;
   const court = new THREE.Mesh(new THREE.PlaneGeometry(30, 17), courtMat);
   court.rotation.x = -Math.PI / 2;
-  court.rotation.z = -0.5;
+  court.rotation.z = -0.09;
   court.position.set(cx, 0.09, cz);
   scene.add(court);
   const line = new THREE.Mesh(new THREE.PlaneGeometry(28, 0.5), courtLine);
   line.rotation.x = -Math.PI / 2;
-  line.rotation.z = -0.5;
+  line.rotation.z = -0.09;
   line.position.set(cx, 0.1, cz);
   scene.add(line);
 }
-for (const [text, x, z] of [['运动场', -205, -140], ['篮球场', -137, -290]]) {
+for (let i = 0; i < 2; i++) {
+  const court = new THREE.Mesh(new THREE.PlaneGeometry(24, 11), new THREE.MeshStandardMaterial({ color: 0x3f7a55, roughness: 0.9 }));
+  court.rotation.x = -Math.PI / 2;
+  court.rotation.z = -0.09;
+  court.position.set(28, 0.09, -246 - i * 20);
+  scene.add(court);
+}
+for (const [text, x, z] of [['运动场', -35, -196], ['篮球场', -58, -286], ['网球场', 28, -262]]) {
   const el = document.createElement('div');
   el.className = 'label';
   el.textContent = text;
@@ -530,6 +537,52 @@ if (stadium && stadium.r[0]) {
   trackMesh.receiveShadow = true;
   fieldMesh.receiveShadow = true;
   scene.add(trackMesh, fieldMesh);
+}
+
+/* ---------------- 重点立面 ---------------- */
+function signTexture(text) {
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 192;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#f5efe4';
+  ctx.font = 'bold 96px "Microsoft YaHei", "PingFang SC", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 512, 96);
+  const tex = new THREE.CanvasTexture(c); tex.anisotropy = 4; return tex;
+}
+const lib = data.buildings.find((b) => b.n === '图书馆');
+if (lib) {
+  const ring = lib.r[0];
+  const xs = ring.map((p) => p[0]), zs = ring.map((p) => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), maxZ = Math.max(...zs);
+  const cx = (minX + maxX) / 2;
+  const w = Math.min(26, (maxX - minX) * 0.34);
+  const h = Math.min(26, lib.h * 0.5);
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(w, h, 1.2), new THREE.MeshStandardMaterial({ color: 0x8a4a3a, roughness: 0.85 }));
+  panel.position.set(cx, lib.h * 0.5, maxZ + 0.5);
+  scene.add(panel);
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.7, w * 0.18), new THREE.MeshBasicMaterial({ map: signTexture('图书馆'), transparent: true, alphaTest: 0.05 }));
+  sign.position.set(cx, lib.h * 0.62, maxZ + 1.15);
+  scene.add(sign);
+  for (let i = 0; i < 8; i++) {
+    const louver = new THREE.Mesh(new THREE.BoxGeometry(maxX - minX + 2, 0.35, 0.5), new THREE.MeshStandardMaterial({ color: 0xdde3e8, roughness: 0.6 }));
+    louver.position.set(cx, 4 + i * ((lib.h - 8) / 7), maxZ + 0.2);
+    scene.add(louver);
+  }
+}
+for (const name of ['体育馆', '游泳馆']) {
+  const b = data.buildings.find((x) => x.n === name);
+  if (!b) continue;
+  const ring = b.r[0];
+  const xs = ring.map((p) => p[0]), zs = ring.map((p) => p[1]);
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const cz = (Math.min(...zs) + Math.max(...zs)) / 2;
+  const r = Math.min((Math.max(...xs) - Math.min(...xs)) / 2, (Math.max(...zs) - Math.min(...zs)) / 2) * 0.92;
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xd6dde3, roughness: 0.45, metalness: 0.25 }));
+  dome.scale.y = 0.42;
+  dome.position.set(cx, b.h * 0.8, cz);
+  dome.castShadow = true;
+  scene.add(dome);
 }
 
 /* ---------------- 标签 ---------------- */
