@@ -414,13 +414,6 @@ scene.add(roofMesh);
 
 /* ---------------- 操场 / 篮球场 / 网球场 ---------------- */
 // ① 操场：跑道西侧的大场地
-const pitchMat = new THREE.MeshStandardMaterial({ color: 0x2f6b3a, roughness: 0.95 });
-const pitch = new THREE.Mesh(new THREE.PlaneGeometry(76, 52), pitchMat);
-pitch.rotation.x = -Math.PI / 2;
-pitch.rotation.z = -0.06;
-pitch.position.set(-112, 0.08, -200);
-pitch.receiveShadow = true;
-scene.add(pitch);
 function lineStrip(w, d, x, z, rot, color = 0xe8eef2) {
   const mat = new THREE.MeshBasicMaterial({ color });
   const geo = new THREE.PlaneGeometry(w, d);
@@ -431,17 +424,6 @@ function lineStrip(w, d, x, z, rot, color = 0xe8eef2) {
   scene.add(mesh);
   return mesh;
 }
-// 操场边线
-lineStrip(76, 0.8, -112, -200 + 26, -0.06);
-lineStrip(76, 0.8, -112, -200 - 26, -0.06);
-lineStrip(0.8, 52, -112 + 38, -200, -0.06);
-lineStrip(0.8, 52, -112 - 38, -200, -0.06);
-lineStrip(0.8, 52, -112, -200, -0.06);
-const circle = new THREE.Mesh(new THREE.RingGeometry(8, 8.8, 40), new THREE.MeshBasicMaterial({ color: 0xe8eef2, side: THREE.DoubleSide }));
-circle.rotation.x = -Math.PI / 2;
-circle.position.set(-112, 0.095, -200);
-scene.add(circle);
-
 // ② 篮球场：4 片，2x2，带篮架
 const basketMat = new THREE.MeshStandardMaterial({ color: 0x3e6f8f, roughness: 0.9 });
 for (let i = 0; i < 4; i++) {
@@ -556,9 +538,9 @@ function ellipseField(cx, cz, rx, rz, color, y) {
   scene.add(mesh);
   return mesh;
 }
-ellipseField(-24, -222, 34, 58, 0x9d4b3f, 0.1);
-ellipseField(-24, -222, 20, 44, 0x2f6b3a, 0.14);
-for (const [text, x, z] of [['运动场', -24, -222], ['篮球场', -12, -306], ['网球场', 58, -258]]) {
+ellipseField(-70, -220, 52, 92, 0x9d4b3f, 0.1);
+ellipseField(-70, -220, 34, 72, 0x2f6b3a, 0.14);
+for (const [text, x, z] of [['运动场', -70, -220], ['篮球场', -12, -306], ['网球场', 58, -258]]) {
   const el = document.createElement('div');
   el.className = 'label';
   el.textContent = text;
