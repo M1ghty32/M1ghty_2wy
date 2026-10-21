@@ -1317,6 +1317,43 @@
   .fac-card-actions button { padding: 3px 8px; border: 1px solid rgba(56,225,255,.35); border-radius: 6px; background: rgba(56,225,255,.12); color: #cdf3ff; font-family: var(--mono); font-size: 8px; }
   .fac-card-actions span { color: var(--dim); font-size: 8px; }
 
+  .fac-search { padding: 4px 8px 2px; }
+  #fac-search {
+    width: 100%;
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: rgba(8, 16, 26, .8);
+    color: #cfe4f5;
+    font-size: 10px;
+    outline: none;
+  }
+  #fac-search:focus { border-color: var(--line-2); }
+  .fac-search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 150px;
+    padding: 0 8px 8px;
+    overflow-y: auto;
+  }
+  .fac-hit {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 6px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: #b7cadc;
+    font-size: 9.5px;
+    text-align: left;
+  }
+  .fac-hit:hover { border-color: var(--line); background: rgba(56,225,255,.08); }
+  .fac-hit i { width: 5px; height: 5px; border-radius: 50%; background: var(--c, var(--cyan)); }
+  .fac-hit span { margin-left: auto; color: var(--dim); font-family: var(--mono); font-size: 7px; }
+
   /* =====================================================================
      6. 3D 标签 / 底部流速倍速
      ===================================================================== */
@@ -1498,8 +1535,8 @@
 <script type="importmap">
 {
   "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
+    "three": "./vendor/three.module.js",
+    "three/addons/": "./vendor/three-addons/"
   }
 }
 </script>
@@ -1547,6 +1584,12 @@
     <div class="panel-split"></div>
     <div class="layer-sub">快速视角</div>
     <div id="cam-presets" class="cam-presets"></div>
+    <div class="panel-split"></div>
+    <div class="layer-sub">设施搜索</div>
+    <div class="fac-search">
+      <input id="fac-search" type="text" autocomplete="off" spellcheck="false" placeholder="搜索设施 / 网络…" />
+    </div>
+    <div id="fac-search-results" class="fac-search-results"></div>
   </aside>
 
   <aside id="detail-panel" class="panel">
@@ -2487,6 +2530,17 @@ function extrudeBuilding(item) {
     geometry.rotateX(-Math.PI / 2);
     pushColored(geoBuilding, geometry, color);
   }
+  // 屋顶女儿墙
+  if (item.area > 380 && item.t !== 'gymnasium' && item.t !== 'part_entrance') {
+    const b = item.bbox;
+    const w = b.maxX - b.minX;
+    const d = b.maxZ - b.minZ;
+    const y = height + 0.05;
+    boxAt(w, 0.5, 0.36, item.cx, y, b.minZ + 0.18, geoRoof);
+    boxAt(w, 0.5, 0.36, item.cx, y, b.maxZ - 0.18, geoRoof);
+    boxAt(0.36, 0.5, d, b.minX + 0.18, y, item.cz, geoRoof);
+    boxAt(0.36, 0.5, d, b.maxX - 0.18, y, item.cz, geoRoof);
+  }
   // 屋顶细节
   if (item.area > 260 && item.t !== 'part_entrance' && item.t !== 'gymnasium') {
     const box = item.bbox;
@@ -2556,6 +2610,19 @@ function buildTrack() {
   fieldMesh.receiveShadow = true;
   scene.add(fieldMesh);
 
+  // 分道线
+  for (const radius of [4.6, 5.0, 5.4]) {
+    const lane = new THREE.TorusGeometry(radius, 0.055, 4, 64);
+    lane.rotateX(-Math.PI / 2);
+    lane.scale(1, 1, 0.66);
+    lane.translate(track.cx, 0.13, track.cz);
+    geoMark.push(lane);
+  }
+  // 看台
+  for (let i = 0; i < 5; i++) {
+    boxAt(42, 0.7, 1.8, track.cx, 0.35 + i * 0.7, track.cz - 20 - i * 1.8, geoRoof);
+    boxAt(42, 0.7, 1.8, track.cx, 0.35 + i * 0.7, track.cz + 20 + i * 1.8, geoRoof);
+  }
   // 跑道白线
   const outline = new THREE.BufferGeometry().setFromPoints(
     ring.map((p) => new THREE.Vector3(p[0], 0.34, p[1]))
@@ -4426,6 +4493,41 @@ function initUI() {
     detailPanelEl?.classList.toggle('is-open');
     layerPanelEl?.classList.remove('is-open');
   });
+
+  const facSearch = document.getElementById('fac-search');
+  const facResults = document.getElementById('fac-search-results');
+  function renderFacSearch() {
+    if (!facResults) return;
+    const query = (facSearch?.value || '').trim().toLowerCase();
+    facResults.innerHTML = '';
+    if (!query) return;
+    const hits = [];
+    for (const [id, fac] of facilityIndex) {
+      const net = NETWORKS[fac.netKey];
+      const hay = (fac.def.name + ' ' + net.name + ' ' + NET_STYLE[fac.netKey].css).toLowerCase();
+      if (hay.includes(query)) hits.push(fac);
+      if (hits.length >= 8) break;
+    }
+    for (const fac of hits) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'fac-hit';
+      btn.style.setProperty('--c', NET_STYLE[fac.netKey].css);
+      const dot = document.createElement('i');
+      const name = document.createElement('b');
+      name.textContent = fac.def.name;
+      const tag = document.createElement('span');
+      tag.textContent = NET_SHORT[fac.netKey];
+      btn.append(dot, name, tag);
+      btn.addEventListener('click', () => {
+        selectFacility(fac.def.id);
+        if (facSearch) facSearch.value = '';
+        if (facResults) facResults.innerHTML = '';
+      });
+      facResults.appendChild(btn);
+    }
+  }
+  facSearch?.addEventListener('input', renderFacSearch);
 
   const speed = document.getElementById('flow-speed');
   const speedOut = document.getElementById('flow-speed-out');
