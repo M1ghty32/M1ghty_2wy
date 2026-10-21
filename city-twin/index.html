@@ -1354,6 +1354,52 @@
   .fac-hit i { width: 5px; height: 5px; border-radius: 50%; background: var(--c, var(--cyan)); }
   .fac-hit span { margin-left: auto; color: var(--dim); font-family: var(--mono); font-size: 7px; }
 
+  .fac-chips { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 0 2px; }
+  .fac-chip {
+    padding: 3px 7px;
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    background: transparent;
+    color: #9fb4c9;
+    font-size: 8.5px;
+  }
+  .fac-chip:hover { border-color: var(--c); color: #eaf8ff; }
+  #help-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: grid;
+    place-items: center;
+    background: rgba(2, 8, 14, .72);
+    backdrop-filter: blur(4px);
+  }
+  #help-modal[hidden] { display: none; }
+  .help-card {
+    width: min(520px, 92vw);
+    border: 1px solid var(--line-2);
+    border-radius: 12px;
+    background: linear-gradient(180deg, #0d1a28, #08111c);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, .6);
+  }
+  .help-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .help-head b { font-size: 12px; letter-spacing: .06em; }
+  .help-head button { border: 0; background: transparent; color: var(--muted); font-size: 18px; }
+  .help-grid {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 8px 12px;
+    padding: 14px;
+    font-size: 11px;
+    color: #c3d5e4;
+  }
+  .help-grid span:nth-child(odd) { font-family: var(--mono); color: var(--cyan); font-size: 10px; }
+
   /* =====================================================================
      6. 3D 标签 / 底部流速倍速
      ===================================================================== */
@@ -1565,6 +1611,7 @@
       <button id="btn-xray" class="tb-btn" type="button">X-RAY 地下透视</button>
       <button id="btn-demo" class="tb-btn" type="button">▶ 演示模式</button>
       <button id="btn-tour" class="tb-btn" type="button">▶ 自动巡游</button>
+      <button id="btn-help" class="tb-btn" type="button" title="快捷键帮助">? 帮助</button>
       <button id="btn-reset" class="tb-btn" type="button">⟲ 复位视角</button>
     </div>
   </header>
@@ -1588,6 +1635,7 @@
     <div class="layer-sub">设施搜索</div>
     <div class="fac-search">
       <input id="fac-search" type="text" autocomplete="off" spellcheck="false" placeholder="搜索设施 / 网络…" />
+      <div id="fac-chips" class="fac-chips"></div>
     </div>
     <div id="fac-search-results" class="fac-search-results"></div>
   </aside>
@@ -1620,6 +1668,24 @@
       <div id="event-log" class="event-log"></div>
     </section>
   </footer>
+
+  <div id="help-modal" hidden>
+    <div class="help-card">
+      <div class="help-head"><b>快捷键与操作</b><button id="btn-help-close" type="button" aria-label="关闭帮助">×</button></div>
+      <div class="help-grid">
+        <span>1 – 6</span><span>聚焦六张网</span>
+        <span>X</span><span>地下管廊透视</span>
+        <span>L</span><span>名称标签开关</span>
+        <span>T</span><span>自动巡游</span>
+        <span>R</span><span>复位视角</span>
+        <span>N</span><span>日夜切换</span>
+        <span>空格</span><span>暂停 / 继续演示</span>
+        <span>Esc</span><span>关闭面板 / 停止演示</span>
+        <span>点击建筑</span><span>查看建筑档案与楼内设施</span>
+        <span>点击设施</span><span>查看实时读数与定位</span>
+      </div>
+    </div>
+  </div>
 
   <div id="mobile-tools">
     <button id="btn-mobile-layers" type="button">图层控制</button>
@@ -2270,6 +2336,14 @@ const geoWarm = [];
 const geoBeacon = [];
 const geoFlag = [];
 const campusMeshes = {};
+const pickGroup = new THREE.Group();
+scene.add(pickGroup);
+const selectionBox = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)),
+  new THREE.LineBasicMaterial({ color: 0x38e1ff, transparent: true, opacity: 0.9 })
+);
+selectionBox.visible = false;
+scene.add(selectionBox);
 let movingCars = [];
 const gateGlows = [];
 const buildingLabels = [];
@@ -2564,6 +2638,18 @@ function buildBuildings() {
     if (item.n === '运动场') continue;
     extrudeBuilding(item);
   }
+  for (const item of CAMPUS_BUILDINGS) {
+    if (item.n === '运动场') continue;
+    const b = item.bbox;
+    const proxy = new THREE.Mesh(
+      new THREE.BoxGeometry(b.maxX - b.minX, item.h, b.maxZ - b.minZ),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    proxy.position.set(item.cx, item.h / 2, item.cz);
+    proxy.userData.building = item;
+    pickGroup.add(proxy);
+  }
+
   // 图书馆冠环
   const library = findBuilding('图书馆');
   if (library) {
@@ -2623,6 +2709,22 @@ function buildTrack() {
     boxAt(42, 0.7, 1.8, track.cx, 0.35 + i * 0.7, track.cz - 20 - i * 1.8, geoRoof);
     boxAt(42, 0.7, 1.8, track.cx, 0.35 + i * 0.7, track.cz + 20 + i * 1.8, geoRoof);
   }
+  // 座椅与顶棚
+  for (let i = 0; i < 5; i++) {
+    for (const side of [-1, 1]) {
+      const seat = new THREE.BoxGeometry(40, 0.12, 1.5);
+      seat.translate(track.cx, 0.76 + i * 0.7, track.cz + side * (20 + i * 1.8));
+      pushColored(geoTrim, seat, 0x31536f);
+    }
+  }
+  for (const side of [-1, 1]) {
+    boxAt(44, 0.25, 10, track.cx, 7.2, track.cz + side * 23, geoRoof);
+    for (const dx of [-20, 20]) {
+      for (const dz of [-3, 3]) {
+        boxAt(0.25, 7, 0.25, track.cx + dx, 3.5, track.cz + side * 23 + dz, geoTrim);
+      }
+    }
+  }
   // 跑道白线
   const outline = new THREE.BufferGeometry().setFromPoints(
     ring.map((p) => new THREE.Vector3(p[0], 0.34, p[1]))
@@ -2657,6 +2759,16 @@ function buildPlazas() {
 
 function buildGate(x, z, title, subtitle, simple = false, labelText = title) {
   const pillarColor = 0x2c3642;
+  if (simple) {
+    for (const side of [-1, 1]) {
+      const guard = new THREE.BoxGeometry(3.2, 3.2, 3.2);
+      guard.translate(x + side * 12, 1.6, z);
+      pushColored(geoRoof, guard, 0x9aa7b2);
+      const lamp = new THREE.BoxGeometry(1.2, 0.14, 0.3);
+      lamp.translate(x + side * 12, 3.25, z + 1.3);
+      geoWarm.push(lamp);
+    }
+  }
   const pillarGeo = new THREE.CylinderGeometry(0.9, 1.1, simple ? 7 : 9, 10);
   pillarGeo.translate(x - 8, (simple ? 7 : 9) / 2, z);
   pushColored(geoBuilding, pillarGeo, pillarColor);
@@ -3186,6 +3298,7 @@ const state = {
   flowSpeed: 1,
   activeNet: null,
   selectedFacility: null,
+  selectedBuilding: null,
   incident: null,
   layers: { water: true, power: true, compute: true, comms: true, tunnel: true, logistics: true }
 };
@@ -3875,12 +3988,105 @@ function drawSpark(net) {
   ctx.fill();
 }
 
+const TYPE_LABELS = {
+  student_bedroom: '学生公寓',
+  experiment_building: '实验实训',
+  canteen: '餐厅',
+  gymnasium: '文体场馆',
+  service_building: '配套服务',
+  administration: '行政办公',
+  teaching: '教学楼',
+  hospital: '校医院',
+  part_entrance: '入口构筑',
+  library: '图书馆'
+};
+
+function buildingArea(item) {
+  const ring = item.r && item.r[0];
+  if (!ring) return 0;
+  let sum = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i];
+    const b = ring[(i + 1) % ring.length];
+    sum += a[0] * b[1] - b[0] * a[1];
+  }
+  return Math.abs(sum / 2);
+}
+
+function selectBuilding(item) {
+  state.selectedBuilding = item;
+  state.activeNet = null;
+  state.selectedFacility = null;
+  const b = item.bbox;
+  selectionBox.scale.set(b.maxX - b.minX, item.h, b.maxZ - b.minZ);
+  selectionBox.position.set(item.cx, item.h / 2, item.cz);
+  selectionBox.visible = true;
+  renderLayerPanel();
+  renderDetail();
+  if (window.innerWidth <= 760) document.getElementById('detail-panel')?.classList.add('is-open');
+}
+
+function clearBuildingSelection() {
+  if (!state.selectedBuilding) return;
+  state.selectedBuilding = null;
+  selectionBox.visible = false;
+  renderDetail();
+}
+
+function renderBuildingDetail() {
+  if (!detailView) return;
+  const item = state.selectedBuilding;
+  const facs = Array.from(facilityIndex.values()).filter((fac) => fac.def.building === item.n);
+  const rows = facs.map((fac) => `
+    <div class="fac-row" data-fac-row="${fac.def.id}">
+      <span class="fac-name"><i style="background:${NET_STYLE[fac.netKey].css}"></i><span>${fac.def.name}</span></span>
+      <span class="fac-val">${facReading(fac)}</span>
+    </div>
+  `).join('') || '<div class="fac-row"><span class="fac-name"><span>该建筑暂无接入设施</span></span></div>';
+  detailView.innerHTML = `
+    <div class="detail-head">
+      <button class="back-btn" type="button" id="btn-building-back" aria-label="返回总览">←</button>
+      <div>
+        <h3>${item.n}</h3>
+        <p>${TYPE_LABELS[item.t] || item.t || '校园建筑'} · BUILDING</p>
+      </div>
+      <span class="status-pill" style="color:#9fe8ff">建筑档案</span>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><span>建筑高度</span><b>${item.h.toFixed(1)}<em>m</em></b></div>
+      <div class="kpi"><span>估算层数</span><b>${Math.max(1, Math.round(item.h / 4.2))}<em>层</em></b></div>
+      <div class="kpi"><span>占地面积</span><b>${Math.round(buildingArea(item)).toLocaleString()}<em>m²</em></b></div>
+      <div class="kpi"><span>接入设施</span><b>${facs.length}<em>个</em></b></div>
+    </div>
+    <div class="section-label">楼内设施<span>ON THIS BUILDING</span><i></i></div>
+    <div class="fac-list">${rows}</div>
+    <div class="fac-card-actions">
+      <button type="button" id="btn-building-focus" style="padding:5px 10px;border:1px solid rgba(56,225,255,.35);border-radius:7px;background:rgba(56,225,255,.12);color:#cdf3ff;font-size:9px">聚焦该建筑</button>
+      <button type="button" id="btn-building-back2" style="padding:5px 10px;border:1px solid var(--line);border-radius:7px;background:transparent;color:#9fb4c9;font-size:9px">收起</button>
+    </div>
+  `;
+  document.getElementById('btn-building-back')?.addEventListener('click', clearBuildingSelection);
+  document.getElementById('btn-building-back2')?.addEventListener('click', clearBuildingSelection);
+  document.getElementById('btn-building-focus')?.addEventListener('click', () => {
+    const r = Math.max(item.bbox.maxX - item.bbox.minX, item.bbox.maxZ - item.bbox.minZ);
+    flyTo(
+      new THREE.Vector3(item.cx + r * 1.1, item.h + 38, item.cz + r * 1.3),
+      new THREE.Vector3(item.cx, item.h * 0.45, item.cz),
+      2.0
+    );
+  });
+  detailView.querySelectorAll('[data-fac-row]').forEach((row) => {
+    row.addEventListener('click', () => selectFacility(row.getAttribute('data-fac-row')));
+  });
+}
+
 function renderDetail() {
   if (!detailView) return;
   updateNetworkVisibility();
   const key = state.activeNet;
   if (!key) {
-    renderOverview();
+    if (state.selectedBuilding) renderBuildingDetail();
+    else renderOverview();
     return;
   }
   const net = netState[key];
@@ -4235,10 +4441,21 @@ function onClick(event) {
       selectFacility(hit.object.userData.facilityId);
       return;
     }
+    const buildingHits = raycaster.intersectObjects(pickGroup.children, false);
+    if (buildingHits.length) {
+      selectBuilding(buildingHits[0].object.userData.building);
+      return;
+    }
+    if (state.selectedBuilding) {
+      state.selectedBuilding = null;
+      selectionBox.visible = false;
+    }
     if (state.activeNet) {
       state.activeNet = null;
       state.selectedFacility = null;
       renderLayerPanel();
+      renderDetail();
+    } else {
       renderDetail();
     }
     return;
@@ -4529,6 +4746,30 @@ function initUI() {
   }
   facSearch?.addEventListener('input', renderFacSearch);
 
+  const chips = document.getElementById('fac-chips');
+  if (chips) {
+    for (const key of NET_ORDER) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'fac-chip';
+      chip.textContent = NETWORKS[key].name;
+      chip.style.setProperty('--c', NET_STYLE[key].css);
+      chip.addEventListener('click', () => {
+        if (facSearch) {
+          facSearch.value = NETWORKS[key].name;
+          facSearch.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+      chips.appendChild(chip);
+    }
+  }
+
+  const helpModal = document.getElementById('help-modal');
+  const toggleHelp = (open) => { if (helpModal) helpModal.hidden = !open; };
+  document.getElementById('btn-help')?.addEventListener('click', () => toggleHelp(true));
+  document.getElementById('btn-help-close')?.addEventListener('click', () => toggleHelp(false));
+  helpModal?.addEventListener('click', (event) => { if (event.target === helpModal) toggleHelp(false); });
+
   const speed = document.getElementById('flow-speed');
   const speedOut = document.getElementById('flow-speed-out');
   speed?.addEventListener('input', () => {
@@ -4683,7 +4924,7 @@ requestAnimationFrame(() => {
 });
 
 /* 调试钩子：便于验证渲染与交互，不包含任何敏感信息 */
-window.__CITY__ = { scene, camera, renderer, composer, controls, state, netState, facilityIndex, THREE, windowUniforms, shadowLight, campusMeshes, selectFacility, bootMs: performance.now() - bootStarted };
+window.__CITY__ = { scene, camera, renderer, composer, controls, state, netState, facilityIndex, THREE, windowUniforms, shadowLight, campusMeshes, selectFacility, selectBuilding, CAMPUS_BUILDINGS, pickGroup, bootMs: performance.now() - bootStarted };
 
 /* 首次交互关闭巡游 */
 controls.addEventListener('start', () => {
@@ -4712,6 +4953,11 @@ document.addEventListener('keydown', (event) => {
     return;
   }
   if (key === 'escape') {
+    if (state.selectedBuilding) {
+      state.selectedBuilding = null;
+      selectionBox.visible = false;
+      renderDetail();
+    }
     if (state.activeNet) {
       state.activeNet = null;
       state.selectedFacility = null;
@@ -4719,6 +4965,7 @@ document.addEventListener('keydown', (event) => {
       renderDetail();
     }
   }
+  if (key === '?' || key === '/') { const m = document.getElementById('help-modal'); if (m) m.hidden = !m.hidden; }
   if (key === 'x') setXray(!state.xray);
   if (key === 'l') setLabelsVisible(!state.labels);
   if (key === 't') toggleTour();
