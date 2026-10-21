@@ -2315,6 +2315,7 @@ const markMat = new THREE.MeshBasicMaterial({ color: 0xc8d6e2, transparent: true
 const trackMat = new THREE.MeshStandardMaterial({ color: 0x7a2f33, roughness: 0.92, side: THREE.DoubleSide });
 const fieldMat = new THREE.MeshStandardMaterial({ color: 0x234a2c, roughness: 0.95, side: THREE.DoubleSide });
 const trimMat = new THREE.MeshStandardMaterial({ color: 0x2c3742, roughness: 0.7, metalness: 0.35 });
+const detailMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0.05 });
 const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff5c6c });
 const flagMat = new THREE.MeshBasicMaterial({ color: 0x66e6ff });
 const hedgeMat = new THREE.MeshStandardMaterial({ color: 0x35634a, roughness: 0.95 });
@@ -2330,6 +2331,7 @@ const geoWalk = [];
 const geoRoad = [];
 const geoPlaza = [];
 const geoTrim = [];
+const geoDetail = [];
 const geoHedge = [];
 const geoEdge = [];
 const geoWarm = [];
@@ -2714,7 +2716,7 @@ function buildTrack() {
     for (const side of [-1, 1]) {
       const seat = new THREE.BoxGeometry(40, 0.12, 1.5);
       seat.translate(track.cx, 0.76 + i * 0.7, track.cz + side * (20 + i * 1.8));
-      pushColored(geoTrim, seat, 0x31536f);
+      pushColored(geoDetail, seat, 0x31536f);
     }
   }
   for (const side of [-1, 1]) {
@@ -2763,7 +2765,7 @@ function buildGate(x, z, title, subtitle, simple = false, labelText = title) {
     for (const side of [-1, 1]) {
       const guard = new THREE.BoxGeometry(3.2, 3.2, 3.2);
       guard.translate(x + side * 12, 1.6, z);
-      pushColored(geoRoof, guard, 0x9aa7b2);
+      pushColored(geoDetail, guard, 0x9aa7b2);
       const lamp = new THREE.BoxGeometry(1.2, 0.14, 0.3);
       lamp.translate(x + side * 12, 3.25, z + 1.3);
       geoWarm.push(lamp);
@@ -2858,7 +2860,7 @@ function buildTrees() {
     seeds.push({ x: px, z: pz, s: 0.9, pine: false, tone: 0.45 });
     const pit = new THREE.CylinderGeometry(1.35, 1.5, 0.28, 10);
     pit.translate(px, 0.14, pz);
-    pushColored(geoTrim, pit, 0x6a747c);
+    pushColored(geoDetail, pit, 0x6a747c);
   }
   // 中央林荫道（南门 — 图书馆方向）
   const avenue = [];
@@ -3148,6 +3150,52 @@ function buildAxis() {
   scene.add(jet);
 }
 
+function makeTextTexture(text, color, font) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = color;
+  ctx.font = font || 'bold 120px "Microsoft YaHei", "PingFang SC", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.anisotropy = 4;
+  return texture;
+}
+
+function buildLandmarks() {
+  const library = findBuilding('图书馆');
+  if (library) {
+    const b = library.bbox;
+    const w = b.maxX - b.minX;
+    const panelW = Math.min(26, w * 0.34);
+    const panelH = Math.min(26, library.h * 0.52);
+    const z = b.maxZ + 0.35;
+    // 中部红砖体块
+    const panel = new THREE.BoxGeometry(panelW, panelH, 0.7);
+    panel.translate(library.cx, library.h * 0.5, z);
+    pushColored(geoDetail, panel, 0x7d4034);
+    // 水平百叶
+    for (let i = 0; i < 9; i++) {
+      const y = 4 + i * ((library.h - 8) / 8);
+      const louver = new THREE.BoxGeometry(w * 0.94, 0.3, 0.35);
+      louver.translate(library.cx, y, z + 0.1);
+      pushColored(geoDetail, louver, 0xd8dee6);
+    }
+    // 图书馆题字
+    const textPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(panelW * 0.8, panelW * 0.2),
+      new THREE.MeshBasicMaterial({ map: makeTextTexture('图书馆', '#f4efe6'), transparent: true, alphaTest: 0.05 })
+    );
+    textPlane.position.set(library.cx, library.h * 0.62, z + 0.45);
+    scene.add(textPlane);
+  }
+
+}
+
 /* ---------------------------- 地面与合并 ---------------------------- */
 function buildGround() {
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), groundMat);
@@ -3177,6 +3225,7 @@ function mergeAll() {
     ['road', geoRoad.slice(), asphaltMat],
     ['plaza', geoPlaza.slice(), plazaMat],
     ['trim', geoTrim.slice(), trimMat],
+    ['detail', geoDetail.slice(), detailMat],
     ['hedge', geoHedge.slice(), hedgeMat],
     ['edge', geoEdge.slice(), edgeMat],
     ['warm', geoWarm.slice(), warmLightMat],
@@ -3228,6 +3277,7 @@ function buildCampus() {
   buildBuildings();
   buildTrack();
   buildPlazas();
+  buildLandmarks();
   buildTrees();
   buildLamps();
   buildDetails();
