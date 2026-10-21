@@ -482,16 +482,16 @@ function ellipseField(cx, cz, rx, rz, color, y) {
   scene.add(mesh);
   return mesh;
 }
-ellipseField(-35, -196, 44, 72, 0x9d4b3f, 0.1);
-ellipseField(-35, -196, 28, 54, 0x2f6b3a, 0.14);
+ellipseField(-24, -222, 34, 58, 0x9d4b3f, 0.1);
+ellipseField(-24, -222, 20, 44, 0x2f6b3a, 0.14);
 const courtMat = new THREE.MeshStandardMaterial({ color: 0x3e6f8f, roughness: 0.9 });
 const courtLine = new THREE.MeshBasicMaterial({ color: 0xdbe7ee });
 for (let i = 0; i < 4; i++) {
-  const cx = -58 - (i % 2) * 32;
-  const cz = -262 - Math.floor(i / 2) * 26;
+  const cx = -18 + (i % 2) * 30;
+  const cz = -300 - Math.floor(i / 2) * 24;
   const court = new THREE.Mesh(new THREE.PlaneGeometry(30, 17), courtMat);
   court.rotation.x = -Math.PI / 2;
-  court.rotation.z = -0.09;
+  court.rotation.z = -0.04;
   court.position.set(cx, 0.09, cz);
   scene.add(court);
   const line = new THREE.Mesh(new THREE.PlaneGeometry(28, 0.5), courtLine);
@@ -504,10 +504,10 @@ for (let i = 0; i < 2; i++) {
   const court = new THREE.Mesh(new THREE.PlaneGeometry(24, 11), new THREE.MeshStandardMaterial({ color: 0x3f7a55, roughness: 0.9 }));
   court.rotation.x = -Math.PI / 2;
   court.rotation.z = -0.09;
-  court.position.set(28, 0.09, -246 - i * 20);
+  court.position.set(52, 0.09, -272 - i * 20);
   scene.add(court);
 }
-for (const [text, x, z] of [['运动场', -35, -196], ['篮球场', -58, -286], ['网球场', 28, -262]]) {
+for (const [text, x, z] of [['运动场', -24, -222], ['篮球场', -3, -318], ['网球场', 52, -286]]) {
   const el = document.createElement('div');
   el.className = 'label';
   el.textContent = text;
@@ -534,8 +534,8 @@ if (stadium && stadium.r[0]) {
     geo.translate(0, 0.12, 0);
     return geo;
   }
-  const trackMesh = new THREE.Mesh(scaledShape(0.96), new THREE.MeshStandardMaterial({ color: 0x9d4b3f, roughness: 0.9 }));
-  const fieldMesh = new THREE.Mesh(scaledShape(0.68), new THREE.MeshStandardMaterial({ color: 0x2f6b3a, roughness: 0.95 }));
+  const trackMesh = new THREE.Mesh(scaledShape(0.8), new THREE.MeshStandardMaterial({ color: 0x9d4b3f, roughness: 0.9 }));
+  const fieldMesh = new THREE.Mesh(scaledShape(0.56), new THREE.MeshStandardMaterial({ color: 0x2f6b3a, roughness: 0.95 }));
   trackMesh.receiveShadow = true;
   fieldMesh.receiveShadow = true;
   scene.add(trackMesh, fieldMesh);
