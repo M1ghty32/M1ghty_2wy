@@ -367,6 +367,7 @@ const KIND_COLOR = { library: 0xdde6ec, teaching: 0xe4e8ec, student_bedroom: 0xd
 const buildingGeoms = [];
 let idx = 0;
 for (const b of data.buildings) {
+  if (b.n === '运动场') continue;
   const ring = b.r[0];
   if (!ring || ring.length < 3) continue;
   const shape = new THREE.Shape();
@@ -396,6 +397,7 @@ scene.add(buildingMesh);
 /* 屋顶（深色薄板） */
 const roofGeos = [];
 for (const b of data.buildings) {
+  if (b.n === '运动场') continue;
   const ring = b.r[0];
   if (!ring || ring.length < 3) continue;
   const shape = new THREE.Shape();
@@ -577,18 +579,70 @@ for (const name of ['体育馆', '游泳馆']) {
   const xs = ring.map((p) => p[0]), zs = ring.map((p) => p[1]);
   const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
   const cz = (Math.min(...zs) + Math.max(...zs)) / 2;
-  const r = Math.min((Math.max(...xs) - Math.min(...xs)) / 2, (Math.max(...zs) - Math.min(...zs)) / 2) * 0.92;
+  const r = Math.min((Math.max(...xs) - Math.min(...xs)) / 2, (Math.max(...zs) - Math.min(...zs)) / 2) * 0.55;
   const dome = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xd6dde3, roughness: 0.45, metalness: 0.25 }));
-  dome.scale.y = 0.42;
+  dome.scale.y = 0.3;
   dome.position.set(cx, b.h * 0.8, cz);
   dome.castShadow = true;
   scene.add(dome);
+}
+
+/* ---------------- 广场铺装 ---------------- */
+const pavingMat = new THREE.MeshStandardMaterial({ color: 0x9aa2a8, roughness: 0.9 });
+const plazaDefs = [
+  { x: 205, z: 300, w: 96, d: 150, rot: 0.02 },
+  { x: 208, z: -18, w: 104, d: 62, rot: 0.02 },
+  { x: 205, z: 455, w: 60, d: 26, rot: 0.02 }
+];
+for (const p of plazaDefs) {
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(p.w, p.d), pavingMat);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.rotation.z = p.rot;
+  mesh.position.set(p.x, 0.055, p.z);
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+}
+
+/* ---------------- 湖岸线 ---------------- */
+const bankMat = new THREE.MeshStandardMaterial({ color: 0xb9c2b4, roughness: 1 });
+for (const ring of data.water) {
+  const cx = ring.reduce((a, p) => a + p[0], 0) / ring.length;
+  const cz = ring.reduce((a, p) => a + p[1], 0) / ring.length;
+  const shape = new THREE.Shape();
+  ring.forEach((p, i) => {
+    const x = cx + (p[0] - cx) * 1.045;
+    const z = cz + (p[1] - cz) * 1.045;
+    if (i === 0) shape.moveTo(x, -z); else shape.lineTo(x, -z);
+  });
+  shape.closePath();
+  const geo = new THREE.ShapeGeometry(shape);
+  geo.rotateX(-Math.PI / 2);
+  const mesh = new THREE.Mesh(geo, bankMat);
+  mesh.position.y = 0.045;
+  scene.add(mesh);
+}
+
+/* ---------------- 道路名称 ---------------- */
+const ROAD_LABELS = ['中环南路', '博雅大道', '明德西路', '明德东路', '外环西路', '俊园南路'];
+for (const label of ROAD_LABELS) {
+  const road = data.roads.find((r) => r.n === label && r.l.length && r.l[0].length > 3);
+  if (!road) continue;
+  const line = road.l.sort((a, b) => b.length - a.length)[0];
+  const mid = line[Math.floor(line.length / 2)];
+  const el = document.createElement('div');
+  el.className = 'label';
+  el.style.opacity = '0.85';
+  el.textContent = label;
+  const obj = new CSS2DObject(el);
+  obj.position.set(mid[0], 2, mid[1]);
+  scene.add(obj);
 }
 
 /* ---------------- 标签 ---------------- */
 const MAJOR = /图书馆|行政楼|体育馆|游泳馆|运动场|双创|食堂|医院|国际交流|学生活动中心|南门|北门|东门|西南门/;
 for (const b of data.buildings) {
   if (!b.n) continue;
+  if (b.n === '南门' || b.n === '西南门' || b.n === '北门' || b.n === '东门') continue;
   if (/^\d+号楼/.test(b.n) && !MAJOR.test(b.n)) continue;
   if (b.h < 18 && !MAJOR.test(b.n)) continue;
   const el = document.createElement('div');
