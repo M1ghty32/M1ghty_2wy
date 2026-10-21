@@ -428,8 +428,8 @@ function makeSignTexture(text) {
 const gateDefs = [
   { name: '南门', x: 204.7, z: 442.1, rot: 0, main: true },
   { name: '西南门', x: -294.7, z: 254.4, rot: Math.PI / 2, main: false },
-  { name: '北门', x: 10, z: -880, rot: Math.PI, main: false },
-  { name: '东门', x: 665, z: 300, rot: -Math.PI / 2, main: false }
+  { name: '北门', x: -62, z: -830, rot: Math.PI, main: false },
+  { name: '东门', x: 688, z: 322, rot: -Math.PI / 2, main: false }
 ];
 const gateMat = new THREE.MeshStandardMaterial({ color: 0xcfd6dc, roughness: 0.6, metalness: 0.2 });
 const gateDark = new THREE.MeshStandardMaterial({ color: 0x2b343c, roughness: 0.7 });
@@ -465,6 +465,45 @@ for (const g of gateDefs) {
   el.textContent = g.name;
   const obj = new CSS2DObject(el);
   obj.position.set(g.x, 12, g.z);
+  scene.add(obj);
+}
+
+/* 西侧运动场与篮球场 */
+function ellipseField(cx, cz, rx, rz, color, y) {
+  const shape = new THREE.Shape();
+  shape.absellipse(0, 0, rx, rz, 0, Math.PI * 2, false, 0);
+  const geo = new THREE.ShapeGeometry(shape, 48);
+  geo.rotateX(-Math.PI / 2);
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: 0.92 }));
+  mesh.position.set(cx, y, cz);
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+  return mesh;
+}
+ellipseField(-205, -140, 74, 104, 0x9d4b3f, 0.1);
+ellipseField(-205, -140, 54, 82, 0x2f6b3a, 0.14);
+const courtMat = new THREE.MeshStandardMaterial({ color: 0x3e6f8f, roughness: 0.9 });
+const courtLine = new THREE.MeshBasicMaterial({ color: 0xdbe7ee });
+for (let i = 0; i < 4; i++) {
+  const cx = -120 - (i % 2) * 34;
+  const cz = -268 - Math.floor(i / 2) * 34;
+  const court = new THREE.Mesh(new THREE.PlaneGeometry(30, 17), courtMat);
+  court.rotation.x = -Math.PI / 2;
+  court.rotation.z = -0.5;
+  court.position.set(cx, 0.09, cz);
+  scene.add(court);
+  const line = new THREE.Mesh(new THREE.PlaneGeometry(28, 0.5), courtLine);
+  line.rotation.x = -Math.PI / 2;
+  line.rotation.z = -0.5;
+  line.position.set(cx, 0.1, cz);
+  scene.add(line);
+}
+for (const [text, x, z] of [['运动场', -205, -140], ['篮球场', -137, -290]]) {
+  const el = document.createElement('div');
+  el.className = 'label';
+  el.textContent = text;
+  const obj = new CSS2DObject(el);
+  obj.position.set(x, 10, z);
   scene.add(obj);
 }
 
