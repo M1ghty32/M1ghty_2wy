@@ -412,6 +412,80 @@ for (const b of data.buildings) {
 const roofMesh = new THREE.Mesh(mergeGeos(roofGeos), new THREE.MeshStandardMaterial({ color: 0x3a4450, roughness: 0.9 }));
 scene.add(roofMesh);
 
+/* ---------------- 操场 / 篮球场 / 网球场 ---------------- */
+// ① 操场：跑道西侧的大场地
+const pitchMat = new THREE.MeshStandardMaterial({ color: 0x2f6b3a, roughness: 0.95 });
+const pitch = new THREE.Mesh(new THREE.PlaneGeometry(76, 52), pitchMat);
+pitch.rotation.x = -Math.PI / 2;
+pitch.rotation.z = -0.06;
+pitch.position.set(-112, 0.08, -200);
+pitch.receiveShadow = true;
+scene.add(pitch);
+function lineStrip(w, d, x, z, rot, color = 0xe8eef2) {
+  const mat = new THREE.MeshBasicMaterial({ color });
+  const geo = new THREE.PlaneGeometry(w, d);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.rotation.z = rot;
+  mesh.position.set(x, 0.095, z);
+  scene.add(mesh);
+  return mesh;
+}
+// 操场边线
+lineStrip(76, 0.8, -112, -200 + 26, -0.06);
+lineStrip(76, 0.8, -112, -200 - 26, -0.06);
+lineStrip(0.8, 52, -112 + 38, -200, -0.06);
+lineStrip(0.8, 52, -112 - 38, -200, -0.06);
+lineStrip(0.8, 52, -112, -200, -0.06);
+const circle = new THREE.Mesh(new THREE.RingGeometry(8, 8.8, 40), new THREE.MeshBasicMaterial({ color: 0xe8eef2, side: THREE.DoubleSide }));
+circle.rotation.x = -Math.PI / 2;
+circle.position.set(-112, 0.095, -200);
+scene.add(circle);
+
+// ② 篮球场：4 片，2x2，带篮架
+const basketMat = new THREE.MeshStandardMaterial({ color: 0x3e6f8f, roughness: 0.9 });
+for (let i = 0; i < 4; i++) {
+  const cx = -12 - (i % 2) * 30;
+  const cz = -306 - Math.floor(i / 2) * 28;
+  const court = new THREE.Mesh(new THREE.PlaneGeometry(26, 14), basketMat);
+  court.rotation.x = -Math.PI / 2;
+  court.rotation.z = -0.05;
+  court.position.set(cx, 0.085, cz);
+  scene.add(court);
+  lineStrip(24, 0.4, cx, cz + 5.6, -0.05);
+  lineStrip(24, 0.4, cx, cz - 5.6, -0.05);
+  lineStrip(0.4, 14, cx - 13, cz, -0.05);
+  lineStrip(0.4, 14, cx + 13, cz, -0.05);
+  // 篮架
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 3.2, 6), new THREE.MeshStandardMaterial({ color: 0x4a545c }));
+  pole.position.set(cx - 12.4, 1.6, cz);
+  scene.add(pole);
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.1), new THREE.MeshStandardMaterial({ color: 0xe6ebef, side: THREE.DoubleSide }));
+  board.position.set(cx - 11.5, 2.9, cz);
+  board.rotation.y = Math.PI / 2;
+  scene.add(board);
+}
+
+// ③ 网球场：2 片
+for (let i = 0; i < 2; i++) {
+  const cx = 58;
+  const cz = -258 - i * 22;
+  const court = new THREE.Mesh(new THREE.PlaneGeometry(24, 11), new THREE.MeshStandardMaterial({ color: 0x3f7a55, roughness: 0.9 }));
+  court.rotation.x = -Math.PI / 2;
+  court.rotation.z = -0.05;
+  court.position.set(cx, 0.085, cz);
+  scene.add(court);
+  lineStrip(22, 0.35, cx, cz + 4.4, -0.05);
+  lineStrip(22, 0.35, cx, cz - 4.4, -0.05);
+  lineStrip(0.35, 11, cx - 11, cz, -0.05);
+  lineStrip(0.35, 11, cx + 11, cz, -0.05);
+  lineStrip(0.35, 11, cx, cz, -0.05);
+  const net = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 8.8), new THREE.MeshBasicMaterial({ color: 0xdfe7ec, transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
+  net.rotation.y = Math.PI / 2;
+  net.position.set(cx, 0.6, cz);
+  scene.add(net);
+}
+
 /* ---------------- 校门与运动场 ---------------- */
 function makeSignTexture(text) {
   const c = document.createElement('canvas');
@@ -484,30 +558,7 @@ function ellipseField(cx, cz, rx, rz, color, y) {
 }
 ellipseField(-24, -222, 34, 58, 0x9d4b3f, 0.1);
 ellipseField(-24, -222, 20, 44, 0x2f6b3a, 0.14);
-const courtMat = new THREE.MeshStandardMaterial({ color: 0x3e6f8f, roughness: 0.9 });
-const courtLine = new THREE.MeshBasicMaterial({ color: 0xdbe7ee });
-for (let i = 0; i < 4; i++) {
-  const cx = -18 + (i % 2) * 30;
-  const cz = -300 - Math.floor(i / 2) * 24;
-  const court = new THREE.Mesh(new THREE.PlaneGeometry(30, 17), courtMat);
-  court.rotation.x = -Math.PI / 2;
-  court.rotation.z = -0.04;
-  court.position.set(cx, 0.09, cz);
-  scene.add(court);
-  const line = new THREE.Mesh(new THREE.PlaneGeometry(28, 0.5), courtLine);
-  line.rotation.x = -Math.PI / 2;
-  line.rotation.z = -0.09;
-  line.position.set(cx, 0.1, cz);
-  scene.add(line);
-}
-for (let i = 0; i < 2; i++) {
-  const court = new THREE.Mesh(new THREE.PlaneGeometry(24, 11), new THREE.MeshStandardMaterial({ color: 0x3f7a55, roughness: 0.9 }));
-  court.rotation.x = -Math.PI / 2;
-  court.rotation.z = -0.09;
-  court.position.set(52, 0.09, -272 - i * 20);
-  scene.add(court);
-}
-for (const [text, x, z] of [['运动场', -24, -222], ['篮球场', -3, -318], ['网球场', 52, -286]]) {
+for (const [text, x, z] of [['运动场', -24, -222], ['篮球场', -12, -306], ['网球场', 58, -258]]) {
   const el = document.createElement('div');
   el.className = 'label';
   el.textContent = text;
