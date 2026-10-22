@@ -8,6 +8,9 @@ var frames: int = 0
 var shot_path: String = ""
 var use_glb: bool = false
 var anim_player: AnimationPlayer
+var anim_walk := ""
+var anim_idle := ""
+var anim_run := ""
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -404,8 +407,17 @@ func _load_player_model() -> Node3D:
 	if root == null:
 		return null
 	anim_player = root.find_child("*AnimationPlayer*", true, false) as AnimationPlayer
-	if anim_player and anim_player.get_animation_list().size() > 0:
-		anim_player.play(anim_player.get_animation_list()[0])
+	if anim_player:
+		for an in anim_player.get_animation_list():
+			var low := String(an).to_lower()
+			if low.contains("walk"):
+				anim_walk = an
+			elif low.contains("run"):
+				anim_run = an
+			elif low.contains("idle"):
+				anim_idle = an
+		if anim_idle != "":
+			anim_player.play(anim_idle)
 	return root
 
 func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3) -> void:
@@ -437,9 +449,17 @@ func _physics_process(delta: float) -> void:
 	if Input.is_key_pressed(KEY_SPACE) and player.is_on_floor():
 		player.velocity.y = 6.0
 	player.move_and_slide()
+	if anim_player:
+		var moving_now := input.length() > 0.1
+		var target_anim := anim_idle if not moving_now else (anim_run if Input.is_key_pressed(KEY_SHIFT) else anim_walk)
+		if target_anim != "" and anim_player.current_animation != target_anim:
+			anim_player.play(target_anim)
 
 func _process(_delta: float) -> void:
 	frames += 1
+	if shot_path != "" and frames == 25 and anim_player and anim_walk != "":
+		anim_player.play(anim_walk)
+		anim_player.seek(0.35, true)
 	if shot_path != "" and frames == 45:
 		await RenderingServer.frame_post_draw
 		var img := get_viewport().get_texture().get_image()
