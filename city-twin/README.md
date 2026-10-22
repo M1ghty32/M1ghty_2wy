@@ -2,9 +2,9 @@
 
 一个单文件 Three.js 数字孪生演示：严格按学校官方可视化位置服务平台的楼栋数据重建校园，叠加六张城市生命线网络与夜间指挥中心界面。
 
-- 当前主页 `/city-twin/`：v2 真实底图版，使用官方 MVT 矢量瓦片（建筑/道路/水系/树木）
-- 六网完整交互版：`/city-twin/v1/`（六网、事故、演示、设施搜索等）
-- 入口：`index.html`（v2）/ `v1/index.html`（v1）
+- 主页 `/city-twin/`：最新真实底图版，使用官方 MVT 矢量瓦片
+- 游戏 `/city-twin/game/`：第三人称校园漫游
+- 入口：`index.html` / `game/index.html`
 - Three.js r160.1 与全部 addons 已本地 vendored 到 `vendor/`，**无 CDN 依赖**，可离线运行
 - 无后端、无构建步骤，数据全部在浏览器本地模拟
 
@@ -44,7 +44,8 @@
 
 官方二维地图使用的是一套 MVT 矢量瓦片：`/cmgis-server/map/v3/data/mvt/outdoor/1/{z}/{x}/{y}.mvt`。瓦片里包含真实的建筑轮廓、道路中心线、水系与树木点位，且带 `name` / `height` / `building` 属性。
 
-v2 预览：<https://wangweiye.top/city-twin/v2/>
+当前主页：<https://wangweiye.top/city-twin/>
+游戏模式：<https://wangweiye.top/city-twin/game/>
 
 - 数据：`data/campus-v2.json`，60 栋建筑 / 210 条道路 / 8 片水系 / 72 个树木点位 / 479 个停车点 / 1,112 个运动区矢量面
 - 场景：参考官方浅色二维总览，以矢量坐标绘制草地、湖面、灰色分级路网、步行路径、建筑和运动场；建筑多环保留内院，运动场与停车点由矢量设施数据生成

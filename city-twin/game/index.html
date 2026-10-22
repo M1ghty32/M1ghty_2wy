@@ -385,37 +385,87 @@ function isBlocked(x, z) {
 
 /* ---------- 角色 ---------- */
 const BODY_SEG = 1.0;
-function makeHuman(color, scale = 1) {
+function makeHuman(color, scale = 1, opts = {}) {
   const g = new THREE.Group();
-  const skin = new THREE.MeshStandardMaterial({ color: 0xe8b98f, roughness: 0.8 });
+  const skin = new THREE.MeshStandardMaterial({ color: 0xe8b98f, roughness: 0.75 });
   const cloth = new THREE.MeshStandardMaterial({ color, roughness: 0.85 });
-  const pants = new THREE.MeshStandardMaterial({ color: 0x2b3440, roughness: 0.9 });
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.78, 0.36), cloth); torso.position.y = 1.18;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10), skin); head.position.y = 1.78;
-  const lArm = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.68, 0.18), cloth); lArm.position.set(-0.42, 1.16, 0); lArm.geometry.translate(0, -0.3, 0);
-  const rArm = lArm.clone(); rArm.position.x = 0.42;
-  const lLeg = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.8, 0.22), pants); lLeg.position.set(-0.16, 0.78, 0); lLeg.geometry.translate(0, -0.36, 0);
-  const rLeg = lLeg.clone(); rLeg.position.x = 0.16;
-  g.add(torso, head, lArm, rArm, lLeg, rLeg);
+  const pants = new THREE.MeshStandardMaterial({ color: opts.pants || 0x2c3540, roughness: 0.9 });
+  const shoe = new THREE.MeshStandardMaterial({ color: 0x1e242b, roughness: 0.8 });
+  const hairMat = new THREE.MeshStandardMaterial({ color: opts.hair || 0x241d18, roughness: 0.9 });
+
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.72, 0.34), cloth);
+  torso.position.y = 1.2;
+  const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.16, 0.36), cloth);
+  shoulders.position.y = 1.52;
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.1, 0.14, 8), skin);
+  neck.position.y = 1.63;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.23, 14, 12), skin);
+  head.position.y = 1.83;
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.245, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), hairMat);
+  hair.position.y = 1.85;
+  g.add(torso, shoulders, neck, head, hair);
+
+  const armGeo = new THREE.BoxGeometry(0.15, 0.62, 0.16);
+  armGeo.translate(0, -0.29, 0);
+  const handGeo = new THREE.SphereGeometry(0.09, 8, 6);
+  handGeo.translate(0, -0.62, 0);
+  function arm(side) {
+    const a = new THREE.Group();
+    const upper = new THREE.Mesh(armGeo, cloth);
+    const hand = new THREE.Mesh(handGeo, skin);
+    a.add(upper, hand);
+    a.position.set(side * 0.36, 1.47, 0);
+    a.rotation.z = side * 0.06;
+    g.add(a);
+    return a;
+  }
+  const lArm = arm(-1), rArm = arm(1);
+
+  const legGeo = new THREE.BoxGeometry(0.19, 0.82, 0.21);
+  legGeo.translate(0, -0.4, 0);
+  function leg(side) {
+    const l = new THREE.Group();
+    const thigh = new THREE.Mesh(legGeo, pants);
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.34), shoe);
+    foot.position.set(0, -0.82, 0.05);
+    l.add(thigh, foot);
+    l.position.set(side * 0.15, 0.86, 0);
+    g.add(l);
+    return l;
+  }
+  const lLeg = leg(-1), rLeg = leg(1);
+
+  if (opts.backpack) {
+    const bag = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.46, 0.2), new THREE.MeshStandardMaterial({ color: 0x33404d, roughness: 0.85 }));
+    bag.position.set(0, 1.22, -0.28);
+    g.add(bag);
+  }
+  if (opts.cap) {
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.08, 12), new THREE.MeshStandardMaterial({ color: 0x1f3a5a }));
+    cap.position.y = 2.02; g.add(cap);
+  }
+
   g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   g.scale.setScalar(scale);
-  g.userData = { lArm, rArm, lLeg, rLeg, phase: Math.random() * Math.PI * 2 };
+  g.userData = { lArm, rArm, lLeg, rLeg, phase: Math.random() * Math.PI * 2, idle: false };
   return g;
 }
-const player = makeHuman(0x2f6fa8, 1);
+const player = makeHuman(0x2f6fa8, 1, { backpack: true, cap: true });
 scene.add(player);
 
 /* ---------- NPC ---------- */
 const walkRoads = data.roads.filter((r) => ['primary', 'secondary', 'tertiary', 'service', 'living_street'].includes(r.w) && r.l.some((l) => l.length > 8));
 const npcs = [];
 const NPC_COLORS = [0xb85c5c, 0x5c7fb8, 0x6f9c5a, 0xb8965c, 0x8a6fa8, 0x5c9c9c, 0xc07a4a];
-for (let i = 0; i < 26; i++) {
+for (let i = 0; i < 40; i++) {
   const road = walkRoads[i % walkRoads.length];
   const line = road.l.find((l) => l.length > 8);
   if (!line) continue;
   const mesh = makeHuman(NPC_COLORS[i % NPC_COLORS.length], 0.96 + (i % 5) * 0.02);
   scene.add(mesh);
-  npcs.push({ mesh, path: line, t: Math.random(), speed: 1.1 + Math.random() * 1.2, dir: i % 2 ? 1 : -1 });
+  const idle = i % 5 === 0;
+  mesh.userData.idle = idle;
+  npcs.push({ mesh, path: line, t: Math.random(), speed: 1.0 + Math.random() * 1.4, dir: i % 2 ? 1 : -1, idle });
 }
 function samplePath(path, t) {
   const n = path.length - 1;
@@ -468,6 +518,43 @@ for (const b of buildingData) {
   pad.position.set(doorX, 0.08, doorZ);
   scene.add(pad);
   doors.push({ name: b.name, x: doorX, z: doorZ, cx: b.cx, cz: b.cz, w: b.maxX - b.minX, d: b.maxZ - b.minZ, mesh: pad });
+}
+
+/* ---------- 建筑细节：女儿墙 ---------- */
+const parapetMat = new THREE.MeshStandardMaterial({ color: 0xb9c0c6, roughness: 0.85 });
+for (const b of buildingData) {
+  if (b.h < 12) continue;
+  const w = b.maxX - b.minX, d = b.maxZ - b.minZ;
+  const y = b.h - 0.15;
+  const parts = [
+    [w, 0.4, 0.32, b.cx, y, b.minZ + 0.16],
+    [w, 0.4, 0.32, b.cx, y, b.maxZ - 0.16],
+    [0.32, 0.4, d, b.minX + 0.16, y, b.cz],
+    [0.32, 0.4, d, b.maxX - 0.16, y, b.cz]
+  ];
+  for (const p of parts) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(p[0], p[1], p[2]), parapetMat);
+    m.position.set(p[3], p[4], p[5]);
+    scene.add(m);
+  }
+}
+
+/* ---------- 建筑细节：入口雨棚 ---------- */
+const canopyMat = new THREE.MeshStandardMaterial({ color: 0x3b4650, roughness: 0.7 });
+const postMat = new THREE.MeshStandardMaterial({ color: 0x2b343c, roughness: 0.7 });
+for (const d of doors) {
+  const canopy = new THREE.Mesh(new THREE.BoxGeometry(5, 0.22, 3), canopyMat);
+  canopy.position.set(d.x, 3.4, d.z + 0.6);
+  canopy.castShadow = true;
+  scene.add(canopy);
+  for (const side of [-1, 1]) {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.16, 3.4, 0.16), postMat);
+    post.position.set(d.x + side * 2.2, 1.7, d.z + 1.8);
+    scene.add(post);
+  }
+  const lamp = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.1, 0.24), new THREE.MeshBasicMaterial({ color: 0xffd9a0 }));
+  lamp.position.set(d.x, 3.24, d.z + 0.6);
+  scene.add(lamp);
 }
 
 /* ---------- 玩家状态 ---------- */
@@ -601,10 +688,12 @@ function update(dt) {
     if (n.t > 1) { n.t = 1; n.dir = -1; }
     if (n.t < 0) { n.t = 0; n.dir = 1; }
     const p = samplePath(n.path, n.t);
-    const yaw = Math.atan2(p.dx * n.dir, p.dz * n.dir);
+    const yaw = n.mesh.userData.idle ? n.mesh.userData.phase : Math.atan2(p.dx * n.dir, p.dz * n.dir);
     n.mesh.position.set(p.x, 0, p.z);
     n.mesh.rotation.y = yaw;
-    const sw = Math.sin(state.clock * 6 + n.mesh.userData.phase) * 0.5;
+    const sw = n.mesh.userData.idle ? 0 : Math.sin(state.clock * 7 + n.mesh.userData.phase) * 0.55;
+    const idleBob = n.mesh.userData.idle ? Math.sin(state.clock * 1.6 + n.mesh.userData.phase) * 0.03 : 0;
+    n.mesh.position.y = idleBob;
     n.mesh.userData.lLeg.rotation.x = sw;
     n.mesh.userData.rLeg.rotation.x = -sw;
     n.mesh.userData.lArm.rotation.x = -sw;
