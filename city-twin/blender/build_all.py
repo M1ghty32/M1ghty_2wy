@@ -190,20 +190,24 @@ sun = bpy.data.objects.new("Sun", sun_data)
 scene.collection.objects.link(sun)
 sun.rotation_euler = (math.radians(50), 0, math.radians(120))
 
-# camera aerial
-xs = [p[0] for b in data["buildings"] for ring in b["r"] for p in ring]
-zs = [p[1] for b in data["buildings"] for ring in b["r"] for p in ring]
-cx = (min(xs) + max(xs)) / 2
-cz = -(min(zs) + max(zs)) / 2
+# camera aerial (orthographic top view, guaranteed framing)
+xs2 = [p[0] for b in data["buildings"] for ring in b["r"] for p in ring]
+ys2 = [-p[1] for b in data["buildings"] for ring in b["r"] for p in ring]
+cx2 = (min(xs2) + max(xs2)) / 2
+cy2 = (min(ys2) + max(ys2)) / 2
+sx2 = max(xs2) - min(xs2)
+sy2 = max(ys2) - min(ys2)
+aspect = 1600.0 / 1000.0
+span2 = max(sx2, sy2 * aspect)
 
 cam_data = bpy.data.cameras.new("Camera")
-cam_data.lens = 35
+cam_data.type = 'ORTHO'
+cam_data.ortho_scale = span2 * 1.05
 cam = bpy.data.objects.new("Camera", cam_data)
 scene.collection.objects.link(cam)
 scene.camera = cam
-cam.location = Vector((cx + 780, cz + 980, 760))
-target = Vector((cx, cz, 30))
-cam.rotation_euler = (target - cam.location).to_track_quat('-Z', 'Y').to_euler()
+cam.location = Vector((cx2, cy2, 900))
+cam.rotation_euler = (0, 0, 0)
 
 scene.render.engine = 'BLENDER_EEVEE'
 scene.render.resolution_x = 1600
