@@ -74,6 +74,7 @@ scene.fog = new THREE.Fog(0xb9d6e6, 260, 1250);
 const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.3, 4000);
 
 const data = await fetch('../data/campus-v2.json').then((r) => r.json());
+const surfaces = await fetch('../data/campus-surfaces.json').then((r) => r.json()).catch(() => null);
 
 /* ---------- 边界 ---------- */
 const bounds = { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity };
@@ -102,6 +103,35 @@ ground.rotation.x = -Math.PI / 2;
 ground.position.set(mid.x, 0, mid.z);
 ground.receiveShadow = true;
 scene.add(ground);
+
+/* ---------- 地表：官方 surface 数据 ---------- */
+function surfaceMesh(item, color, y, opacity = 1) {
+  const rings = item && item.r;
+  if (!rings || !rings.length) return;
+  const shape = new THREE.Shape();
+  const ring = rings[0];
+  shape.moveTo(ring[0][0], -ring[0][1]);
+  for (let i = 1; i < ring.length; i++) shape.lineTo(ring[i][0], -ring[i][1]);
+  for (const hole of rings.slice(1)) {
+    const p = new THREE.Path();
+    p.moveTo(hole[0][0], -hole[0][1]);
+    for (let i = 1; i < hole.length; i++) p.lineTo(hole[i][0], -hole[i][1]);
+    shape.holes.push(p);
+  }
+  const geo = new THREE.ShapeGeometry(shape);
+  geo.rotateX(-Math.PI / 2);
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: 1, transparent: opacity < 1, opacity }));
+  mesh.position.y = y;
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+}
+if (surfaces) {
+  for (const b of surfaces.campusBoundary || []) surfaceMesh(b, 0x93ad7c, 0.004);
+  for (const g of surfaces.green || []) surfaceMesh(g, 0x7f9e69, 0.008);
+  for (const p of surfaces.paving || []) surfaceMesh(p, 0xb9bebc, 0.012);
+  for (const p of surfaces.parkingAreas || []) surfaceMesh(p, 0x9aa0a4, 0.016);
+  for (const p of surfaces.parkingBays || []) surfaceMesh(p, 0xd6dadb, 0.02);
+}
 
 /* ---------- 水系 ---------- */
 const waterMat = new THREE.MeshStandardMaterial({ color: 0x2c7fa6, roughness: 0.18, metalness: 0.35, transparent: true, opacity: 0.92 });
@@ -494,18 +524,79 @@ wall(0.4, ROOM.h, ROOM.d, ROOM.w / 2, ROOM.h / 2, 0);
 const doorGap = new THREE.Mesh(new THREE.BoxGeometry(4, 3, 0.5), new THREE.MeshStandardMaterial({ color: 0x6f7d88 }));
 doorGap.position.set(0, 1.5, ROOM.d / 2 + 0.02);
 room.add(doorGap);
-// 家具
-const deskMat = new THREE.MeshStandardMaterial({ color: 0x8a6a4a, roughness: 0.8 });
-for (let i = 0; i < 4; i++) {
-  const desk = new THREE.Mesh(new THREE.BoxGeometry(5, 0.15, 1.8), deskMat);
-  desk.position.set(-12 + i * 7, 0.9, -6); desk.castShadow = true; room.add(desk);
-  for (const dx of [-2.2, 2.2]) { const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.9, 0.15), deskMat); leg.position.set(-12 + i * 7 + dx, 0.45, -6); room.add(leg); }
-  const chair = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.9, 1.4), new THREE.MeshStandardMaterial({ color: 0x3a4750 })); chair.position.set(-12 + i * 7, 0.45, -4.4); room.add(chair);
-}
-const board = new THREE.Mesh(new THREE.BoxGeometry(10, 3, 0.15), new THREE.MeshStandardMaterial({ color: 0x2f3c44 })); board.position.set(0, 2.4, -ROOM.d / 2 + 0.4); room.add(board);
 const rLight1 = new THREE.PointLight(0xfff0d8, 60, 40, 2); rLight1.position.set(-8, 3.8, 0); room.add(rLight1);
 const rLight2 = new THREE.PointLight(0xfff0d8, 60, 40, 2); rLight2.position.set(8, 3.8, 0); room.add(rLight2);
 const rAmb = new THREE.AmbientLight(0xcfe0ee, 0.6); room.add(rAmb);
+
+const furniture = new THREE.Group();
+room.add(furniture);
+function clearFurniture() {
+  while (furniture.children.length) furniture.remove(furniture.children[0]);
+}
+function furnish(kind) {
+  clearFurniture();
+  const wood = new THREE.MeshStandardMaterial({ color: 0x8a6a4a, roughness: 0.8 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x3a4750, roughness: 0.85 });
+  const soft = new THREE.MeshStandardMaterial({ color: 0xc9d4dc, roughness: 0.9 });
+  const bookColors = [0x8a4a3a, 0x3a5f8a, 0x5a7a4a, 0xb0904a, 0x6a4a8a];
+  if (kind === 'library') {
+    for (let i = 0; i < 6; i++) {
+      const x = -13 + i * 5;
+      const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.6, 8), wood);
+      shelf.position.set(x, 1.3, -6); furniture.add(shelf);
+      for (let k = 0; k < 5; k++) {
+        const row = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.3, 7.4), new THREE.MeshStandardMaterial({ color: bookColors[(i + k) % bookColors.length], roughness: 0.9 }));
+        row.position.set(x, 0.5 + k * 0.45, -6); furniture.add(row);
+      }
+    }
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) {
+      const table = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.12, 1.6), wood);
+      table.position.set(-8 + c * 8, 0.78, 4 + r * 4); furniture.add(table);
+      for (const side of [-1, 1]) {
+        const chair = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.45, 1.2), dark);
+        chair.position.set(-8 + c * 8, 0.22, 4 + r * 4 + side * 1.5); furniture.add(chair);
+      }
+    }
+  } else if (kind === 'canteen') {
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) {
+      const table = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.1, 16), soft);
+      table.position.set(-11 + c * 7, 0.78, -5 + r * 5); furniture.add(table);
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.78, 8), dark);
+      leg.position.set(-11 + c * 7, 0.39, -5 + r * 5); furniture.add(leg);
+      for (const side of [-1, 1]) {
+        const stool = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.1, 10), dark);
+        stool.position.set(-11 + c * 7, 0.46, -5 + r * 5 + side * 1.7); furniture.add(stool);
+      }
+    }
+    const counter = new THREE.Mesh(new THREE.BoxGeometry(16, 1.1, 1.6), soft);
+    counter.position.set(0, 0.55, -10); furniture.add(counter);
+  } else if (kind === 'student_bedroom') {
+    for (let i = 0; i < 3; i++) {
+      const bed = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 4), soft);
+      bed.position.set(-9 + i * 9, 0.5, -5); furniture.add(bed);
+      const pillow = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.2, 1), new THREE.MeshStandardMaterial({ color: 0xe8eef2 }));
+      pillow.position.set(-9 + i * 9, 0.8, -6.4); furniture.add(pillow);
+      const wardrobe = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.4, 1), wood);
+      wardrobe.position.set(-9 + i * 9, 1.2, 7); furniture.add(wardrobe);
+    }
+  } else if (kind === 'gymnasium') {
+    const floorLine = new THREE.Mesh(new THREE.PlaneGeometry(26, 0.15), new THREE.MeshBasicMaterial({ color: 0xf2f6f8 }));
+    floorLine.rotation.x = -Math.PI / 2; floorLine.position.set(0, 0.09, 0); furniture.add(floorLine);
+    const mid = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 18), new THREE.MeshBasicMaterial({ color: 0xf2f6f8 }));
+    mid.rotation.x = -Math.PI / 2; mid.position.set(0, 0.09, 0); furniture.add(mid);
+    for (const side of [-1, 1]) {
+      const hoop = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.2, 1.8), new THREE.MeshStandardMaterial({ color: 0xe6ebef }));
+      hoop.position.set(side * 13, 3, 0); furniture.add(hoop);
+    }
+  } else {
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
+      const desk = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.15, 1.2), wood);
+      desk.position.set(-8 + c * 8, 0.75, -8 + r * 4); furniture.add(desk);
+      const chair = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.45, 1.1), dark);
+      chair.position.set(-8 + c * 8, 0.22, -7 + r * 4); furniture.add(chair);
+    }
+  }
+}
 
 /* ---------- 门 ---------- */
 const doors = [];
@@ -517,7 +608,7 @@ for (const b of buildingData) {
   const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.06, 24), new THREE.MeshBasicMaterial({ color: 0x38e1ff, transparent: true, opacity: 0.55, depthWrite: false }));
   pad.position.set(doorX, 0.08, doorZ);
   scene.add(pad);
-  doors.push({ name: b.name, x: doorX, z: doorZ, cx: b.cx, cz: b.cz, w: b.maxX - b.minX, d: b.maxZ - b.minZ, mesh: pad });
+  doors.push({ name: b.name, kind: b.kind, x: doorX, z: doorZ, cx: b.cx, cz: b.cz, w: b.maxX - b.minX, d: b.maxZ - b.minZ, mesh: pad });
 }
 
 /* ---------- 建筑细节：女儿墙 ---------- */
@@ -619,6 +710,7 @@ function interact() {
   room.visible = true;
   playerPos.set(4000, 0, 4000 - ROOM.d / 2 + 4);
   state.yaw = Math.PI;
+  furnish(nearDoor.kind || 'default');
   nameEl.textContent = nearDoor.name + ' · 室内';
   nameEl.classList.add('show');
   nearDoor = null;
