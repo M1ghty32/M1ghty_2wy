@@ -155,6 +155,7 @@ const [data, surfaces] = await Promise.all([
   fetch('./data/campus-v2.json').then((r) => r.json()),
   fetch('./data/campus-surfaces.json').then((r) => r.json())
 ]);
+for (const b of data.buildings) { if (/明德楼|立德楼/.test(b.n)) b.h = 21; }
 data.sports ||= [];
 data.parking ||= [];
 document.getElementById('stat-b').textContent = data.buildings.length;

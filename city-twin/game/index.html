@@ -74,6 +74,7 @@ scene.fog = new THREE.Fog(0xb9d6e6, 260, 1250);
 const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.3, 4000);
 
 const data = await fetch('../data/campus-v2.json').then((r) => r.json());
+for (const b of data.buildings) { if (/明德楼|立德楼/.test(b.n)) b.h = 21; }
 const surfaces = await fetch('../data/campus-surfaces.json').then((r) => r.json()).catch(() => null);
 
 /* ---------- 边界 ---------- */
