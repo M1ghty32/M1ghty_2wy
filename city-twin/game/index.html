@@ -243,6 +243,107 @@ const sign = new THREE.Mesh(new THREE.PlaneGeometry(18, 3.2), new THREE.MeshBasi
 sign.position.set(0, 6.6, 1.55); gateGroup.add(sign);
 scene.add(gateGroup);
 
+/* ---------- 主站同款场地与细节 ---------- */
+function ellipseField(cx, cz, rx, rz, color, y) {
+  const shape = new THREE.Shape();
+  shape.absellipse(0, 0, rx, rz, 0, Math.PI * 2, false, 0);
+  const geo = new THREE.ShapeGeometry(shape, 48);
+  geo.rotateX(-Math.PI / 2);
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: 0.92 }));
+  mesh.position.set(cx, y, cz); mesh.receiveShadow = true; scene.add(mesh);
+}
+ellipseField(-88, -222, 54, 99, 0x9d4b3f, 0.1);
+ellipseField(-88, -222, 36, 79, 0x2f6b3a, 0.14);
+
+const basketMat = new THREE.MeshStandardMaterial({ color: 0x3e6f8f, roughness: 0.9 });
+const lineWhite = new THREE.MeshBasicMaterial({ color: 0xe8eef2 });
+function courtLine(w, d, x, z, rot) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), lineWhite);
+  m.rotation.x = -Math.PI / 2; m.rotation.z = rot; m.position.set(x, 0.1, z);
+  scene.add(m);
+}
+for (let i = 0; i < 4; i++) {
+  const cx = 12 - (i % 2) * 30;
+  const cz = -288 - Math.floor(i / 2) * 26;
+  const court = new THREE.Mesh(new THREE.PlaneGeometry(26, 14), basketMat);
+  court.rotation.x = -Math.PI / 2; court.rotation.z = -0.05;
+  court.position.set(cx, 0.085, cz); scene.add(court);
+  courtLine(24, 0.4, cx, cz + 5.6, -0.05);
+  courtLine(24, 0.4, cx, cz - 5.6, -0.05);
+  courtLine(0.4, 14, cx - 13, cz, -0.05);
+  courtLine(0.4, 14, cx + 13, cz, -0.05);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 3.2, 6), new THREE.MeshStandardMaterial({ color: 0x4a545c }));
+  pole.position.set(cx - 12.4, 1.6, cz); scene.add(pole);
+}
+for (let i = 0; i < 2; i++) {
+  const cx = 58, cz = -258 - i * 22;
+  const court = new THREE.Mesh(new THREE.PlaneGeometry(24, 11), new THREE.MeshStandardMaterial({ color: 0x3f7a55, roughness: 0.9 }));
+  court.rotation.x = -Math.PI / 2; court.rotation.z = -0.05;
+  court.position.set(cx, 0.085, cz); scene.add(court);
+  courtLine(22, 0.35, cx, cz + 4.4, -0.05);
+  courtLine(22, 0.35, cx, cz - 4.4, -0.05);
+  courtLine(0.35, 11, cx - 11, cz, -0.05);
+  courtLine(0.35, 11, cx + 11, cz, -0.05);
+}
+
+const pavingMat = new THREE.MeshStandardMaterial({ color: 0x9aa2a8, roughness: 0.9 });
+for (const p of [[205, 300, 96, 150], [208, -18, 104, 62], [205, 455, 60, 26]]) {
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(p[2], p[3]), pavingMat);
+  mesh.rotation.x = -Math.PI / 2; mesh.position.set(p[0], 0.055, p[1]);
+  mesh.receiveShadow = true; scene.add(mesh);
+}
+
+const bankMat = new THREE.MeshStandardMaterial({ color: 0xb9c2b4, roughness: 1 });
+for (const ring of data.water) {
+  const cx = ring.reduce((a, p) => a + p[0], 0) / ring.length;
+  const cz = ring.reduce((a, p) => a + p[1], 0) / ring.length;
+  const shape = new THREE.Shape();
+  ring.forEach((p, i) => {
+    const x = cx + (p[0] - cx) * 1.045, z = cz + (p[1] - cz) * 1.045;
+    if (i === 0) shape.moveTo(x, -z); else shape.lineTo(x, -z);
+  });
+  shape.closePath();
+  const geo = new THREE.ShapeGeometry(shape); geo.rotateX(-Math.PI / 2);
+  const mesh = new THREE.Mesh(geo, bankMat); mesh.position.y = 0.045; scene.add(mesh);
+}
+
+// 图书馆红砖立面
+const lib = buildingData.find((b) => b.name === '图书馆');
+if (lib) {
+  const w = Math.min(26, (lib.maxX - lib.minX) * 0.34);
+  const h = Math.min(26, lib.h * 0.5);
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(w, h, 1.2), new THREE.MeshStandardMaterial({ color: 0x8a4a3a, roughness: 0.85 }));
+  panel.position.set(lib.cx, lib.h * 0.5, lib.maxZ + 0.5); scene.add(panel);
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 192;
+  const ctx = c.getContext('2d'); ctx.fillStyle = '#f5efe4'; ctx.font = 'bold 96px "Microsoft YaHei", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('图书馆', 512, 96);
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.7, w * 0.18), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, alphaTest: 0.05 }));
+  sign.position.set(lib.cx, lib.h * 0.62, lib.maxZ + 1.15); scene.add(sign);
+  for (let i = 0; i < 8; i++) {
+    const louver = new THREE.Mesh(new THREE.BoxGeometry(lib.maxX - lib.minX + 2, 0.35, 0.5), new THREE.MeshStandardMaterial({ color: 0xdde3e8, roughness: 0.6 }));
+    louver.position.set(lib.cx, 4 + i * ((lib.h - 8) / 7), lib.maxZ + 0.2); scene.add(louver);
+  }
+}
+for (const name of ['体育馆', '游泳馆']) {
+  const b = buildingData.find((x) => x.name === name);
+  if (!b) continue;
+  const r = Math.min((b.maxX - b.minX) / 2, (b.maxZ - b.minZ) / 2) * 0.55;
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(r, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xd6dde3, roughness: 0.45, metalness: 0.25 }));
+  dome.scale.y = 0.3; dome.position.set(b.cx, b.h * 0.8, b.cz); dome.castShadow = true; scene.add(dome);
+}
+
+// 其它三座校门
+for (const g of [{ n: '西南门', x: -294.7, z: 254.4, r: Math.PI / 2 }, { n: '北门', x: -62, z: -830, r: Math.PI }, { n: '东门', x: 688, z: 322, r: -Math.PI / 2 }]) {
+  const grp = new THREE.Group();
+  grp.position.set(g.x, 0, g.z); grp.rotation.y = g.r;
+  for (const side of [-1, 1]) {
+    const p = new THREE.Mesh(new THREE.BoxGeometry(1.8, 6, 1.8), new THREE.MeshStandardMaterial({ color: 0x3a444c, roughness: 0.7 }));
+    p.position.set(side * 7, 3, 0); p.castShadow = true; grp.add(p);
+  }
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(15.6, 1, 2.2), new THREE.MeshStandardMaterial({ color: 0x3a444c, roughness: 0.7 }));
+  beam.position.y = 6.2; grp.add(beam);
+  scene.add(grp);
+}
+
 /* ---------- 碰撞网格 ---------- */
 const CELL = 3;
 const gw = Math.ceil((bounds.maxX - bounds.minX) / CELL) + 2;
