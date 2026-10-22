@@ -6,6 +6,7 @@ var cam: Camera3D
 var pitch: float = -0.12
 var frames: int = 0
 var shot_path: String = ""
+var use_glb: bool = false
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -17,11 +18,14 @@ func _ready() -> void:
 	camp = JSON.parse_string(text)
 
 	_build_environment()
+	use_glb = _load_campus_glb()
 	_build_ground()
-	_build_water()
-	_build_roads()
-	_build_buildings()
-	_build_trees()
+	if not use_glb:
+		_build_water()
+		_build_roads()
+	_build_buildings(not use_glb)
+	if not use_glb:
+		_build_trees()
 	_build_player()
 
 func _window_texture() -> ImageTexture:
@@ -42,6 +46,44 @@ func _ground_texture() -> ImageTexture:
 			var v := 0.86 + rng.randf() * 0.14
 			img.set_pixel(x, y, Color(0.16 * v, 0.22 * v, 0.12 * v))
 	return ImageTexture.create_from_image(img)
+
+func _load_campus_glb() -> bool:
+	var path := "res://assets/campus.glb"
+	if not FileAccess.file_exists(path):
+		return false
+	var doc := GLTFDocument.new()
+	var state := GLTFState.new()
+	var err := doc.append_from_file(path, state)
+	if err != OK:
+		push_warning("GLB load failed: " + str(err))
+		return false
+	var root := doc.generate_scene(state)
+	if root == null:
+		return false
+	add_child(root)
+	_fix_glb_materials(root)
+	return true
+
+func _fix_glb_materials(root: Node) -> void:
+	for mi in root.find_children("*", "MeshInstance3D", true, false):
+		var n := String(mi.name)
+		var mat := StandardMaterial3D.new()
+		if n.begins_with("WATER"):
+			mat.albedo_color = Color(0.13, 0.32, 0.42)
+			mat.metallic = 0.35
+			mat.roughness = 0.12
+		elif n.begins_with("ROAD"):
+			mat.albedo_color = Color(0.30, 0.31, 0.33)
+			mat.roughness = 0.95
+		elif n.begins_with("PARAPET") or n.begins_with("PAR_"):
+			mat.albedo_color = Color(0.72, 0.72, 0.70)
+			mat.roughness = 0.8
+		elif n.begins_with("BLD"):
+			mat.albedo_color = Color(0.74, 0.72, 0.68)
+			mat.roughness = 0.8
+		else:
+			continue
+		mi.material_override = mat
 
 func _build_environment() -> void:
 	var env := Environment.new()
@@ -82,6 +124,16 @@ func _build_environment() -> void:
 	add_child(sun)
 
 func _build_ground() -> void:
+	var floor_body := StaticBody3D.new()
+	var floor_shape := CollisionShape3D.new()
+	var floor_box := BoxShape3D.new()
+	floor_box.size = Vector3(3000, 1, 3000)
+	floor_shape.shape = floor_box
+	floor_body.add_child(floor_shape)
+	floor_body.position = Vector3(250, -0.6, 500)
+	add_child(floor_body)
+	if use_glb:
+		return
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(3000, 3000)
 	var mat := StandardMaterial3D.new()
@@ -172,7 +224,7 @@ func _polygon_mesh(ring: Array, y: float, mat: Material) -> MeshInstance3D:
 	mi.material_override = mat
 	return mi
 
-func _build_buildings() -> void:
+func _build_buildings(visual: bool = true) -> void:
 	var palette := {
 		"library": Color(0.62, 0.60, 0.55),
 		"teaching": Color(0.66, 0.68, 0.70),
@@ -203,7 +255,7 @@ func _build_buildings() -> void:
 		mat.emission = Color(1.0, 0.88, 0.68)
 		mat.emission_energy_multiplier = 0.12
 		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-		var mesh := _extrude_mesh(rings[0], h)
+		var mesh = _extrude_mesh(rings[0], h) if visual else null
 		if mesh:
 			var mi := MeshInstance3D.new()
 			mi.mesh = mesh
