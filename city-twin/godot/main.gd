@@ -7,6 +7,7 @@ var pitch: float = -0.12
 var frames: int = 0
 var shot_path: String = ""
 var use_glb: bool = false
+var anim_player: AnimationPlayer
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -380,12 +381,32 @@ func _build_player() -> void:
 	body.material_override = bmat
 	body.position.y = 0.9
 	player.add_child(body)
+	var model := _load_player_model()
+	if model:
+		player.add_child(model)
+		body.visible = false
 	cam = Camera3D.new()
 	cam.position = Vector3(0, 2.6, 6.0)
 	cam.fov = 62
 	player.add_child(cam)
 	add_child(player)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _load_player_model() -> Node3D:
+	var path := "res://assets/player.glb"
+	if not FileAccess.file_exists(path):
+		return null
+	var doc := GLTFDocument.new()
+	var st := GLTFState.new()
+	if doc.append_from_file(path, st) != OK:
+		return null
+	var root := doc.generate_scene(st)
+	if root == null:
+		return null
+	anim_player = root.find_child("*AnimationPlayer*", true, false) as AnimationPlayer
+	if anim_player and anim_player.get_animation_list().size() > 0:
+		anim_player.play(anim_player.get_animation_list()[0])
+	return root
 
 func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3) -> void:
 	st.add_vertex(a)
