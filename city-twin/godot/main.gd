@@ -64,6 +64,7 @@ func _load_campus_glb() -> bool:
 	_fix_glb_materials(root)
 	return true
 
+
 func _fix_glb_materials(root: Node) -> void:
 	for mi in root.find_children("*", "MeshInstance3D", true, false):
 		var n := String(mi.name)
@@ -79,8 +80,11 @@ func _fix_glb_materials(root: Node) -> void:
 			mat.albedo_color = Color(0.72, 0.72, 0.70)
 			mat.roughness = 0.8
 		elif n.begins_with("BLD"):
-			mat.albedo_color = Color(0.74, 0.72, 0.68)
-			mat.roughness = 0.8
+			mat.albedo_color = Color(0.86, 0.84, 0.80)
+			mat.albedo_texture = _window_texture()
+			mat.uv1_triplanar = true
+			mat.uv1_scale = Vector3(0.10, 0.10, 0.10)
+			mat.roughness = 0.72
 		else:
 			continue
 		mi.material_override = mat
@@ -97,7 +101,7 @@ func _build_environment() -> void:
 	sky.sky_material = sky_mat
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.45
+	env.ambient_light_energy = 0.95
 	env.ssao_enabled = true
 	env.ssao_intensity = 1.6
 	env.ssao_radius = 1.2
@@ -122,6 +126,12 @@ func _build_environment() -> void:
 	sun.directional_shadow_max_distance = 420.0
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 	add_child(sun)
+	var fill := DirectionalLight3D.new()
+	fill.rotation_degrees = Vector3(-35, 150, 0)
+	fill.light_energy = 0.5
+	fill.light_color = Color(0.72, 0.82, 0.95)
+	fill.shadow_enabled = false
+	add_child(fill)
 
 func _build_ground() -> void:
 	var floor_body := StaticBody3D.new()
