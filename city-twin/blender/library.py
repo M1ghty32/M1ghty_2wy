@@ -21,7 +21,7 @@ raw = lib["r"][0]
 cx0 = sum(p[0] for p in raw) / len(raw)
 cz0 = sum(p[1] for p in raw) / len(raw)
 ring = [(p[0] - cx0, -(p[1] - cz0)) for p in raw]
-H = 50.0
+H = 32.0
 
 # clean scene
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -85,7 +85,7 @@ def inside(px, py):
         j = i
     return ins
 
-FLOORS = 13
+FLOORS = 7
 for i in range(len(ring)):
     a = Vector(ring[i])
     b = Vector(ring[(i + 1) % len(ring)])
@@ -105,8 +105,8 @@ for i in range(len(ring)):
         p0 = a + edge * t0
         p1 = a + edge * t1
         for fl in range(FLOORS):
-            z0 = 3.2 + fl * 3.5
-            z1 = z0 + 2.0
+            z0 = 5.0 + fl * 3.9
+            z1 = z0 + 2.4
             q = [p0 + n * 0.08, p1 + n * 0.08, p1 + n * 0.08, p0 + n * 0.08]
             v0 = win_bm.verts.new((q[0].x, q[0].y, z0))
             v1 = win_bm.verts.new((q[1].x, q[1].y, z0))
@@ -123,7 +123,7 @@ win_obj.data.materials.append(glass)
 # horizontal floor ledges
 ledge_bm = bmesh.new()
 for fl in range(1, FLOORS + 1):
-    z = 3.2 + fl * 3.5 - 0.55
+    z = 4.4 + fl * 3.9
     for i in range(len(ring)):
         a = Vector(ring[i]); b = Vector(ring[(i + 1) % len(ring)])
         edge = b - a
@@ -147,13 +147,13 @@ ledge_obj.data.materials.append(concrete)
 # south red-brick panel (south = plan +z => blender -y)
 min_y = min(p[1] for p in ring)
 max_y = max(p[1] for p in ring)
-panel_w = 18.0
-panel_h = 26.0
+panel_w = 20.0
+panel_h = 30.0
 pnl = bmesh.new()
 vs = [pnl.verts.new((-panel_w / 2, min_y - 0.45, 8.0)),
       pnl.verts.new((panel_w / 2, min_y - 0.45, 8.0)),
-      pnl.verts.new((panel_w / 2, min_y - 0.45, 8.0 + panel_h)),
-      pnl.verts.new((-panel_w / 2, min_y - 0.45, 8.0 + panel_h))]
+      pnl.verts.new((panel_w / 2, min_y - 0.45, 2.0 + panel_h)),
+      pnl.verts.new((-panel_w / 2, min_y - 0.45, 2.0 + panel_h))]
 pnl.faces.new(vs)
 bmesh.ops.recalc_face_normals(pnl, faces=pnl.faces)
 pnl_me = bpy.data.meshes.new("panel")
@@ -166,16 +166,22 @@ pnl_obj.data.materials.append(brick)
 # text 图书馆 on panel
 font_path = r"C:\Windows\Fonts\simhei.ttf"
 if os.path.exists(font_path):
-    bpy.ops.object.text_add(location=(0, min_y - 0.62, 26))
+    bpy.ops.object.text_add(location=(0, min_y - 0.62, 25))
     txt = bpy.context.object
-    txt.data.body = "图书馆"
-    txt.data.size = 3.2
+    txt.data.body = "圖書館"
+    txt.data.size = 3.4
     txt.data.extrude = 0.12
     txt.data.align_x = 'CENTER'
     txt.data.align_y = 'CENTER'
     txt.rotation_euler = (math.pi / 2, 0, 0)
     txt.data.font = bpy.data.fonts.load(font_path)
     txt.data.materials.append(mat_principled("sign", (0.92, 0.90, 0.84), 0.5))
+
+# ground-floor red columns (south)
+col_mat = mat_principled("column_red", (0.55, 0.14, 0.10), 0.6)
+for i in range(-3, 4):
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.45, depth=6.0, location=(i * 6.0, min_y - 1.2, 3.0))
+    bpy.context.object.data.materials.append(col_mat)
 
 # parapet
 par_bm = bmesh.new()
@@ -233,8 +239,8 @@ cam_data.lens = 45
 cam = bpy.data.objects.new("Camera", cam_data)
 scene.collection.objects.link(cam)
 scene.camera = cam
-target = Vector((0, 0, 24))
-cam.location = Vector((78, min_y - 92, 52))
+target = Vector((0, 0, 15))
+cam.location = Vector((88, min_y - 105, 34))
 direction = target - cam.location
 cam.rotation_euler = direction.to_track_quat('-Z', 'Y').to_euler()
 
