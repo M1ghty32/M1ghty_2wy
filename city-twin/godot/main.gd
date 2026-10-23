@@ -11,6 +11,11 @@ var frames: int = 0
 var shot_path: String = ""
 var use_glb: bool = false
 var anim_player: AnimationPlayer
+var overview_cam: Camera3D
+var overview_on: bool = false
+var hud: Label
+var bld_meshes: Array[MeshInstance3D] = []
+var overview_mat: StandardMaterial3D
 var anim_walk := ""
 var anim_idle := ""
 var anim_run := ""
@@ -26,6 +31,8 @@ func _ready() -> void:
 
 	_build_environment()
 	use_glb = _load_campus_glb()
+	_build_surfaces()
+	_build_hud()
 	_build_ground()
 	if not use_glb:
 		_build_water()
@@ -106,7 +113,7 @@ func _fix_glb_materials(root: Node) -> void:
 			mat.albedo_color = Color(0.72, 0.72, 0.70)
 			mat.roughness = 0.8
 		elif n.begins_with("BLD"):
-			mat.albedo_color = Color(0.80, 0.78, 0.74)
+			mat.albedo_color = Color(0.72, 0.70, 0.66)
 			mat.albedo_texture = _window_texture()
 			mat.uv1_triplanar = true
 			mat.uv1_scale = Vector3(0.075, 0.075, 0.075)
@@ -126,6 +133,8 @@ func _fix_glb_materials(root: Node) -> void:
 		else:
 			continue
 		mi.material_override = mat
+		if n.begins_with("BLD"):
+			bld_meshes.append(mi)
 
 func _build_environment() -> void:
 	var env := Environment.new()
@@ -404,7 +413,7 @@ func _build_trees() -> void:
 
 func _build_player() -> void:
 	player = CharacterBody3D.new()
-	player.position = Vector3(204, 1.2, 350)
+	player.position = Vector3(204, 0.05, 350)
 	var col := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
 	cap.radius = 0.42
@@ -451,12 +460,14 @@ func _normalize_player_model(model: Node3D) -> void:
 		return
 	var scale_f := 1.78 / (ymax - ymin)
 	model.scale = Vector3(scale_f, scale_f, scale_f)
+	model.position.y = 0.0
 	var ymin2 := INF
 	for mi in model.find_children("*", "MeshInstance3D", true, false):
 		var box2: AABB = mi.get_aabb()
 		var gt2: Transform3D = mi.global_transform
 		ymin2 = min(ymin2, (gt2 * box2.position).y, (gt2 * box2.end).y)
-	model.position.y -= ymin2 - player.global_position.y
+	if ymin2 < INF:
+		model.position.y = -(ymin2 - player.global_position.y)
 
 func _load_player_model() -> Node3D:
 	var path := "res://assets/player.glb"
@@ -506,13 +517,98 @@ func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3) -> void:
 	st.add_vertex(b)
 	st.add_vertex(c)
 
+func _toggle_overview() -> void:
+	overview_on = not overview_on
+	if overview_mat == null:
+		overview_mat = StandardMaterial3D.new()
+		overview_mat.albedo_color = Color(0.42, 0.44, 0.47)
+		overview_mat.roughness = 0.9
+	for mi in bld_meshes:
+		if overview_on:
+			mi.material_override = overview_mat
+		else:
+			mi.material_override = null
+	if overview_on:
+		if overview_cam == null:
+			overview_cam = Camera3D.new()
+			overview_cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+			overview_cam.size = 1750.0
+			overview_cam.near = 1.0
+			overview_cam.far = 3000.0
+			add_child(overview_cam)
+		overview_cam.global_position = Vector3(190, 1400, -190)
+		overview_cam.rotation_degrees = Vector3(-90, 0, 0)
+		overview_cam.current = true
+	else:
+		if overview_cam:
+			overview_cam.current = false
+		cam.current = true
+
+func _build_hud() -> void:
+	var layer := CanvasLayer.new()
+	add_child(layer)
+	hud = Label.new()
+	hud.text = "WASD Move   Shift Run   Space Jump   M Map   Mouse Look"
+	hud.position = Vector2(24, 18)
+	hud.add_theme_font_size_override("font_size", 18)
+	hud.add_theme_color_override("font_color", Color(1, 1, 1, 0.92))
+	hud.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+	hud.add_theme_constant_override("shadow_offset_x", 1)
+	hud.add_theme_constant_override("shadow_offset_y", 1)
+	layer.add_child(hud)
+
+func _build_surfaces() -> void:
+	var path := "res://data/campus-surfaces.json"
+	if not FileAccess.file_exists(path):
+		return
+	var txt := FileAccess.get_file_as_string(path)
+	var data = JSON.parse_string(txt)
+	if typeof(data) != TYPE_DICTIONARY:
+		return
+	var groups := [
+		["green", Color(0.20, 0.31, 0.15)],
+		["paving", Color(0.52, 0.51, 0.48)],
+		["parkingAreas", Color(0.28, 0.29, 0.30)],
+	]
+	for g in groups:
+		var key: String = g[0]
+		var col: Color = g[1]
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = col
+		mat.roughness = 0.92
+		for poly in data.get(key, []):
+			var pts := PackedVector2Array()
+			for p in poly:
+				pts.append(Vector2(p[0], p[1]))
+			if pts.size() < 3:
+				continue
+			var idx := Geometry2D.triangulate_polygon(pts)
+			if idx.size() < 3:
+				continue
+			var st := SurfaceTool.new()
+			st.begin(Mesh.PRIMITIVE_TRIANGLES)
+			for i in range(0, idx.size(), 3):
+				for k in [idx[i], idx[i + 1], idx[i + 2]]:
+					var v: Vector2 = pts[k]
+					st.add_vertex(Vector3(v.x, 0.04, v.y))
+			st.generate_normals()
+			var mi := MeshInstance3D.new()
+			mi.mesh = st.commit()
+			mi.material_override = mat
+			add_child(mi)
+
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_M:
+		_toggle_overview()
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not overview_on:
 		player.rotate_y(-event.relative.x * 0.0022)
 		pitch = clamp(pitch - event.relative.y * 0.0018, -0.9, 0.4)
 		cam.rotation.x = pitch
 
 func _physics_process(delta: float) -> void:
+	if overview_on:
+		player.velocity = Vector3.ZERO
+		return
 	var input := Vector3.ZERO
 	if Input.is_key_pressed(KEY_W): input.z -= 1
 	if Input.is_key_pressed(KEY_S): input.z += 1
