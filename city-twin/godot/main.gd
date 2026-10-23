@@ -3,7 +3,7 @@ extends Node3D
 var camp: Dictionary = {}
 var player: CharacterBody3D
 var cam: Camera3D
-var pitch: float = -0.12
+var pitch: float = -0.06
 var frames: int = 0
 var shot_path: String = ""
 var use_glb: bool = false
@@ -33,12 +33,29 @@ func _ready() -> void:
 	_build_player()
 
 func _window_texture() -> ImageTexture:
-	var img := Image.create(64, 64, false, Image.FORMAT_RGB8)
-	for y in 64:
-		for x in 64:
-			var win := (x % 16 < 10) and (y % 18 < 11)
-			var c := Color(0.20, 0.26, 0.32) if win else Color(0.76, 0.78, 0.80)
-			img.set_pixel(x, y, c)
+	var size := 128
+	var img := Image.create(size, size, false, Image.FORMAT_RGB8)
+	for y in size:
+		for x in size:
+			var fx := float(x) / size
+			var fy := float(y) / size
+			var col := Color(0.80, 0.79, 0.75)
+			var cell_y := fmod(fy * 4.0, 1.0)
+			if cell_y < 0.14:
+				col = Color(0.66, 0.64, 0.60)
+			else:
+				var wx := fmod(fx * 4.0, 1.0)
+				var wy := (cell_y - 0.14) / 0.86
+				if wx > 0.10 and wx < 0.90 and wy > 0.18 and wy < 0.86:
+					var lit := fmod(fx * 31.0 + fy * 17.0, 1.0)
+					col = Color(0.10, 0.15, 0.20)
+					if lit > 0.86:
+						col = Color(0.90, 0.78, 0.52)
+					elif lit > 0.70:
+						col = Color(0.35, 0.48, 0.58)
+				else:
+					col = Color(0.86, 0.85, 0.82)
+			img.set_pixel(x, y, col)
 	return ImageTexture.create_from_image(img)
 
 func _ground_texture() -> ImageTexture:
@@ -47,8 +64,8 @@ func _ground_texture() -> ImageTexture:
 	rng.seed = 7
 	for y in 128:
 		for x in 128:
-			var v := 0.86 + rng.randf() * 0.14
-			img.set_pixel(x, y, Color(0.16 * v, 0.22 * v, 0.12 * v))
+			var v := 0.82 + rng.randf() * 0.30
+			img.set_pixel(x, y, Color(0.52 * v, 0.62 * v, 0.38 * v))
 	return ImageTexture.create_from_image(img)
 
 func _load_campus_glb() -> bool:
@@ -84,11 +101,23 @@ func _fix_glb_materials(root: Node) -> void:
 			mat.albedo_color = Color(0.72, 0.72, 0.70)
 			mat.roughness = 0.8
 		elif n.begins_with("BLD"):
-			mat.albedo_color = Color(0.86, 0.84, 0.80)
+			mat.albedo_color = Color(0.90, 0.88, 0.84)
 			mat.albedo_texture = _window_texture()
 			mat.uv1_triplanar = true
-			mat.uv1_scale = Vector3(0.10, 0.10, 0.10)
-			mat.roughness = 0.72
+			mat.uv1_scale = Vector3(0.075, 0.075, 0.075)
+			mat.roughness = 0.7
+		elif n.begins_with("Cylinder"):
+			mat.albedo_color = Color(0.26, 0.18, 0.12)
+			mat.roughness = 0.95
+		elif n.begins_with("Icosphere"):
+			mat.albedo_color = Color(0.17, 0.30, 0.13).lerp(Color(0.30, 0.42, 0.16), fmod(float(n.length()) * 0.37, 1.0))
+			mat.roughness = 0.95
+		elif n.begins_with("Plane"):
+			mat.albedo_color = Color(0.95, 0.95, 0.95)
+			mat.albedo_texture = _ground_texture()
+			mat.uv1_triplanar = true
+			mat.uv1_scale = Vector3(0.09, 0.09, 0.09)
+			mat.roughness = 0.95
 		else:
 			continue
 		mi.material_override = mat
@@ -389,8 +418,9 @@ func _build_player() -> void:
 		player.add_child(model)
 		body.visible = false
 	cam = Camera3D.new()
-	cam.position = Vector3(0, 2.6, 6.0)
-	cam.fov = 62
+	cam.position = Vector3(0.55, 2.05, 4.4)
+	cam.fov = 64
+	cam.rotation.x = -0.06
 	player.add_child(cam)
 	add_child(player)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -455,7 +485,24 @@ func _physics_process(delta: float) -> void:
 		if target_anim != "" and anim_player.current_animation != target_anim:
 			anim_player.play(target_anim)
 
+func _update_camera_collision() -> void:
+	if cam == null or player == null:
+		return
+	var space := get_world_3d().direct_space_state
+	var from := player.global_position + Vector3(0, 1.55, 0)
+	var back := player.global_transform.basis.z.normalized()
+	var want := 4.4
+	var to := from + back * want
+	var query := PhysicsRayQueryParameters3D.create(from, to, 1, [player.get_rid()])
+	var hit := space.intersect_ray(query)
+	if hit.is_empty():
+		cam.position.z = lerp(cam.position.z, want, 0.25)
+	else:
+		var dist: float = from.distance_to(hit.position) - 0.35
+		cam.position.z = lerp(cam.position.z, clamp(dist, 0.9, want), 0.35)
+
 func _process(_delta: float) -> void:
+	_update_camera_collision()
 	frames += 1
 	if shot_path != "" and frames == 25 and anim_player and anim_walk != "":
 		anim_player.play(anim_walk)
