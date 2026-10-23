@@ -11,3 +11,6 @@ Thumbs.db
 city-twin/godot/.godot/
 city-twin/godot/export/
 .tools/
+
+city-twin/godot-web*/
+

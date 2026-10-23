@@ -1,5 +1,8 @@
 extends Node3D
 
+const PLAYER_SCENE: PackedScene = preload("res://assets/player.glb")
+const CAMPUS_SCENE: PackedScene = preload("res://assets/campus.glb")
+
 var camp: Dictionary = {}
 var player: CharacterBody3D
 var cam: Camera3D
@@ -70,15 +73,17 @@ func _ground_texture() -> ImageTexture:
 
 func _load_campus_glb() -> bool:
 	var path := "res://assets/campus.glb"
-	if not FileAccess.file_exists(path):
-		return false
-	var doc := GLTFDocument.new()
-	var state := GLTFState.new()
-	var err := doc.append_from_file(path, state)
-	if err != OK:
-		push_warning("GLB load failed: " + str(err))
-		return false
-	var root := doc.generate_scene(state)
+	var packed: PackedScene = CAMPUS_SCENE
+	var root: Node = null
+	if packed:
+		root = packed.instantiate()
+	else:
+		var doc := GLTFDocument.new()
+		var state := GLTFState.new()
+		var err := doc.append_from_file(path, state)
+		if err != OK:
+			return false
+		root = doc.generate_scene(state)
 	if root == null:
 		return false
 	add_child(root)
@@ -427,13 +432,16 @@ func _build_player() -> void:
 
 func _load_player_model() -> Node3D:
 	var path := "res://assets/player.glb"
-	if not FileAccess.file_exists(path):
-		return null
-	var doc := GLTFDocument.new()
-	var st := GLTFState.new()
-	if doc.append_from_file(path, st) != OK:
-		return null
-	var root := doc.generate_scene(st)
+	var root: Node = null
+	var packed: PackedScene = PLAYER_SCENE
+	if packed:
+		root = packed.instantiate()
+	else:
+		var doc := GLTFDocument.new()
+		var st := GLTFState.new()
+		if doc.append_from_file(path, st) != OK:
+			return null
+		root = doc.generate_scene(st)
 	if root == null:
 		return null
 	anim_player = root.find_child("*AnimationPlayer*", true, false) as AnimationPlayer
@@ -448,7 +456,7 @@ func _load_player_model() -> Node3D:
 				anim_idle = an
 		if anim_idle != "":
 			anim_player.play(anim_idle)
-	return root
+	return root as Node3D
 
 func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3) -> void:
 	st.add_vertex(a)
