@@ -11,8 +11,12 @@ var frames: int = 0
 var shot_path: String = ""
 var use_glb: bool = false
 var anim_player: AnimationPlayer
-var overview_cam: Camera3D
-var overview_on: bool = false
+var free_cam: Camera3D
+var free_on: bool = false
+var free_target := Vector3(190, 0, -190)
+var free_yaw := 0.65
+var free_pitch := 0.75
+var free_dist := 980.0
 var hud: Label
 var bld_meshes: Array[MeshInstance3D] = []
 var overview_mat: StandardMaterial3D
@@ -185,6 +189,16 @@ func _build_environment() -> void:
 	add_child(fill)
 
 func _build_ground() -> void:
+	var far_ground := MeshInstance3D.new()
+	var far_plane := PlaneMesh.new()
+	far_plane.size = Vector2(12000, 12000)
+	far_ground.mesh = far_plane
+	var far_mat := StandardMaterial3D.new()
+	far_mat.albedo_color = Color(0.28, 0.35, 0.22)
+	far_mat.roughness = 0.95
+	far_ground.material_override = far_mat
+	far_ground.position = Vector3(190, -0.08, -190)
+	add_child(far_ground)
 	var floor_body := StaticBody3D.new()
 	var floor_shape := CollisionShape3D.new()
 	var floor_box := BoxShape3D.new()
@@ -517,32 +531,24 @@ func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3) -> void:
 	st.add_vertex(b)
 	st.add_vertex(c)
 
-func _toggle_overview() -> void:
-	overview_on = not overview_on
-	if overview_mat == null:
-		overview_mat = StandardMaterial3D.new()
-		overview_mat.albedo_color = Color(0.42, 0.44, 0.47)
-		overview_mat.roughness = 0.9
-	for mi in bld_meshes:
-		if overview_on:
-			mi.material_override = overview_mat
-		else:
-			mi.material_override = null
-	if overview_on:
-		if overview_cam == null:
-			overview_cam = Camera3D.new()
-			overview_cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-			overview_cam.size = 1750.0
-			overview_cam.near = 1.0
-			overview_cam.far = 3000.0
-			add_child(overview_cam)
-		overview_cam.global_position = Vector3(190, 1400, -190)
-		overview_cam.rotation_degrees = Vector3(-90, 0, 0)
-		overview_cam.current = true
+func _toggle_free_cam() -> void:
+	free_on = not free_on
+	if free_on:
+		if free_cam == null:
+			free_cam = Camera3D.new()
+			free_cam.fov = 55
+			free_cam.near = 1.0
+			free_cam.far = 6000.0
+			add_child(free_cam)
+		free_cam.current = true
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		hud.text = "Free Camera: RMB drag rotate | Wheel zoom | WASD pan | Q/E height | M back"
 	else:
-		if overview_cam:
-			overview_cam.current = false
+		if free_cam:
+			free_cam.current = false
 		cam.current = true
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		hud.text = "WASD Move   Shift Run   Space Jump   M Free Camera   Mouse Look"
 
 func _build_hud() -> void:
 	var layer := CanvasLayer.new()
@@ -599,15 +605,35 @@ func _build_surfaces() -> void:
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_M:
-		_toggle_overview()
-	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not overview_on:
+		_toggle_free_cam()
+	if free_on and event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_RIGHT):
+		free_yaw -= event.relative.x * 0.005
+		free_pitch = clamp(free_pitch - event.relative.y * 0.005, 0.12, 1.5)
+	if free_on and event is InputEventMouseButton:
+		if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			free_dist = max(80.0, free_dist * 0.88)
+		if event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			free_dist = min(3200.0, free_dist * 1.12)
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not free_on:
 		player.rotate_y(-event.relative.x * 0.0022)
 		pitch = clamp(pitch - event.relative.y * 0.0018, -0.9, 0.4)
 		cam.rotation.x = pitch
 
 func _physics_process(delta: float) -> void:
-	if overview_on:
+	if free_on:
 		player.velocity = Vector3.ZERO
+		var fwd := Vector3(-sin(free_yaw), 0, -cos(free_yaw))
+		var right := Vector3(cos(free_yaw), 0, -sin(free_yaw))
+		var spd := 260.0 * delta
+		if Input.is_key_pressed(KEY_W): free_target += fwd * spd
+		if Input.is_key_pressed(KEY_S): free_target -= fwd * spd
+		if Input.is_key_pressed(KEY_D): free_target += right * spd
+		if Input.is_key_pressed(KEY_A): free_target -= right * spd
+		if Input.is_key_pressed(KEY_E): free_target.y += spd
+		if Input.is_key_pressed(KEY_Q): free_target.y -= spd
+		var off := Vector3(cos(free_pitch) * sin(free_yaw), sin(free_pitch), cos(free_pitch) * cos(free_yaw)) * free_dist
+		free_cam.global_position = free_target + off
+		free_cam.look_at(free_target, Vector3.UP)
 		return
 	var input := Vector3.ZERO
 	if Input.is_key_pressed(KEY_W): input.z -= 1
@@ -651,7 +677,8 @@ func _update_camera_collision() -> void:
 		cam.position.z = lerp(cam.position.z, clamp(dist, 0.9, want), 0.35)
 
 func _process(_delta: float) -> void:
-	_update_camera_collision()
+	if not free_on:
+		_update_camera_collision()
 	frames += 1
 	if shot_path != "" and frames == 25 and anim_player and anim_walk != "":
 		anim_player.play(anim_walk)
