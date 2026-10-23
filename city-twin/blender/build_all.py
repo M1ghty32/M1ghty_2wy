@@ -71,6 +71,14 @@ bw.inputs["Base Color"].default_value = (0.10, 0.24, 0.32, 1)
 bw.inputs["Roughness"].default_value = 0.12
 bw.inputs["Metallic"].default_value = 0.3
 
+mat_base = bpy.data.materials.new("base")
+mat_base.use_nodes = True
+mat_base.node_tree.nodes.get("Principled BSDF").inputs["Base Color"].default_value = (0.32, 0.32, 0.33, 1)
+
+mat_band = bpy.data.materials.new("band")
+mat_band.use_nodes = True
+mat_band.node_tree.nodes.get("Principled BSDF").inputs["Base Color"].default_value = (0.72, 0.72, 0.70, 1)
+
 mat_grass = bpy.data.materials.new("grass")
 mat_grass.use_nodes = True
 mat_grass.node_tree.nodes.get("Principled BSDF").inputs["Base Color"].default_value = (0.20, 0.29, 0.16, 1)
@@ -88,6 +96,33 @@ def add_obj(name, verts, faces, mat):
     ob = bpy.data.objects.new(name, me)
     scene.collection.objects.link(ob)
     ob.data.materials.append(mat)
+    return ob
+
+def ring_band(ring, z, thick, out, material):
+    n = len(ring)
+    normals = []
+    for i in range(n):
+        a = Vector(ring[i - 1]); b = Vector(ring[i]); c = Vector(ring[(i + 1) % n])
+        n1 = Vector((-(b - a).y, (b - a).x)).normalized() if (b - a).length > 1e-6 else Vector((0, 0))
+        n2 = Vector((-(c - b).y, (c - b).x)).normalized() if (c - b).length > 1e-6 else Vector((0, 0))
+        nv = n1 + n2
+        normals.append(nv.normalized() if nv.length > 1e-6 else Vector((0, 0)))
+    bm = bmesh.new()
+    for i in range(n):
+        j = (i + 1) % n
+        pi = Vector(ring[i]); pj = Vector(ring[j])
+        oi = pi + normals[i] * out; oj = pj + normals[j] * out
+        bm.faces.new([bm.verts.new((pi.x, pi.y, z + thick / 2)), bm.verts.new((pj.x, pj.y, z + thick / 2)),
+                      bm.verts.new((oj.x, oj.y, z + thick / 2)), bm.verts.new((oi.x, oi.y, z + thick / 2))])
+        bm.faces.new([bm.verts.new((oi.x, oi.y, z - thick / 2)), bm.verts.new((oj.x, oj.y, z - thick / 2)),
+                      bm.verts.new((oj.x, oj.y, z + thick / 2)), bm.verts.new((oi.x, oi.y, z + thick / 2))])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new("band")
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new("BAND", me)
+    scene.collection.objects.link(ob)
+    ob.data.materials.append(material)
     return ob
 
 def extrude(ring, h):
@@ -135,6 +170,34 @@ for b in data["buildings"]:
         po = bpy.data.objects.new(f"PAR_{count:02d}", pm)
         scene.collection.objects.link(po)
         po.data.materials.append(mat_conc)
+    # 底层基座 + 楼层线脚 + 屋顶挑檐 + 入口雨棚
+    if h > 8:
+        ring_band(ring, 0.45, 0.9, 0.04, mat_base)
+        zz = 3.8
+        while zz < h - 1.5:
+            ring_band(ring, zz, 0.14, 0.18, mat_band)
+            zz += 3.8
+        ring_band(ring, h + 0.15, 0.45, 0.6, mat_band)
+        minx = min(p[0] for p in ring); maxx = max(p[0] for p in ring)
+        miny = min(p[1] for p in ring)
+        w = maxx - minx
+        if w > 22 and h > 15:
+            bmc = bmesh.new()
+            bmesh.ops.create_cube(bmc, size=1.0)
+            for v in bmc.verts:
+                v.co.x *= min(18.0, w * 0.35)
+                v.co.y *= 5.0
+                v.co.z *= 0.3
+                v.co.x += (minx + maxx) / 2
+                v.co.y += miny - 2.2
+                v.co.z += 3.6
+            bmesh.ops.recalc_face_normals(bmc, faces=bmc.faces)
+            cme = bpy.data.meshes.new("canopy")
+            bmc.to_mesh(cme)
+            bmc.free()
+            cob = bpy.data.objects.new("CANOPY", cme)
+            scene.collection.objects.link(cob)
+            cob.data.materials.append(mat_band)
     count += 1
 
 # roads
