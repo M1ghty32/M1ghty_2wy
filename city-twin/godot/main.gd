@@ -420,6 +420,7 @@ func _build_player() -> void:
 	player.add_child(body)
 	var model := _load_player_model()
 	if model:
+		model.rotation.y = PI
 		player.add_child(model)
 		body.visible = false
 	cam = Camera3D.new()
@@ -428,7 +429,26 @@ func _build_player() -> void:
 	cam.rotation.x = -0.06
 	player.add_child(cam)
 	add_child(player)
+	if model:
+		_normalize_player_model(model)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _normalize_player_model(model: Node3D) -> void:
+	var ymin := INF
+	var ymax := -INF
+	for mi in model.find_children("*", "MeshInstance3D", true, false):
+		var box: AABB = mi.get_aabb()
+		var gt: Transform3D = mi.global_transform
+		var p0: Vector3 = gt * box.position
+		var p1: Vector3 = gt * box.end
+		ymin = min(ymin, p0.y, p1.y)
+		ymax = max(ymax, p0.y, p1.y)
+	if ymax <= ymin:
+		return
+	var scale_f := 1.78 / (ymax - ymin)
+	model.scale = Vector3(scale_f, scale_f, scale_f)
+	var feet := ymin - player.global_position.y
+	model.position.y = -feet * scale_f
 
 func _load_player_model() -> Node3D:
 	var path := "res://assets/player.glb"
@@ -448,12 +468,27 @@ func _load_player_model() -> Node3D:
 	if anim_player:
 		for an in anim_player.get_animation_list():
 			var low := String(an).to_lower()
-			if low.contains("walk"):
+			if low == "walking_a" or low == "walk":
 				anim_walk = an
-			elif low.contains("run"):
+			elif low == "running_a" or low == "run":
 				anim_run = an
-			elif low.contains("idle"):
+			elif low == "idle":
 				anim_idle = an
+		if anim_walk == "":
+			for an in anim_player.get_animation_list():
+				if String(an).to_lower().contains("walk"):
+					anim_walk = an
+					break
+		if anim_run == "":
+			for an in anim_player.get_animation_list():
+				if String(an).to_lower().contains("run"):
+					anim_run = an
+					break
+		if anim_idle == "":
+			for an in anim_player.get_animation_list():
+				if String(an).to_lower().contains("idle"):
+					anim_idle = an
+					break
 		if anim_idle != "":
 			anim_player.play(anim_idle)
 	return root as Node3D
