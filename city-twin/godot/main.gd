@@ -6,7 +6,7 @@ const CAMPUS_SCENE: PackedScene = preload("res://assets/campus.glb")
 var camp: Dictionary = {}
 var player: CharacterBody3D
 var cam: Camera3D
-var pitch: float = -0.06
+var pitch: float = -0.03
 var frames: int = 0
 var shot_path: String = ""
 var use_glb: bool = false
@@ -106,7 +106,7 @@ func _fix_glb_materials(root: Node) -> void:
 			mat.albedo_color = Color(0.72, 0.72, 0.70)
 			mat.roughness = 0.8
 		elif n.begins_with("BLD"):
-			mat.albedo_color = Color(0.90, 0.88, 0.84)
+			mat.albedo_color = Color(0.80, 0.78, 0.74)
 			mat.albedo_texture = _window_texture()
 			mat.uv1_triplanar = true
 			mat.uv1_scale = Vector3(0.075, 0.075, 0.075)
@@ -118,7 +118,7 @@ func _fix_glb_materials(root: Node) -> void:
 			mat.albedo_color = Color(0.17, 0.30, 0.13).lerp(Color(0.30, 0.42, 0.16), fmod(float(n.length()) * 0.37, 1.0))
 			mat.roughness = 0.95
 		elif n.begins_with("Plane"):
-			mat.albedo_color = Color(0.95, 0.95, 0.95)
+			mat.albedo_color = Color(0.62, 0.66, 0.52)
 			mat.albedo_texture = _ground_texture()
 			mat.uv1_triplanar = true
 			mat.uv1_scale = Vector3(0.09, 0.09, 0.09)
@@ -159,6 +159,10 @@ func _build_environment() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-48, -32, 0)
 	sun.light_energy = 1.6
+	if OS.has_feature("web"):
+		sun.light_energy = 0.95
+		env.ambient_light_energy = 0.30
+		env.tonemap_exposure = 0.62
 	sun.light_color = Color(1.0, 0.95, 0.87)
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 420.0
@@ -424,7 +428,7 @@ func _build_player() -> void:
 		player.add_child(model)
 		body.visible = false
 	cam = Camera3D.new()
-	cam.position = Vector3(0.55, 2.05, 4.4)
+	cam.position = Vector3(0.5, 1.65, 3.8)
 	cam.fov = 64
 	cam.rotation.x = -0.06
 	player.add_child(cam)
@@ -447,8 +451,12 @@ func _normalize_player_model(model: Node3D) -> void:
 		return
 	var scale_f := 1.78 / (ymax - ymin)
 	model.scale = Vector3(scale_f, scale_f, scale_f)
-	var feet := ymin - player.global_position.y
-	model.position.y = -feet * scale_f
+	var ymin2 := INF
+	for mi in model.find_children("*", "MeshInstance3D", true, false):
+		var box2: AABB = mi.get_aabb()
+		var gt2: Transform3D = mi.global_transform
+		ymin2 = min(ymin2, (gt2 * box2.position).y, (gt2 * box2.end).y)
+	model.position.y -= ymin2 - player.global_position.y
 
 func _load_player_model() -> Node3D:
 	var path := "res://assets/player.glb"
@@ -525,6 +533,8 @@ func _physics_process(delta: float) -> void:
 	if anim_player:
 		var moving_now := input.length() > 0.1
 		var target_anim := anim_idle if not moving_now else (anim_run if Input.is_key_pressed(KEY_SHIFT) else anim_walk)
+		if moving_now:
+			anim_player.speed_scale = clamp(speed / 4.6, 0.8, 1.6)
 		if target_anim != "" and anim_player.current_animation != target_anim:
 			anim_player.play(target_anim)
 
