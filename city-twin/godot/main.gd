@@ -102,9 +102,22 @@ func _load_campus_glb() -> bool:
 	return true
 
 
+func _surface_material(texture_path: String, tint: Color, tile_metres: float) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = tint
+	mat.roughness = 0.94
+	if FileAccess.file_exists(texture_path):
+		mat.albedo_texture = load(texture_path)
+		mat.uv1_triplanar = true
+		mat.uv1_world_triplanar = true
+		mat.uv1_scale = Vector3.ONE / tile_metres
+	return mat
+
 func _fix_glb_materials(root: Node) -> void:
-	# The Blender GLB already contains PBR materials. Do not cover them with
-	# the old generated window texture (which also covered roofs).
+	# Ground meshes exported from Blender have no UVs: use world-space mapping.
+	var grass := _surface_material("res://assets/campus_grass_green.jpg", Color(0.24, 0.32, 0.16), 9.0)
+	var asphalt := _surface_material("res://assets/campus_asphalt_diff.jpg", Color(0.42, 0.43, 0.44), 6.0)
+	var paving := _surface_material("res://assets/campus_concrete_diff.jpg", Color(0.52, 0.51, 0.47), 4.0)
 	for mi in root.find_children("*", "MeshInstance3D", true, false):
 		var n := String(mi.name)
 		if n.begins_with("BLD_WALL"):
@@ -121,6 +134,12 @@ func _fix_glb_materials(root: Node) -> void:
 			glass_mat.metallic = 0.35
 			glass_mat.roughness = 0.20
 			mi.material_override = glass_mat
+		if n.begins_with("GROUND") or n.begins_with("GREEN"):
+			mi.material_override = grass
+		elif n.begins_with("ROAD") or n.begins_with("PARKING"):
+			mi.material_override = asphalt
+		elif n.begins_with("PAVING") or n.begins_with("SIDEWALK"):
+			mi.material_override = paving
 
 func _build_environment() -> void:
 	var env := Environment.new()

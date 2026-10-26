@@ -1,12 +1,49 @@
 # 四川吉利学院 · 校园数字孪生 Demo
 
-一个单文件 Three.js 数字孪生演示：严格按学校官方可视化位置服务平台的楼栋数据重建校园，叠加六张城市生命线网络与夜间指挥中心界面。
+基于学校官方 MVT 矢量数据、Blender 与 Godot 的校园三维演示。
 
-- 主页 `/city-twin/`：最新真实底图版，使用官方 MVT 矢量瓦片
-- 游戏 `/city-twin/game/`：第三人称校园漫游
-- 入口：`index.html` / `game/index.html`
-- Three.js r160.1 与全部 addons 已本地 vendored 到 `vendor/`，**无 CDN 依赖**，可离线运行
-- 无后端、无构建步骤，数据全部在浏览器本地模拟
+- 地图总览 `/city-twin/`：官方矢量底图与校园图层
+- 校园漫游 `/city-twin/game/`：**Godot Web 版**，含第三人称与自由视角
+- 旧版漫游 `/city-twin/legacy-three/`：保留的 Three.js 版本
+- 离线引擎工程：`godot/`；程序化建模脚本：`blender/campus_final.py`
+
+## 校园漫游操作
+
+| 操作 | 作用 |
+| --- | --- |
+| W / A / S / D | 人物移动；自由视角下平移地图 |
+| 鼠标移动 | 第三人称转动视角 |
+| Shift | 奔跑 |
+| Space | 跳跃 |
+| **M** | 在第三人称和自由地图视角之间切换 |
+| 自由视角右键拖动 | 环绕校园旋转 |
+| 自由视角滚轮 | 缩放全图 |
+| 自由视角 Q / E | 降低 / 升高视点 |
+
+## 当前场景内容
+
+- 60 栋建筑、210 条道路、8 片水系、真实树木点位和地表矢量面
+- 墙面 / 屋顶分离，逐层逐开间窗洞与窗框、楼板线脚、阳台、入口雨棚
+- 图书馆红砖立面体块、校门、湖岸、路灯、长椅和停车位
+- 田径场 6 条跑道、足球门、4 片篮球场与 2 片网球场
+- 草地 / 沥青 / 混凝土采用世界坐标三平面贴图，不依赖 GLB UV
+- 带服装纹理与 Idle / Walk / Run 动画的骨骼人物
+- 60 栋楼碰撞、第三人称相机避障，M 键全图自由环绕、平移和缩放
+
+## 构建与运行
+
+```powershell
+# 生成校园 GLB（需要 Blender 5.x）
+blender -b --python city-twin/blender/campus_final.py
+
+# 打开 Godot 工程
+godot --path city-twin/godot
+
+# 导出 Web（需安装对应版本 Web 导出模板）
+godot --headless --path city-twin/godot --export-release Web city-twin/game/index.html
+```
+
+`game/` 内为可静态托管的 Godot Web 构建，使用单线程导出，无需 COOP / COEP 特殊响应头。
 
 ## 数据从哪来
 
