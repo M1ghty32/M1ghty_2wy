@@ -1,824 +1,199 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>四川吉利学院 · 校园漫游</title>
-<style>
-  :root { --cyan:#38e1ff; --mono:"JetBrains Mono",Consolas,monospace; }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html,body { width:100%; height:100%; overflow:hidden; background:#050b12; color:#e6f2fb; font-family:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif; }
-  #scene { position:fixed; inset:0; }
-  canvas { display:block; }
-
-  #hud { position:fixed; inset:0; pointer-events:none; z-index:5; }
-  #brand { position:absolute; top:18px; left:20px; }
-  #brand b { display:block; font-size:15px; letter-spacing:.1em; }
-  #brand span { color:#7f95a8; font-family:var(--mono); font-size:9px; letter-spacing:.18em; }
-
-  #help { position:absolute; left:20px; bottom:20px; padding:10px 12px; border:1px solid rgba(120,190,220,.18); border-radius:10px; background:rgba(5,14,24,.68); backdrop-filter:blur(8px); font-family:var(--mono); font-size:9px; line-height:1.9; color:#8fa6b8; }
-  #help b { color:#d7ecfa; font-weight:500; }
-
-  #crosshair { position:absolute; left:50%; top:50%; width:5px; height:5px; margin:-2.5px 0 0 -2.5px; border-radius:50%; background:rgba(220,245,255,.85); box-shadow:0 0 8px rgba(56,225,255,.7); }
-
-  #prompt { position:absolute; left:50%; bottom:22%; transform:translateX(-50%); padding:9px 16px; border:1px solid rgba(56,225,255,.45); border-radius:10px; background:rgba(5,18,28,.78); color:#d8f4ff; font-size:13px; letter-spacing:.05em; opacity:0; transition:opacity .18s; white-space:nowrap; }
-  #prompt.show { opacity:1; }
-  #prompt em { color:var(--cyan); font-style:normal; font-family:var(--mono); }
-
-  #nameplate { position:absolute; left:50%; top:14%; transform:translateX(-50%); color:#cfe6f5; font-size:12px; letter-spacing:.2em; opacity:0; transition:opacity .3s; text-shadow:0 2px 12px #000; }
-  #nameplate.show { opacity:1; }
-
-  #loading { position:fixed; inset:0; z-index:20; display:grid; place-items:center; background:#050b12; transition:opacity .5s; }
-  #loading.hide { opacity:0; pointer-events:none; }
-  #loading b { display:block; font-size:13px; letter-spacing:.2em; margin-bottom:12px; text-align:center; }
-  #loading i { display:block; width:180px; height:2px; background:rgba(120,190,220,.16); }
-  #loading em { display:block; width:40%; height:100%; background:var(--cyan); animation:slide 1.2s ease-in-out infinite; }
-  @keyframes slide { 0%{transform:translateX(0)} 50%{transform:translateX(150%)} 100%{transform:translateX(0)} }
-</style>
-<script type="importmap">
-{ "imports": { "three": "../vendor/three.module.js", "three/addons/": "../vendor/three-addons/" } }
-</script>
-</head>
-<body>
-<div id="scene"></div>
-<div id="hud">
-  <div id="brand"><b>四川吉利学院 · 校园漫游</b><span>CAMPUS WALK · WASD / MOUSE / E</span></div>
-  <div id="help">
-    <div><b>W A S D</b> 移动 · <b>Shift</b> 奔跑 · <b>空格</b> 跳跃</div>
-    <div><b>鼠标</b> 转视角 · 点击画面锁定</div>
-    <div><b>E</b> 进入 / 离开建筑</div>
-  </div>
-  <div id="crosshair"></div>
-  <div id="prompt"></div>
-  <div id="nameplate"></div>
-</div>
-<div id="loading"><div><b>正在生成校园</b><i><em></em></i></div></div>
-
-<script type="module">
-import * as THREE from 'three';
-
-const container = document.getElementById('scene');
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.6));
-renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.08;
-container.appendChild(renderer.domElement);
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x9ec6dd);
-scene.fog = new THREE.Fog(0xb9d6e6, 260, 1250);
-
-const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.3, 4000);
-
-const data = await fetch('../data/campus-v2.json').then((r) => r.json());
-for (const b of data.buildings) { if (/明德楼|立德楼/.test(b.n)) b.h = 21; }
-const surfaces = await fetch('../data/campus-surfaces.json').then((r) => r.json()).catch(() => null);
-
-/* ---------- 边界 ---------- */
-const bounds = { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity };
-for (const b of data.buildings) for (const ring of b.r) for (const p of ring) {
-  bounds.minX = Math.min(bounds.minX, p[0]); bounds.maxX = Math.max(bounds.maxX, p[0]);
-  bounds.minZ = Math.min(bounds.minZ, p[1]); bounds.maxZ = Math.max(bounds.maxZ, p[1]);
-}
-const mid = { x: (bounds.minX + bounds.maxX) / 2, z: (bounds.minZ + bounds.maxZ) / 2 };
-const span = Math.max(bounds.maxX - bounds.minX, bounds.maxZ - bounds.minZ);
-
-/* ---------- 光照 ---------- */
-const hemi = new THREE.HemisphereLight(0xbfd9ee, 0x43503c, 1.0);
-scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xfff0d8, 2.1);
-sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.near = 1;
-sun.shadow.camera.far = 900;
-sun.shadow.bias = -0.0005;
-scene.add(sun, sun.target);
-
-/* ---------- 地面 ---------- */
-const groundMat = new THREE.MeshStandardMaterial({ color: 0x3d5a38, roughness: 1 });
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(span * 2.6, span * 2.6), groundMat);
-ground.rotation.x = -Math.PI / 2;
-ground.position.set(mid.x, 0, mid.z);
-ground.receiveShadow = true;
-scene.add(ground);
-
-/* ---------- 地表：官方 surface 数据 ---------- */
-function surfaceMesh(item, color, y, opacity = 1) {
-  const rings = item && item.r;
-  if (!rings || !rings.length) return;
-  const shape = new THREE.Shape();
-  const ring = rings[0];
-  shape.moveTo(ring[0][0], -ring[0][1]);
-  for (let i = 1; i < ring.length; i++) shape.lineTo(ring[i][0], -ring[i][1]);
-  for (const hole of rings.slice(1)) {
-    const p = new THREE.Path();
-    p.moveTo(hole[0][0], -hole[0][1]);
-    for (let i = 1; i < hole.length; i++) p.lineTo(hole[i][0], -hole[i][1]);
-    shape.holes.push(p);
-  }
-  const geo = new THREE.ShapeGeometry(shape);
-  geo.rotateX(-Math.PI / 2);
-  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: 1, transparent: opacity < 1, opacity }));
-  mesh.position.y = y;
-  mesh.receiveShadow = true;
-  scene.add(mesh);
-}
-if (surfaces) {
-  for (const b of surfaces.campusBoundary || []) surfaceMesh(b, 0x93ad7c, 0.004);
-  for (const g of surfaces.green || []) surfaceMesh(g, 0x7f9e69, 0.008);
-  for (const p of surfaces.paving || []) surfaceMesh(p, 0xb9bebc, 0.012);
-  for (const p of surfaces.parkingAreas || []) surfaceMesh(p, 0x9aa0a4, 0.016);
-  for (const p of surfaces.parkingBays || []) surfaceMesh(p, 0xd6dadb, 0.02);
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+		<title>GUC Campus</title>
+		<style>
+html, body, #canvas {
+	margin: 0;
+	padding: 0;
+	border: 0;
 }
 
-/* ---------- 水系 ---------- */
-const waterMat = new THREE.MeshStandardMaterial({ color: 0x2c7fa6, roughness: 0.18, metalness: 0.35, transparent: true, opacity: 0.92 });
-for (const ring of data.water) {
-  const shape = new THREE.Shape();
-  shape.moveTo(ring[0][0], -ring[0][1]);
-  for (let i = 1; i < ring.length; i++) shape.lineTo(ring[i][0], -ring[i][1]);
-  shape.closePath();
-  const geo = new THREE.ShapeGeometry(shape);
-  geo.rotateX(-Math.PI / 2);
-  const mesh = new THREE.Mesh(geo, waterMat);
-  mesh.position.y = 0.06;
-  scene.add(mesh);
+body {
+	color: white;
+	background-color: black;
+	overflow: hidden;
+	touch-action: none;
 }
 
-/* ---------- 道路 ---------- */
-const ROAD_W = { primary: 11, secondary: 9, tertiary: 8, living_street: 6, service: 5, path: 3, pedestrian: 3, steps: 2.4, track: 3 };
-const roadMat = new THREE.MeshStandardMaterial({ color: 0x6b7178, roughness: 0.92 });
-const walkMat = new THREE.MeshStandardMaterial({ color: 0xa8aea8, roughness: 0.95 });
-function ribbon(points, width) {
-  const pts = [];
-  for (const p of points) {
-    const v = new THREE.Vector3(p[0], 0, p[1]);
-    if (!pts.length || pts[pts.length - 1].distanceTo(v) > 0.8) pts.push(v);
-  }
-  if (pts.length < 2) return null;
-  const pos = [], idx = [], nor = [];
-  for (let i = 0; i < pts.length; i++) {
-    const prev = pts[Math.max(0, i - 1)], next = pts[Math.min(pts.length - 1, i + 1)];
-    const dir = new THREE.Vector3().subVectors(next, prev).normalize();
-    const side = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(width / 2);
-    pos.push(pts[i].x - side.x, 0, pts[i].z - side.z, pts[i].x + side.x, 0, pts[i].z + side.z);
-    nor.push(0, 1, 0, 0, 1, 0);
-    if (i < pts.length - 1) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
-  g.setIndex(idx);
-  return g;
-}
-const roadGeos = [], walkGeos = [];
-for (const road of data.roads) {
-  const w = ROAD_W[road.w] || 4;
-  for (const line of road.l) {
-    const a = ribbon(line, w); if (a) roadGeos.push(a);
-    const b = ribbon(line, w + 4.5); if (b) walkGeos.push(b);
-  }
-}
-function merge(list) {
-  const parts = list.map((g) => (g.index ? g.toNonIndexed() : g));
-  let total = 0; for (const g of parts) total += g.attributes.position.count;
-  const pos = new Float32Array(total * 3), nor = new Float32Array(total * 3);
-  let o = 0;
-  for (const g of parts) { pos.set(g.attributes.position.array, o); nor.set(g.attributes.normal.array, o); o += g.attributes.position.count * 3; }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
-  return geo;
-}
-const walkMesh = new THREE.Mesh(merge(walkGeos), walkMat); walkMesh.position.y = 0.03; walkMesh.receiveShadow = true; scene.add(walkMesh);
-const roadMesh = new THREE.Mesh(merge(roadGeos), roadMat); roadMesh.position.y = 0.05; roadMesh.receiveShadow = true; scene.add(roadMesh);
-
-/* ---------- 建筑 ---------- */
-const buildingMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.78, metalness: 0.05 });
-buildingMat.onBeforeCompile = (shader) => {
-  shader.vertexShader = 'varying vec3 vWPos;\nvarying vec3 vWN;\n' + shader.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n vWPos=(modelMatrix*vec4(transformed,1.0)).xyz;\n vWN=normalize(mat3(modelMatrix)*objectNormal);');
-  shader.fragmentShader = 'varying vec3 vWPos;\nvarying vec3 vWN;\n' + shader.fragmentShader.replace('#include <dithering_fragment>', `#include <dithering_fragment>
-    float wall = 1.0 - smoothstep(0.45,0.62,abs(vWN.y));
-    float fy = fract((vWPos.y - 1.2)/3.6);
-    float fx = fract((vWPos.x + vWPos.z)/4.2);
-    float win = step(0.5,fx)*step(fx,0.9)*step(0.28,fy)*step(fy,0.8);
-    vec3 glass = vec3(0.24,0.36,0.45);
-    float lit = step(0.72, fract(sin(dot(floor(vWPos.xz/4.2), vec2(12.9898,78.233)))*43758.5453));
-    vec3 col = mix(glass, vec3(1.0,0.86,0.6), lit*0.55);
-    gl_FragColor.rgb = mix(gl_FragColor.rgb, col, win*wall*0.8);`);
-};
-const KIND_COLOR = { library: 0xe7e2d8, teaching: 0xe3e7ea, student_bedroom: 0xd9cdb8, gymnasium: 0xd3dbe1, canteen: 0xded0ba, experiment_building: 0xcdd8df, administration: 0xe2dccf, service_building: 0xd8d2c8, hospital: 0xe4e7e9 };
-const YARD = 0;
-const buildingMeshes = [];
-const buildingData = [];
-for (const b of data.buildings) {
-  const ring = b.r[0];
-  if (!ring || ring.length < 3) continue;
-  const shape = new THREE.Shape();
-  shape.moveTo(ring[0][0], -ring[0][1]);
-  for (let i = 1; i < ring.length; i++) shape.lineTo(ring[i][0], -ring[i][1]);
-  shape.closePath();
-  const h = Math.max(4, b.h || 12);
-  const geo = new THREE.ExtrudeGeometry(shape, { depth: h, bevelEnabled: false, curveSegments: 1 });
-  geo.rotateX(-Math.PI / 2);
-  const color = new THREE.Color(KIND_COLOR[b.k] || 0xd5dde4);
-  const count = geo.attributes.position.count;
-  const colors = new Float32Array(count * 3);
-  for (let i = 0; i < count; i++) { colors[i * 3] = color.r; colors[i * 3 + 1] = color.g; colors[i * 3 + 2] = color.b; }
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  const mesh = new THREE.Mesh(geo, buildingMat);
-  mesh.castShadow = true; mesh.receiveShadow = true;
-  scene.add(mesh);
-  buildingMeshes.push(mesh);
-
-  const xs = ring.map((p) => p[0]), zs = ring.map((p) => p[1]);
-  buildingData.push({ name: b.n, kind: b.k, h, cx: (Math.min(...xs) + Math.max(...xs)) / 2, cz: (Math.min(...zs) + Math.max(...zs)) / 2, minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs), ring });
+#canvas {
+	display: block;
 }
 
-/* ---------- 树 ---------- */
-const treePts = (data.trees || []).slice(0, 900);
-if (treePts.length) {
-  const trunkGeo = new THREE.CylinderGeometry(0.25, 0.34, 4, 6); trunkGeo.translate(0, 2, 0);
-  const crownGeo = new THREE.IcosahedronGeometry(2.6, 1); crownGeo.translate(0, 5.6, 0);
-  const trunks = new THREE.InstancedMesh(trunkGeo, new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 1 }), treePts.length);
-  const crowns = new THREE.InstancedMesh(crownGeo, new THREE.MeshStandardMaterial({ color: 0x4f7a44, roughness: 1, flatShading: true }), treePts.length);
-  const m = new THREE.Matrix4();
-  treePts.forEach((p, i) => {
-    const s = 0.8 + (i % 6) * 0.07;
-    m.makeScale(s, s * (0.9 + (i % 4) * 0.08), s); m.setPosition(p[0], 0, p[1]);
-    trunks.setMatrixAt(i, m); crowns.setMatrixAt(i, m);
-  });
-  trunks.castShadow = true; crowns.castShadow = true;
-  scene.add(trunks, crowns);
+#canvas:focus {
+	outline: none;
 }
 
-/* ---------- 南门 ---------- */
-const gateGroup = new THREE.Group();
-gateGroup.position.set(204.7, 0, 442);
-for (const side of [-1, 1]) {
-  const pillar = new THREE.Mesh(new THREE.BoxGeometry(2.6, 9, 2.6), new THREE.MeshStandardMaterial({ color: 0xc9d1d8, roughness: 0.6 }));
-  pillar.position.set(side * 11, 4.5, 0); pillar.castShadow = true; gateGroup.add(pillar);
-}
-const beam = new THREE.Mesh(new THREE.BoxGeometry(24.6, 1.5, 3), new THREE.MeshStandardMaterial({ color: 0xc9d1d8, roughness: 0.6 }));
-beam.position.y = 9.3; beam.castShadow = true; gateGroup.add(beam);
-const signCanvas = document.createElement('canvas'); signCanvas.width = 1024; signCanvas.height = 192;
-const sc = signCanvas.getContext('2d');
-sc.fillStyle = '#2b2f36'; sc.fillRect(0, 0, 1024, 192);
-sc.fillStyle = '#f2ede2'; sc.font = 'bold 92px "Microsoft YaHei", sans-serif'; sc.textAlign = 'center'; sc.textBaseline = 'middle';
-sc.fillText('四川吉利学院', 512, 96);
-const signTex = new THREE.CanvasTexture(signCanvas);
-const sign = new THREE.Mesh(new THREE.PlaneGeometry(18, 3.2), new THREE.MeshBasicMaterial({ map: signTex }));
-sign.position.set(0, 6.6, 1.55); gateGroup.add(sign);
-scene.add(gateGroup);
-
-/* ---------- 主站同款场地与细节 ---------- */
-function ellipseField(cx, cz, rx, rz, color, y) {
-  const shape = new THREE.Shape();
-  shape.absellipse(0, 0, rx, rz, 0, Math.PI * 2, false, 0);
-  const geo = new THREE.ShapeGeometry(shape, 48);
-  geo.rotateX(-Math.PI / 2);
-  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: 0.92 }));
-  mesh.position.set(cx, y, cz); mesh.receiveShadow = true; scene.add(mesh);
-}
-ellipseField(-88, -222, 54, 99, 0x9d4b3f, 0.1);
-ellipseField(-88, -222, 36, 79, 0x2f6b3a, 0.14);
-
-const basketMat = new THREE.MeshStandardMaterial({ color: 0x3e6f8f, roughness: 0.9 });
-const lineWhite = new THREE.MeshBasicMaterial({ color: 0xe8eef2 });
-function courtLine(w, d, x, z, rot) {
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), lineWhite);
-  m.rotation.x = -Math.PI / 2; m.rotation.z = rot; m.position.set(x, 0.1, z);
-  scene.add(m);
-}
-for (let i = 0; i < 4; i++) {
-  const cx = 12 - (i % 2) * 30;
-  const cz = -288 - Math.floor(i / 2) * 26;
-  const court = new THREE.Mesh(new THREE.PlaneGeometry(26, 14), basketMat);
-  court.rotation.x = -Math.PI / 2; court.rotation.z = -0.05;
-  court.position.set(cx, 0.085, cz); scene.add(court);
-  courtLine(24, 0.4, cx, cz + 5.6, -0.05);
-  courtLine(24, 0.4, cx, cz - 5.6, -0.05);
-  courtLine(0.4, 14, cx - 13, cz, -0.05);
-  courtLine(0.4, 14, cx + 13, cz, -0.05);
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 3.2, 6), new THREE.MeshStandardMaterial({ color: 0x4a545c }));
-  pole.position.set(cx - 12.4, 1.6, cz); scene.add(pole);
-}
-for (let i = 0; i < 2; i++) {
-  const cx = 58, cz = -258 - i * 22;
-  const court = new THREE.Mesh(new THREE.PlaneGeometry(24, 11), new THREE.MeshStandardMaterial({ color: 0x3f7a55, roughness: 0.9 }));
-  court.rotation.x = -Math.PI / 2; court.rotation.z = -0.05;
-  court.position.set(cx, 0.085, cz); scene.add(court);
-  courtLine(22, 0.35, cx, cz + 4.4, -0.05);
-  courtLine(22, 0.35, cx, cz - 4.4, -0.05);
-  courtLine(0.35, 11, cx - 11, cz, -0.05);
-  courtLine(0.35, 11, cx + 11, cz, -0.05);
+#status, #status-splash, #status-progress {
+	position: absolute;
+	left: 0;
+	right: 0;
 }
 
-const pavingMat = new THREE.MeshStandardMaterial({ color: 0x9aa2a8, roughness: 0.9 });
-for (const p of [[205, 300, 96, 150], [208, -18, 104, 62], [205, 455, 60, 26]]) {
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(p[2], p[3]), pavingMat);
-  mesh.rotation.x = -Math.PI / 2; mesh.position.set(p[0], 0.055, p[1]);
-  mesh.receiveShadow = true; scene.add(mesh);
+#status, #status-splash {
+	top: 0;
+	bottom: 0;
 }
 
-const bankMat = new THREE.MeshStandardMaterial({ color: 0xb9c2b4, roughness: 1 });
-for (const ring of data.water) {
-  const cx = ring.reduce((a, p) => a + p[0], 0) / ring.length;
-  const cz = ring.reduce((a, p) => a + p[1], 0) / ring.length;
-  const shape = new THREE.Shape();
-  ring.forEach((p, i) => {
-    const x = cx + (p[0] - cx) * 1.045, z = cz + (p[1] - cz) * 1.045;
-    if (i === 0) shape.moveTo(x, -z); else shape.lineTo(x, -z);
-  });
-  shape.closePath();
-  const geo = new THREE.ShapeGeometry(shape); geo.rotateX(-Math.PI / 2);
-  const mesh = new THREE.Mesh(geo, bankMat); mesh.position.y = 0.045; scene.add(mesh);
+#status {
+	background-color: #242424;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	visibility: hidden;
 }
 
-// 图书馆红砖立面
-const lib = buildingData.find((b) => b.name === '图书馆');
-if (lib) {
-  const w = Math.min(26, (lib.maxX - lib.minX) * 0.34);
-  const h = Math.min(26, lib.h * 0.5);
-  const panel = new THREE.Mesh(new THREE.BoxGeometry(w, h, 1.2), new THREE.MeshStandardMaterial({ color: 0x8a4a3a, roughness: 0.85 }));
-  panel.position.set(lib.cx, lib.h * 0.5, lib.maxZ + 0.5); scene.add(panel);
-  const c = document.createElement('canvas'); c.width = 1024; c.height = 192;
-  const ctx = c.getContext('2d'); ctx.fillStyle = '#f5efe4'; ctx.font = 'bold 96px "Microsoft YaHei", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('图书馆', 512, 96);
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.7, w * 0.18), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, alphaTest: 0.05 }));
-  sign.position.set(lib.cx, lib.h * 0.62, lib.maxZ + 1.15); scene.add(sign);
-  for (let i = 0; i < 8; i++) {
-    const louver = new THREE.Mesh(new THREE.BoxGeometry(lib.maxX - lib.minX + 2, 0.35, 0.5), new THREE.MeshStandardMaterial({ color: 0xdde3e8, roughness: 0.6 }));
-    louver.position.set(lib.cx, 4 + i * ((lib.h - 8) / 7), lib.maxZ + 0.2); scene.add(louver);
-  }
-}
-for (const name of ['体育馆', '游泳馆']) {
-  const b = buildingData.find((x) => x.name === name);
-  if (!b) continue;
-  const r = Math.min((b.maxX - b.minX) / 2, (b.maxZ - b.minZ) / 2) * 0.55;
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(r, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xd6dde3, roughness: 0.45, metalness: 0.25 }));
-  dome.scale.y = 0.3; dome.position.set(b.cx, b.h * 0.8, b.cz); dome.castShadow = true; scene.add(dome);
+#status-splash {
+	max-height: 100%;
+	max-width: 100%;
+	margin: auto;
 }
 
-// 其它三座校门
-for (const g of [{ n: '西南门', x: -294.7, z: 254.4, r: Math.PI / 2 }, { n: '北门', x: -62, z: -830, r: Math.PI }, { n: '东门', x: 688, z: 322, r: -Math.PI / 2 }]) {
-  const grp = new THREE.Group();
-  grp.position.set(g.x, 0, g.z); grp.rotation.y = g.r;
-  for (const side of [-1, 1]) {
-    const p = new THREE.Mesh(new THREE.BoxGeometry(1.8, 6, 1.8), new THREE.MeshStandardMaterial({ color: 0x3a444c, roughness: 0.7 }));
-    p.position.set(side * 7, 3, 0); p.castShadow = true; grp.add(p);
-  }
-  const beam = new THREE.Mesh(new THREE.BoxGeometry(15.6, 1, 2.2), new THREE.MeshStandardMaterial({ color: 0x3a444c, roughness: 0.7 }));
-  beam.position.y = 6.2; grp.add(beam);
-  scene.add(grp);
+#status-progress, #status-notice {
+	display: none;
 }
 
-/* ---------- 碰撞网格 ---------- */
-const CELL = 3;
-const gw = Math.ceil((bounds.maxX - bounds.minX) / CELL) + 2;
-const gh = Math.ceil((bounds.maxZ - bounds.minZ) / CELL) + 2;
-const blocked = new Uint8Array(gw * gh);
-function pointInRing(x, z, ring) {
-  let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const xi = ring[i][0], zi = ring[i][1], xj = ring[j][0], zj = ring[j][1];
-    if (((zi > z) !== (zj > z)) && (x < ((xj - xi) * (z - zi)) / (zj - zi) + xi)) inside = !inside;
-  }
-  return inside;
-}
-for (const b of buildingData) {
-  const x0 = Math.floor((b.minX - bounds.minX) / CELL), x1 = Math.ceil((b.maxX - bounds.minX) / CELL);
-  const z0 = Math.floor((b.minZ - bounds.minZ) / CELL), z1 = Math.ceil((b.maxZ - bounds.minZ) / CELL);
-  for (let gx = Math.max(0, x0); gx <= Math.min(gw - 1, x1); gx++) {
-    for (let gz = Math.max(0, z0); gz <= Math.min(gh - 1, z1); gz++) {
-      const wx = bounds.minX + (gx + 0.5) * CELL, wz = bounds.minZ + (gz + 0.5) * CELL;
-      if (pointInRing(wx, wz, b.ring)) blocked[gz * gw + gx] = 1;
-    }
-  }
-}
-for (const ring of data.water) {
-  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
-  for (const p of ring) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); z0 = Math.min(z0, p[1]); z1 = Math.max(z1, p[1]); }
-  for (let gx = Math.max(0, Math.floor((x0 - bounds.minX) / CELL)); gx <= Math.min(gw - 1, Math.ceil((x1 - bounds.minX) / CELL)); gx++) {
-    for (let gz = Math.max(0, Math.floor((z0 - bounds.minZ) / CELL)); gz <= Math.min(gh - 1, Math.ceil((z1 - bounds.minZ) / CELL)); gz++) {
-      const wx = bounds.minX + (gx + 0.5) * CELL, wz = bounds.minZ + (gz + 0.5) * CELL;
-      if (pointInRing(wx, wz, ring)) blocked[gz * gw + gx] = 1;
-    }
-  }
-}
-function isBlocked(x, z) {
-  const gx = Math.floor((x - bounds.minX) / CELL), gz = Math.floor((z - bounds.minZ) / CELL);
-  if (gx < 0 || gz < 0 || gx >= gw || gz >= gh) return true;
-  return blocked[gz * gw + gx] === 1;
+#status-progress {
+	bottom: 10%;
+	width: 50%;
+	margin: 0 auto;
 }
 
-/* ---------- 角色 ---------- */
-const BODY_SEG = 1.0;
-function makeHuman(color, scale = 1, opts = {}) {
-  const g = new THREE.Group();
-  const skin = new THREE.MeshStandardMaterial({ color: 0xe8b98f, roughness: 0.75 });
-  const cloth = new THREE.MeshStandardMaterial({ color, roughness: 0.85 });
-  const pants = new THREE.MeshStandardMaterial({ color: opts.pants || 0x2c3540, roughness: 0.9 });
-  const shoe = new THREE.MeshStandardMaterial({ color: 0x1e242b, roughness: 0.8 });
-  const hairMat = new THREE.MeshStandardMaterial({ color: opts.hair || 0x241d18, roughness: 0.9 });
-
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.72, 0.34), cloth);
-  torso.position.y = 1.2;
-  const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.16, 0.36), cloth);
-  shoulders.position.y = 1.52;
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.1, 0.14, 8), skin);
-  neck.position.y = 1.63;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.23, 14, 12), skin);
-  head.position.y = 1.83;
-  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.245, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), hairMat);
-  hair.position.y = 1.85;
-  g.add(torso, shoulders, neck, head, hair);
-
-  const armGeo = new THREE.BoxGeometry(0.15, 0.62, 0.16);
-  armGeo.translate(0, -0.29, 0);
-  const handGeo = new THREE.SphereGeometry(0.09, 8, 6);
-  handGeo.translate(0, -0.62, 0);
-  function arm(side) {
-    const a = new THREE.Group();
-    const upper = new THREE.Mesh(armGeo, cloth);
-    const hand = new THREE.Mesh(handGeo, skin);
-    a.add(upper, hand);
-    a.position.set(side * 0.36, 1.47, 0);
-    a.rotation.z = side * 0.06;
-    g.add(a);
-    return a;
-  }
-  const lArm = arm(-1), rArm = arm(1);
-
-  const legGeo = new THREE.BoxGeometry(0.19, 0.82, 0.21);
-  legGeo.translate(0, -0.4, 0);
-  function leg(side) {
-    const l = new THREE.Group();
-    const thigh = new THREE.Mesh(legGeo, pants);
-    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.34), shoe);
-    foot.position.set(0, -0.82, 0.05);
-    l.add(thigh, foot);
-    l.position.set(side * 0.15, 0.86, 0);
-    g.add(l);
-    return l;
-  }
-  const lLeg = leg(-1), rLeg = leg(1);
-
-  if (opts.backpack) {
-    const bag = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.46, 0.2), new THREE.MeshStandardMaterial({ color: 0x33404d, roughness: 0.85 }));
-    bag.position.set(0, 1.22, -0.28);
-    g.add(bag);
-  }
-  if (opts.cap) {
-    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.08, 12), new THREE.MeshStandardMaterial({ color: 0x1f3a5a }));
-    cap.position.y = 2.02; g.add(cap);
-  }
-
-  g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-  g.scale.setScalar(scale);
-  g.userData = { lArm, rArm, lLeg, rLeg, phase: Math.random() * Math.PI * 2, idle: false };
-  return g;
+#status-notice {
+	background-color: #5b3943;
+	border-radius: 0.5rem;
+	border: 1px solid #9b3943;
+	color: #e0e0e0;
+	font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
+	line-height: 1.3;
+	margin: 0 2rem;
+	overflow: hidden;
+	padding: 1rem;
+	text-align: center;
+	z-index: 1;
 }
-const player = makeHuman(0x2f6fa8, 1, { backpack: true, cap: true });
-scene.add(player);
+		</style>
+		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
+<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
 
-/* ---------- NPC ---------- */
-const walkRoads = data.roads.filter((r) => ['primary', 'secondary', 'tertiary', 'service', 'living_street'].includes(r.w) && r.l.some((l) => l.length > 8));
-const npcs = [];
-const NPC_COLORS = [0xb85c5c, 0x5c7fb8, 0x6f9c5a, 0xb8965c, 0x8a6fa8, 0x5c9c9c, 0xc07a4a];
-for (let i = 0; i < 40; i++) {
-  const road = walkRoads[i % walkRoads.length];
-  const line = road.l.find((l) => l.length > 8);
-  if (!line) continue;
-  const mesh = makeHuman(NPC_COLORS[i % NPC_COLORS.length], 0.96 + (i % 5) * 0.02);
-  scene.add(mesh);
-  const idle = i % 5 === 0;
-  mesh.userData.idle = idle;
-  npcs.push({ mesh, path: line, t: Math.random(), speed: 1.0 + Math.random() * 1.4, dir: i % 2 ? 1 : -1, idle });
-}
-function samplePath(path, t) {
-  const n = path.length - 1;
-  const f = Math.min(0.9999, Math.max(0, t)) * n;
-  const i = Math.floor(f), a = path[i], b = path[Math.min(n, i + 1)];
-  const k = f - i;
-  return { x: a[0] + (b[0] - a[0]) * k, z: a[1] + (b[1] - a[1]) * k, dx: b[0] - a[0], dz: b[1] - a[1] };
-}
+	</head>
+	<body>
+		<canvas id="canvas">
+			Your browser does not support the canvas tag.
+		</canvas>
 
-/* ---------- 室内 ---------- */
-const ROOM = { w: 34, d: 26, h: 4.4 };
-const room = new THREE.Group();
-room.position.set(4000, 0, 4000);
-room.visible = false;
-scene.add(room);
-const floorMat = new THREE.MeshStandardMaterial({ color: 0xb9b2a6, roughness: 0.85 });
-const wallMat = new THREE.MeshStandardMaterial({ color: 0xd8d2c6, roughness: 0.9 });
-const ceilMat = new THREE.MeshStandardMaterial({ color: 0xe6e1d8, roughness: 1 });
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM.w, ROOM.d), floorMat); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; room.add(floor);
-const ceil = new THREE.Mesh(new THREE.PlaneGeometry(ROOM.w, ROOM.d), ceilMat); ceil.rotation.x = Math.PI / 2; ceil.position.y = ROOM.h; room.add(ceil);
-function wall(w, h, d, x, y, z) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat); m.position.set(x, y, z); m.receiveShadow = true; room.add(m); }
-wall(ROOM.w, ROOM.h, 0.4, 0, ROOM.h / 2, -ROOM.d / 2);
-wall(ROOM.w, ROOM.h, 0.4, 0, ROOM.h / 2, ROOM.d / 2);
-wall(0.4, ROOM.h, ROOM.d, -ROOM.w / 2, ROOM.h / 2, 0);
-wall(0.4, ROOM.h, ROOM.d, ROOM.w / 2, ROOM.h / 2, 0);
-const doorGap = new THREE.Mesh(new THREE.BoxGeometry(4, 3, 0.5), new THREE.MeshStandardMaterial({ color: 0x6f7d88 }));
-doorGap.position.set(0, 1.5, ROOM.d / 2 + 0.02);
-room.add(doorGap);
-const rLight1 = new THREE.PointLight(0xfff0d8, 60, 40, 2); rLight1.position.set(-8, 3.8, 0); room.add(rLight1);
-const rLight2 = new THREE.PointLight(0xfff0d8, 60, 40, 2); rLight2.position.set(8, 3.8, 0); room.add(rLight2);
-const rAmb = new THREE.AmbientLight(0xcfe0ee, 0.6); room.add(rAmb);
+		<noscript>
+			Your browser does not support JavaScript.
+		</noscript>
 
-const furniture = new THREE.Group();
-room.add(furniture);
-function clearFurniture() {
-  while (furniture.children.length) furniture.remove(furniture.children[0]);
-}
-function furnish(kind) {
-  clearFurniture();
-  const wood = new THREE.MeshStandardMaterial({ color: 0x8a6a4a, roughness: 0.8 });
-  const dark = new THREE.MeshStandardMaterial({ color: 0x3a4750, roughness: 0.85 });
-  const soft = new THREE.MeshStandardMaterial({ color: 0xc9d4dc, roughness: 0.9 });
-  const bookColors = [0x8a4a3a, 0x3a5f8a, 0x5a7a4a, 0xb0904a, 0x6a4a8a];
-  if (kind === 'library') {
-    for (let i = 0; i < 6; i++) {
-      const x = -13 + i * 5;
-      const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.6, 8), wood);
-      shelf.position.set(x, 1.3, -6); furniture.add(shelf);
-      for (let k = 0; k < 5; k++) {
-        const row = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.3, 7.4), new THREE.MeshStandardMaterial({ color: bookColors[(i + k) % bookColors.length], roughness: 0.9 }));
-        row.position.set(x, 0.5 + k * 0.45, -6); furniture.add(row);
-      }
-    }
-    for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) {
-      const table = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.12, 1.6), wood);
-      table.position.set(-8 + c * 8, 0.78, 4 + r * 4); furniture.add(table);
-      for (const side of [-1, 1]) {
-        const chair = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.45, 1.2), dark);
-        chair.position.set(-8 + c * 8, 0.22, 4 + r * 4 + side * 1.5); furniture.add(chair);
-      }
-    }
-  } else if (kind === 'canteen') {
-    for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) {
-      const table = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.1, 16), soft);
-      table.position.set(-11 + c * 7, 0.78, -5 + r * 5); furniture.add(table);
-      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.78, 8), dark);
-      leg.position.set(-11 + c * 7, 0.39, -5 + r * 5); furniture.add(leg);
-      for (const side of [-1, 1]) {
-        const stool = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.1, 10), dark);
-        stool.position.set(-11 + c * 7, 0.46, -5 + r * 5 + side * 1.7); furniture.add(stool);
-      }
-    }
-    const counter = new THREE.Mesh(new THREE.BoxGeometry(16, 1.1, 1.6), soft);
-    counter.position.set(0, 0.55, -10); furniture.add(counter);
-  } else if (kind === 'student_bedroom') {
-    for (let i = 0; i < 3; i++) {
-      const bed = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 4), soft);
-      bed.position.set(-9 + i * 9, 0.5, -5); furniture.add(bed);
-      const pillow = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.2, 1), new THREE.MeshStandardMaterial({ color: 0xe8eef2 }));
-      pillow.position.set(-9 + i * 9, 0.8, -6.4); furniture.add(pillow);
-      const wardrobe = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.4, 1), wood);
-      wardrobe.position.set(-9 + i * 9, 1.2, 7); furniture.add(wardrobe);
-    }
-  } else if (kind === 'gymnasium') {
-    const floorLine = new THREE.Mesh(new THREE.PlaneGeometry(26, 0.15), new THREE.MeshBasicMaterial({ color: 0xf2f6f8 }));
-    floorLine.rotation.x = -Math.PI / 2; floorLine.position.set(0, 0.09, 0); furniture.add(floorLine);
-    const mid = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 18), new THREE.MeshBasicMaterial({ color: 0xf2f6f8 }));
-    mid.rotation.x = -Math.PI / 2; mid.position.set(0, 0.09, 0); furniture.add(mid);
-    for (const side of [-1, 1]) {
-      const hoop = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.2, 1.8), new THREE.MeshStandardMaterial({ color: 0xe6ebef }));
-      hoop.position.set(side * 13, 3, 0); furniture.add(hoop);
-    }
-  } else {
-    for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
-      const desk = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.15, 1.2), wood);
-      desk.position.set(-8 + c * 8, 0.75, -8 + r * 4); furniture.add(desk);
-      const chair = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.45, 1.1), dark);
-      chair.position.set(-8 + c * 8, 0.22, -7 + r * 4); furniture.add(chair);
-    }
-  }
-}
+		<div id="status">
+			<img id="status-splash" src="index.png" alt="">
+			<progress id="status-progress"></progress>
+			<div id="status-notice"></div>
+		</div>
 
-/* ---------- 门 ---------- */
-const doors = [];
-for (const b of buildingData) {
-  if (!b.name) continue;
-  if (b.h < 4) continue;
-  const doorX = b.cx;
-  const doorZ = b.maxZ + 1.2;
-  const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.06, 24), new THREE.MeshBasicMaterial({ color: 0x38e1ff, transparent: true, opacity: 0.55, depthWrite: false }));
-  pad.position.set(doorX, 0.08, doorZ);
-  scene.add(pad);
-  doors.push({ name: b.name, kind: b.kind, x: doorX, z: doorZ, cx: b.cx, cz: b.cz, w: b.maxX - b.minX, d: b.maxZ - b.minZ, mesh: pad });
-}
+		<script src="index.js"></script>
+		<script>
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":38529328,"index.wasm":35376909},"focusCanvas":true,"gdextensionLibs":[]};
+const GODOT_THREADS_ENABLED = false;
+const engine = new Engine(GODOT_CONFIG);
 
-/* ---------- 建筑细节：女儿墙 ---------- */
-const parapetMat = new THREE.MeshStandardMaterial({ color: 0xb9c0c6, roughness: 0.85 });
-for (const b of buildingData) {
-  if (b.h < 12) continue;
-  const w = b.maxX - b.minX, d = b.maxZ - b.minZ;
-  const y = b.h - 0.15;
-  const parts = [
-    [w, 0.4, 0.32, b.cx, y, b.minZ + 0.16],
-    [w, 0.4, 0.32, b.cx, y, b.maxZ - 0.16],
-    [0.32, 0.4, d, b.minX + 0.16, y, b.cz],
-    [0.32, 0.4, d, b.maxX - 0.16, y, b.cz]
-  ];
-  for (const p of parts) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(p[0], p[1], p[2]), parapetMat);
-    m.position.set(p[3], p[4], p[5]);
-    scene.add(m);
-  }
-}
+(function () {
+	const statusOverlay = document.getElementById('status');
+	const statusProgress = document.getElementById('status-progress');
+	const statusNotice = document.getElementById('status-notice');
 
-/* ---------- 建筑细节：入口雨棚 ---------- */
-const canopyMat = new THREE.MeshStandardMaterial({ color: 0x3b4650, roughness: 0.7 });
-const postMat = new THREE.MeshStandardMaterial({ color: 0x2b343c, roughness: 0.7 });
-for (const d of doors) {
-  const canopy = new THREE.Mesh(new THREE.BoxGeometry(5, 0.22, 3), canopyMat);
-  canopy.position.set(d.x, 3.4, d.z + 0.6);
-  canopy.castShadow = true;
-  scene.add(canopy);
-  for (const side of [-1, 1]) {
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.16, 3.4, 0.16), postMat);
-    post.position.set(d.x + side * 2.2, 1.7, d.z + 1.8);
-    scene.add(post);
-  }
-  const lamp = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.1, 0.24), new THREE.MeshBasicMaterial({ color: 0xffd9a0 }));
-  lamp.position.set(d.x, 3.24, d.z + 0.6);
-  scene.add(lamp);
-}
+	let initializing = true;
+	let statusMode = '';
 
-/* ---------- 玩家状态 ---------- */
-const state = { mode: 'outdoor', yaw: 0, pitch: -0.12, vy: 0, ground: true, indoorName: '', saved: null, clock: 0 };
-const playerPos = new THREE.Vector3(204, 0, 350);
-const keys = new Set();
-let pointerLocked = false;
+	function setStatusMode(mode) {
+		if (statusMode === mode || !initializing) {
+			return;
+		}
+		if (mode === 'hidden') {
+			statusOverlay.remove();
+			initializing = false;
+			return;
+		}
+		statusOverlay.style.visibility = 'visible';
+		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
+		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
+		statusMode = mode;
+	}
 
-addEventListener('keydown', (e) => {
-  const k = e.key.toLowerCase();
-  keys.add(k);
-  if (k === 'e') interact();
-  if (e.code === 'Space') { e.preventDefault(); if (state.ground) { state.vy = 7.2; state.ground = false; } }
-});
-addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
+	function setStatusNotice(text) {
+		while (statusNotice.lastChild) {
+			statusNotice.removeChild(statusNotice.lastChild);
+		}
+		const lines = text.split('\n');
+		lines.forEach((line) => {
+			statusNotice.appendChild(document.createTextNode(line));
+			statusNotice.appendChild(document.createElement('br'));
+		});
+	}
 
-renderer.domElement.addEventListener('click', () => {
-  if (!pointerLocked) renderer.domElement.requestPointerLock();
-});
-document.addEventListener('pointerlockchange', () => { pointerLocked = document.pointerLockElement === renderer.domElement; });
-document.addEventListener('mousemove', (e) => {
-  if (!pointerLocked) return;
-  state.yaw -= e.movementX * 0.0022;
-  state.pitch = Math.max(-0.9, Math.min(0.35, state.pitch - e.movementY * 0.0018));
-});
+	function displayFailureNotice(err) {
+		console.error(err);
+		if (err instanceof Error) {
+			setStatusNotice(err.message);
+		} else if (typeof err === 'string') {
+			setStatusNotice(err);
+		} else {
+			setStatusNotice('An unknown error occured');
+		}
+		setStatusMode('notice');
+		initializing = false;
+	}
 
-/* ---------- 交互 ---------- */
-const promptEl = document.getElementById('prompt');
-const nameEl = document.getElementById('nameplate');
-let nearDoor = null;
-function updatePrompt() {
-  if (state.mode === 'indoor') {
-    nearDoor = null;
-    promptEl.innerHTML = '<em>E</em> 离开建筑';
-    promptEl.classList.add('show');
-    return;
-  }
-  let best = null, bestD = 6.5;
-  for (const d of doors) {
-    const dist = Math.hypot(playerPos.x - d.x, playerPos.z - d.z);
-    if (dist < bestD) { bestD = dist; best = d; }
-  }
-  nearDoor = best;
-  if (best) {
-    promptEl.innerHTML = `<em>E</em> 进入 ${best.name}`;
-    promptEl.classList.add('show');
-  } else promptEl.classList.remove('show');
-}
-function interact() {
-  if (state.mode === 'indoor') {
-    state.mode = 'outdoor';
-    room.visible = false;
-    playerPos.copy(state.saved);
-    state.saved = null;
-    nameEl.classList.remove('show');
-    return;
-  }
-  if (!nearDoor) return;
-  state.saved = playerPos.clone();
-  state.mode = 'indoor';
-  state.indoorName = nearDoor.name;
-  room.visible = true;
-  playerPos.set(4000, 0, 4000 - ROOM.d / 2 + 4);
-  state.yaw = Math.PI;
-  furnish(nearDoor.kind || 'default');
-  nameEl.textContent = nearDoor.name + ' · 室内';
-  nameEl.classList.add('show');
-  nearDoor = null;
-}
+	const missing = Engine.getMissingFeatures({
+		threads: GODOT_THREADS_ENABLED,
+	});
 
-/* ---------- 更新 ---------- */
-const clock = new THREE.Clock();
-const tmpF = new THREE.Vector3(), tmpR = new THREE.Vector3();
-function update(dt) {
-  state.clock += dt;
-  // 移动
-  let mx = 0, mz = 0;
-  if (keys.has('w') || keys.has('arrowup')) mz += 1;
-  if (keys.has('s') || keys.has('arrowdown')) mz -= 1;
-  if (keys.has('a') || keys.has('arrowleft')) mx -= 1;
-  if (keys.has('d') || keys.has('arrowright')) mx += 1;
-  const len = Math.hypot(mx, mz) || 1;
-  mx /= len; mz /= len;
-  const speed = keys.has('shift') ? 13 : 6.4;
-  tmpF.set(-Math.sin(state.yaw), 0, -Math.cos(state.yaw));
-  tmpR.set(Math.cos(state.yaw), 0, -Math.sin(state.yaw));
-  const dx = (tmpF.x * mz + tmpR.x * mx) * speed * dt;
-  const dz = (tmpF.z * mz + tmpR.z * mx) * speed * dt;
-
-  if (state.mode === 'outdoor') {
-    const nx = playerPos.x + dx, nz = playerPos.z + dz;
-    if (!isBlocked(nx, playerPos.z)) playerPos.x = nx;
-    if (!isBlocked(playerPos.x, nz)) playerPos.z = nz;
-    state.vy -= 22 * dt;
-    playerPos.y += state.vy * dt;
-    if (playerPos.y <= 0) { playerPos.y = 0; state.vy = 0; state.ground = true; }
-  } else {
-    const hw = ROOM.w / 2 - 0.8, hd = ROOM.d / 2 - 0.8;
-    playerPos.x = Math.max(4000 - hw, Math.min(4000 + hw, playerPos.x + dx));
-    playerPos.z = Math.max(4000 - hd, Math.min(4000 + hd, playerPos.z + dz));
-    playerPos.y = 0;
-  }
-
-  player.position.copy(playerPos);
-  player.rotation.y = state.yaw + Math.PI;
-
-  // 走路摆臂
-  const moving = (mx || mz) && state.mode === 'outdoor';
-  const swing = moving ? Math.sin(state.clock * 9) * 0.6 : 0;
-  player.userData.lLeg.rotation.x = swing;
-  player.userData.rLeg.rotation.x = -swing;
-  player.userData.lArm.rotation.x = -swing;
-  player.userData.rArm.rotation.x = swing;
-
-  // 相机
-  const dist = state.mode === 'indoor' ? 5.5 : 11;
-  const height = state.mode === 'indoor' ? 2.2 : 4.2;
-  const cx = playerPos.x + Math.sin(state.yaw) * Math.cos(state.pitch) * dist;
-  const cz = playerPos.z + Math.cos(state.yaw) * Math.cos(state.pitch) * dist;
-  const cy = playerPos.y + height + Math.sin(-state.pitch) * dist * 0.5;
-  camera.position.lerp(new THREE.Vector3(cx, cy, cz), Math.min(1, dt * 12));
-  camera.lookAt(playerPos.x, playerPos.y + 1.6, playerPos.z);
-
-  // 太阳跟随
-  sun.position.set(playerPos.x + 220, 320, playerPos.z + 160);
-  sun.target.position.set(playerPos.x, 0, playerPos.z);
-  sun.target.updateMatrixWorld();
-
-  // NPC
-  for (const n of npcs) {
-    n.t += (dt * n.speed) / Math.max(1, n.path.length * 6) * n.dir;
-    if (n.t > 1) { n.t = 1; n.dir = -1; }
-    if (n.t < 0) { n.t = 0; n.dir = 1; }
-    const p = samplePath(n.path, n.t);
-    const yaw = n.mesh.userData.idle ? n.mesh.userData.phase : Math.atan2(p.dx * n.dir, p.dz * n.dir);
-    n.mesh.position.set(p.x, 0, p.z);
-    n.mesh.rotation.y = yaw;
-    const sw = n.mesh.userData.idle ? 0 : Math.sin(state.clock * 7 + n.mesh.userData.phase) * 0.55;
-    const idleBob = n.mesh.userData.idle ? Math.sin(state.clock * 1.6 + n.mesh.userData.phase) * 0.03 : 0;
-    n.mesh.position.y = idleBob;
-    n.mesh.userData.lLeg.rotation.x = sw;
-    n.mesh.userData.rLeg.rotation.x = -sw;
-    n.mesh.userData.lArm.rotation.x = -sw;
-    n.mesh.userData.rArm.rotation.x = sw;
-    n.mesh.visible = state.mode === 'outdoor';
-  }
-
-  // 室内外显隐
-  for (const m of buildingMeshes) m.visible = state.mode === 'outdoor';
-  ground.visible = state.mode === 'outdoor';
-  player.visible = true;
-
-  updatePrompt();
-}
-
-function animate() {
-  requestAnimationFrame(animate);
-  const dt = Math.min(0.05, clock.getDelta());
-  update(dt);
-  renderer.render(scene, camera);
-}
-addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-});
-
-playerPos.set(204, 0, 350);
-camera.position.set(204, 6, 361);
-animate();
-document.getElementById('loading').classList.add('hide');
-window.__GAME__ = { scene, camera, renderer, player, playerPos, state, doors, npcs, isBlocked, buildingData };
-</script>
-</body>
+	if (missing.length !== 0) {
+		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
+			// There's a chance that installing the service worker would fix the issue
+			Promise.race([
+				navigator.serviceWorker.getRegistration().then((registration) => {
+					if (registration != null) {
+						return Promise.reject(new Error('Service worker already exists.'));
+					}
+					return registration;
+				}).then(() => engine.installServiceWorker()),
+				// For some reason, `getRegistration()` can stall
+				new Promise((resolve) => {
+					setTimeout(() => resolve(), 2000);
+				}),
+			]).catch((err) => {
+				console.error('Error while registering service worker:', err);
+			}).then(() => {
+				window.location.reload();
+			});
+		} else {
+			// Display the message as usual
+			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
+			displayFailureNotice(missingMsg + missing.join('\n'));
+		}
+	} else {
+		setStatusMode('progress');
+		engine.startGame({
+			'onProgress': function (current, total) {
+				if (current > 0 && total > 0) {
+					statusProgress.value = current;
+					statusProgress.max = total;
+				} else {
+					statusProgress.removeAttribute('value');
+					statusProgress.removeAttribute('max');
+				}
+			},
+		}).then(() => {
+			setStatusMode('hidden');
+		}, displayFailureNotice);
+	}
+}());
+		</script>
+	</body>
 </html>
+

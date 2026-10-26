@@ -16,7 +16,7 @@ var free_on: bool = false
 var free_target := Vector3(190, 0, -190)
 var free_yaw := 0.65
 var free_pitch := 0.75
-var free_dist := 980.0
+var free_dist := 1150.0
 var hud: Label
 var bld_meshes: Array[MeshInstance3D] = []
 var overview_mat: StandardMaterial3D
@@ -103,42 +103,24 @@ func _load_campus_glb() -> bool:
 
 
 func _fix_glb_materials(root: Node) -> void:
+	# The Blender GLB already contains PBR materials. Do not cover them with
+	# the old generated window texture (which also covered roofs).
 	for mi in root.find_children("*", "MeshInstance3D", true, false):
 		var n := String(mi.name)
-		var mat := StandardMaterial3D.new()
-		if n.begins_with("WATER"):
-			mat.albedo_color = Color(0.13, 0.32, 0.42)
-			mat.metallic = 0.35
-			mat.roughness = 0.12
-		elif n.begins_with("ROAD"):
-			mat.albedo_color = Color(0.30, 0.31, 0.33)
-			mat.roughness = 0.95
-		elif n.begins_with("PARAPET") or n.begins_with("PAR_"):
-			mat.albedo_color = Color(0.72, 0.72, 0.70)
-			mat.roughness = 0.8
-		elif n.begins_with("BLD"):
-			mat.albedo_color = Color(0.72, 0.70, 0.66)
-			mat.albedo_texture = _window_texture()
-			mat.uv1_triplanar = true
-			mat.uv1_scale = Vector3(0.075, 0.075, 0.075)
-			mat.roughness = 0.7
-		elif n.begins_with("Cylinder"):
-			mat.albedo_color = Color(0.26, 0.18, 0.12)
-			mat.roughness = 0.95
-		elif n.begins_with("Icosphere"):
-			mat.albedo_color = Color(0.17, 0.30, 0.13).lerp(Color(0.30, 0.42, 0.16), fmod(float(n.length()) * 0.37, 1.0))
-			mat.roughness = 0.95
-		elif n.begins_with("Plane"):
-			mat.albedo_color = Color(0.62, 0.66, 0.52)
-			mat.albedo_texture = _ground_texture()
-			mat.uv1_triplanar = true
-			mat.uv1_scale = Vector3(0.09, 0.09, 0.09)
-			mat.roughness = 0.95
-		else:
-			continue
-		mi.material_override = mat
-		if n.begins_with("BLD"):
+		if n.begins_with("BLD_WALL"):
 			bld_meshes.append(mi)
+		if n.begins_with("WATER"):
+			var water_mat := StandardMaterial3D.new()
+			water_mat.albedo_color = Color(0.045, 0.19, 0.26)
+			water_mat.metallic = 0.45
+			water_mat.roughness = 0.12
+			mi.material_override = water_mat
+		elif n.begins_with("CURTAIN"):
+			var glass_mat := StandardMaterial3D.new()
+			glass_mat.albedo_color = Color(0.085, 0.17, 0.22)
+			glass_mat.metallic = 0.35
+			glass_mat.roughness = 0.20
+			mi.material_override = glass_mat
 
 func _build_environment() -> void:
 	var env := Environment.new()
@@ -152,7 +134,7 @@ func _build_environment() -> void:
 	sky.sky_material = sky_mat
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.95
+	env.ambient_light_energy = 0.55
 	env.ssao_enabled = true
 	env.ssao_intensity = 1.6
 	env.ssao_radius = 1.2
@@ -160,22 +142,36 @@ func _build_environment() -> void:
 	env.glow_intensity = 0.35
 	env.glow_bloom = 0.12
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	env.tonemap_exposure = 0.82
+	env.tonemap_exposure = 0.90
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.72, 0.82, 0.90)
 	env.fog_density = 0.0008
 	env.fog_sky_affect = 0.3
+	if FileAccess.file_exists("res://assets/environment.hdr"):
+		var panorama := PanoramaSkyMaterial.new()
+		panorama.panorama = load("res://assets/environment.hdr")
+		panorama.energy_multiplier = 0.18
+		# Keep the HDR only for reflections; show a clean campus sky.
+		env.background_energy_multiplier = 0.22
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
 
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-48, -32, 0)
-	sun.light_energy = 1.6
+	sun.light_energy = 1.35
 	if OS.has_feature("web"):
-		sun.light_energy = 0.95
-		env.ambient_light_energy = 0.30
-		env.tonemap_exposure = 0.62
+		sun.light_energy = 0.72
+		env.ambient_light_energy = 0.28
+		env.tonemap_exposure = 0.65
+		env.background_energy_multiplier = 0.22
+		env.fog_density = 0.00012
+		env.fog_sky_affect = 0.0
+		sky.sky_material = sky_mat
+		sky_mat.sky_top_color = Color(0.30, 0.52, 0.76)
+		sky_mat.sky_horizon_color = Color(0.70, 0.80, 0.88)
+		sky_mat.ground_horizon_color = Color(0.46, 0.54, 0.42)
+		env.background_energy_multiplier = 0.75
 	sun.light_color = Color(1.0, 0.95, 0.87)
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 420.0
@@ -427,7 +423,7 @@ func _build_trees() -> void:
 
 func _build_player() -> void:
 	player = CharacterBody3D.new()
-	player.position = Vector3(204, 0.05, 350)
+	player.position = Vector3(204, 0.12, 380)
 	var col := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
 	cap.radius = 0.42
@@ -447,11 +443,10 @@ func _build_player() -> void:
 	player.add_child(body)
 	var model := _load_player_model()
 	if model:
-		model.rotation.y = PI
 		player.add_child(model)
 		body.visible = false
 	cam = Camera3D.new()
-	cam.position = Vector3(0.5, 1.65, 3.8)
+	cam.position = Vector3(0.45, 1.65, 3.4)
 	cam.fov = 64
 	cam.rotation.x = -0.06
 	player.add_child(cam)
@@ -472,16 +467,10 @@ func _normalize_player_model(model: Node3D) -> void:
 		ymax = max(ymax, p0.y, p1.y)
 	if ymax <= ymin:
 		return
-	var scale_f := 1.78 / (ymax - ymin)
-	model.scale = Vector3(scale_f, scale_f, scale_f)
+	# The importer pre-scales Soldier's root by 100; use the measured human scale.
+	model.scale = Vector3.ONE
+	model.rotation = Vector3.ZERO
 	model.position.y = 0.0
-	var ymin2 := INF
-	for mi in model.find_children("*", "MeshInstance3D", true, false):
-		var box2: AABB = mi.get_aabb()
-		var gt2: Transform3D = mi.global_transform
-		ymin2 = min(ymin2, (gt2 * box2.position).y, (gt2 * box2.end).y)
-	if ymin2 < INF:
-		model.position.y = -(ymin2 - player.global_position.y)
 
 func _load_player_model() -> Node3D:
 	var path := "res://assets/player.glb"
@@ -571,37 +560,6 @@ func _build_surfaces() -> void:
 	var data = JSON.parse_string(txt)
 	if typeof(data) != TYPE_DICTIONARY:
 		return
-	var groups := [
-		["green", Color(0.20, 0.31, 0.15)],
-		["paving", Color(0.52, 0.51, 0.48)],
-		["parkingAreas", Color(0.28, 0.29, 0.30)],
-	]
-	for g in groups:
-		var key: String = g[0]
-		var col: Color = g[1]
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = col
-		mat.roughness = 0.92
-		for poly in data.get(key, []):
-			var pts := PackedVector2Array()
-			for p in poly:
-				pts.append(Vector2(p[0], p[1]))
-			if pts.size() < 3:
-				continue
-			var idx := Geometry2D.triangulate_polygon(pts)
-			if idx.size() < 3:
-				continue
-			var st := SurfaceTool.new()
-			st.begin(Mesh.PRIMITIVE_TRIANGLES)
-			for i in range(0, idx.size(), 3):
-				for k in [idx[i], idx[i + 1], idx[i + 2]]:
-					var v: Vector2 = pts[k]
-					st.add_vertex(Vector3(v.x, 0.04, v.y))
-			st.generate_normals()
-			var mi := MeshInstance3D.new()
-			mi.mesh = st.commit()
-			mi.material_override = mat
-			add_child(mi)
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_M:
@@ -666,7 +624,7 @@ func _update_camera_collision() -> void:
 	var space := get_world_3d().direct_space_state
 	var from := player.global_position + Vector3(0, 1.55, 0)
 	var back := player.global_transform.basis.z.normalized()
-	var want := 4.4
+	var want := 3.4
 	var to := from + back * want
 	var query := PhysicsRayQueryParameters3D.create(from, to, 1, [player.get_rid()])
 	var hit := space.intersect_ray(query)
