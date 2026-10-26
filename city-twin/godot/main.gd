@@ -336,7 +336,6 @@ func _build_buildings(visual: bool = true) -> void:
 						east_surface = true
 		if b.get("n", "") == "运动场" or east_surface:
 			continue
-		var rings: Array = b.get("r", [])
 		if rings.is_empty() or rings[0].size() < 3:
 			continue
 		var h: float = max(4.0, float(b.get("h", 12)))
