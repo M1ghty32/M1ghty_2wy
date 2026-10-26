@@ -185,6 +185,12 @@ for ring in data["water"]:
 
 # Buildings: solid walls + independent roofs, vertical piers, horizontal floor ledges.
 for idx,b in enumerate(data["buildings"]):
+    # The official "运动场" feature is a sports surface, not a 16 m building.
+    # The main map skips its building extrusion for the same reason.
+    ring_count = len(b.get("r", []))
+    xs = [p[0] for ring in b.get("r", []) for p in ring]
+    if b.get("n", "") == "运动场" or (ring_count == 2 and xs and max(xs) > 500):
+        continue
     ring=[(p[0],-p[1]) for p in b["r"][0]]
     h=float(b.get("h",12) or 12)
     name=b.get("n","")
@@ -245,13 +251,24 @@ for idx,b in enumerate(data["buildings"]):
     if "图书馆" in name:
         box("LIBRARY_PANEL",(cx,miny-0.35,h/2),(20,0.7,h-3),M["brick"])
 
-# Sports complex generated as actual track/court geometry.
-try:
-    sys.path.insert(0,os.path.join(ROOT,"city-twin","blender"))
-    from sports import build_sports
-    build_sports(add_obj, {"track":M["track"],"field":M["field"],"line":M["line"],"court":M["court"],"court_alt":M["court_alt"],"metal":M["metal"],"seat":M["seat"]})
-except Exception as e:
-    print("SPORTS_ERROR",repr(e))
+# Official sports surfaces, exactly the same source and categories as the main map.
+# Do not replace these with approximate hand-placed tracks or courts.
+M["sports_outer"] = material("sports_outer", (0.54, 0.22, 0.15), 0.88)
+M["sports_inner"] = material("sports_inner", (0.22, 0.32, 0.19), 0.94)
+for feature in data.get("sports", []):
+    cat = feature.get("cat", "")
+    mat = M["sports_outer"] if cat == "outermost" else M["sports_inner"] if cat == "inner" else M["line"]
+    y = 0.12 if cat == "outermost" else 0.145 if cat == "inner" else 0.18
+    name = "SPORTS_OUTER" if cat == "outermost" else "SPORTS_INNER" if cat == "inner" else "SPORTS_LINE"
+    for ring in feature.get("r", []):
+        triangulated(ring, y, mat, name)
+        if cat in ("outermost", "secondary"):
+            pts = [(p[0], -p[1]) for p in ring]
+            if len(pts) > 2:
+                pts.append(pts[0])
+                ribbon("SPORTS_MARKING", pts, 0.12, M["line"], 0.19)
+
+# Main south gate and secondary gates.
 
 # Main south gate and secondary gates.
 def gate(x,z,w=24):

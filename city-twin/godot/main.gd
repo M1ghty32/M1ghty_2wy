@@ -13,9 +13,9 @@ var use_glb: bool = false
 var anim_player: AnimationPlayer
 var free_cam: Camera3D
 var free_on: bool = false
-var free_target := Vector3(190, 0, -190)
-var free_yaw := 0.65
-var free_pitch := 0.75
+var free_target := Vector3(300, 0, 20)
+var free_yaw := 0.45
+var free_pitch := 0.78
 var free_dist := 1150.0
 var hud: Label
 var bld_meshes: Array[MeshInstance3D] = []
@@ -327,6 +327,15 @@ func _build_buildings(visual: bool = true) -> void:
 		"service_building": Color(0.60, 0.57, 0.52)
 	}
 	for b in camp.get("buildings", []):
+		var rings: Array = b.get("r", [])
+		var east_surface := false
+		if rings.size() == 2:
+			for ring in rings:
+				for p in ring:
+					if p[0] > 500:
+						east_surface = true
+		if b.get("n", "") == "运动场" or east_surface:
+			continue
 		var rings: Array = b.get("r", [])
 		if rings.is_empty() or rings[0].size() < 3:
 			continue
