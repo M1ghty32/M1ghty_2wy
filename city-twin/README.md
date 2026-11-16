@@ -27,6 +27,9 @@
 - 图书馆红砖立面体块、校门、湖岸、路灯、长椅和停车位
 - 官方 `data.sports` 的 1112 个运动设施面与边线（与主图同源），不生成手填跑道
 - 草地 / 沥青 / 混凝土采用世界坐标三平面贴图，不依赖 GLB UV
+- 校园南入口草坪加设石铺步道、座椅、导向牌和人行横道
+- 绿地内加入乔木、灌木与地被，湖面有风纹，湖岸点缀水草和石块
+- 俯瞰视角保留官方跑道轮廓和线条，并修复跑道内场填充
 - 带服装纹理与 Idle / Walk / Run 动画的骨骼人物
 - 60 栋楼碰撞、第三人称相机避障，M 键全图自由环绕、平移和缩放
 
@@ -40,7 +43,8 @@ blender -b --python city-twin/blender/campus_final.py
 godot --path city-twin/godot
 
 # 导出 Web（需安装对应版本 Web 导出模板）
-godot --headless --path city-twin/godot --export-release Web city-twin/game/index.html
+$campusGame = (Resolve-Path city-twin/game).Path
+godot --headless --path city-twin/godot --export-release Web "$campusGame/index.html"
 ```
 
 `game/` 内为可静态托管的 Godot Web 构建，使用单线程导出，无需 COOP / COEP 特殊响应头。

@@ -2,24 +2,38 @@ extends Node3D
 
 const PLAYER_SCENE: PackedScene = preload("res://assets/player.glb")
 const CAMPUS_SCENE: PackedScene = preload("res://assets/campus.glb")
+const WATER_SHADER: Shader = preload("res://shaders/campus_water.gdshader")
+const GRASS_SHADER: Shader = preload("res://shaders/campus_grass.gdshader")
+const SKY_SHADER: Shader = preload("res://shaders/campus_sky.gdshader")
+const WALL_SHADER: Shader = preload("res://shaders/campus_wall.gdshader")
+const GRASS_TEXTURE: Texture2D = preload("res://assets/campus_grass_green.jpg")
+const ASPHALT_TEXTURE: Texture2D = preload("res://assets/campus_asphalt_diff.jpg")
+const PAVING_TEXTURE: Texture2D = preload("res://assets/campus_concrete_diff.jpg")
+const SUN_ANGLE := Vector3(-39.0, -32.0, 0.0)
+const FOLLOW_DISTANCE := 4.1
+const DETAIL_LAYER := 2
+const WALK_KEYS := "WASD Move   Shift Run   Space Jump   M Free Camera"
+const SHORE_SCENERY = preload("res://campus_shore.gd")
+const STREET_SCENERY = preload("res://campus_streets.gd")
+const LANDSCAPE_SCENERY = preload("res://campus_landscape.gd")
+
 
 var camp: Dictionary = {}
 var player: CharacterBody3D
 var cam: Camera3D
-var pitch: float = -0.03
+var pitch: float = -0.11
 var frames: int = 0
 var shot_path: String = ""
 var use_glb: bool = false
 var anim_player: AnimationPlayer
 var free_cam: Camera3D
 var free_on: bool = false
-var free_target := Vector3(300, 0, 20)
+var free_target := Vector3(125, 0, -65)
 var free_yaw := 0.45
-var free_pitch := 0.78
-var free_dist := 1150.0
+var free_pitch := 0.84
+var free_dist := 1570.0
 var hud: Label
-var bld_meshes: Array[MeshInstance3D] = []
-var overview_mat: StandardMaterial3D
+var water_material: ShaderMaterial
 var anim_walk := ""
 var anim_idle := ""
 var anim_run := ""
@@ -35,7 +49,6 @@ func _ready() -> void:
 
 	_build_environment()
 	use_glb = _load_campus_glb()
-	_build_surfaces()
 	_build_hud()
 	_build_ground()
 	if not use_glb:
@@ -44,6 +57,7 @@ func _ready() -> void:
 	_build_buildings(not use_glb)
 	if not use_glb:
 		_build_trees()
+	_build_scenery()
 	_build_player()
 
 func _window_texture() -> ImageTexture:
@@ -102,41 +116,84 @@ func _load_campus_glb() -> bool:
 	return true
 
 
-func _surface_material(texture_path: String, tint: Color, tile_metres: float) -> StandardMaterial3D:
+func _surface_material(texture: Texture2D, tint: Color, tile_metres: float) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = tint
-	mat.roughness = 0.94
-	if FileAccess.file_exists(texture_path):
-		mat.albedo_texture = load(texture_path)
-		mat.uv1_triplanar = true
-		mat.uv1_world_triplanar = true
-		mat.uv1_scale = Vector3.ONE / tile_metres
+	mat.albedo_texture = texture
+	mat.roughness = 0.93
+	mat.uv1_triplanar = true
+	mat.uv1_world_triplanar = true
+	mat.uv1_scale = Vector3.ONE / tile_metres
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	return mat
 
+func _sun_direction() -> Vector3:
+	return Basis.from_euler(SUN_ANGLE * PI / 180.0).z.normalized()
+
+func _make_grass() -> ShaderMaterial:
+	var mat := ShaderMaterial.new()
+	mat.shader = GRASS_SHADER
+	mat.set_shader_parameter("grass_image", GRASS_TEXTURE)
+	return mat
+
+func _make_water() -> ShaderMaterial:
+	if water_material == null:
+		water_material = ShaderMaterial.new()
+		water_material.shader = WATER_SHADER
+		water_material.set_shader_parameter("sun_direction", _sun_direction())
+	return water_material
+
 func _fix_glb_materials(root: Node) -> void:
-	# Ground meshes exported from Blender have no UVs: use world-space mapping.
-	var grass := _surface_material("res://assets/campus_grass_green.jpg", Color(0.24, 0.32, 0.16), 9.0)
-	var asphalt := _surface_material("res://assets/campus_asphalt_diff.jpg", Color(0.42, 0.43, 0.44), 6.0)
-	var paving := _surface_material("res://assets/campus_concrete_diff.jpg", Color(0.52, 0.51, 0.47), 4.0)
-	for mi in root.find_children("*", "MeshInstance3D", true, false):
+	# The ground is mesh-batched by surface type and uses world-space texture mapping.
+	var grass := _make_grass()
+	var asphalt := _surface_material(ASPHALT_TEXTURE, Color(0.71, 0.73, 0.75), 7.0)
+	var paving := _surface_material(PAVING_TEXTURE, Color(0.89, 0.86, 0.78), 3.2)
+	var bank := _surface_material(PAVING_TEXTURE, Color(0.67, 0.64, 0.54), 2.5)
+	var glass := StandardMaterial3D.new()
+	glass.albedo_color = Color(0.21, 0.32, 0.37)
+	glass.metallic = 0.11
+	glass.metallic_specular = 0.29
+	glass.roughness = 0.41
+	var roof := StandardMaterial3D.new()
+	roof.albedo_color = Color("#676e6c")
+	roof.metallic_specular = 0.09
+	roof.roughness = 0.93
+	var markings := StandardMaterial3D.new()
+	markings.albedo_color = Color("#ddd6bb")
+	markings.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	for leaf in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := leaf as MeshInstance3D
 		var n := String(mi.name)
-		if n.begins_with("BLD_WALL"):
-			bld_meshes.append(mi)
-		if n.begins_with("WATER"):
-			var water_mat := StandardMaterial3D.new()
-			water_mat.albedo_color = Color(0.045, 0.19, 0.26)
-			water_mat.metallic = 0.45
-			water_mat.roughness = 0.12
-			mi.material_override = water_mat
-		elif n.begins_with("CURTAIN"):
-			var glass_mat := StandardMaterial3D.new()
-			glass_mat.albedo_color = Color(0.085, 0.17, 0.22)
-			glass_mat.metallic = 0.35
-			glass_mat.roughness = 0.20
-			mi.material_override = glass_mat
-		if n.begins_with("GROUND") or n.begins_with("GREEN"):
+		if n.begins_with("BLD_WALL") or n.begins_with("LIBRARY_PANEL"):
+			var old_material := mi.get_active_material(0) as StandardMaterial3D
+			var wall := ShaderMaterial.new()
+			wall.shader = WALL_SHADER
+			if old_material != null:
+				var tint := old_material.albedo_color.darkened(0.12)
+				wall.set_shader_parameter("base_color", tint)
+			mi.material_override = wall
+		elif n.begins_with("BLD_ROOF"):
+			mi.material_override = roof
+		elif n == "SPORTS_LINE":
+			# The source's secondary tracks are overlapping filled polygons. Preserve
+			# their vector borders and rebuild only the innermost fill as turf.
+			mi.hide()
+		elif n == "SPORTS_MARKING":
+			mi.material_override = markings
+			mi.position.y += 0.037
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		elif n.begins_with("WINDOW_FRAME") or n.begins_with("FACADE") or n.begins_with("TRIM"):
+			mi.layers = DETAIL_LAYER
+		elif n.begins_with("WATER"):
+			mi.material_override = _make_water()
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		elif n.begins_with("BANK"):
+			mi.material_override = bank
+		elif n.begins_with("CURTAIN") or n.begins_with("WINDOW_GLASS"):
+			mi.material_override = glass
+		elif n.begins_with("GROUND") or n.begins_with("GREEN"):
 			mi.material_override = grass
-		elif n.begins_with("ROAD") or n.begins_with("PARKING"):
+		elif n.begins_with("ROAD_") or n == "ROAD" or n.begins_with("PARKING"):
 			mi.material_override = asphalt
 		elif n.begins_with("PAVING") or n.begins_with("SIDEWALK"):
 			mi.material_override = paving
@@ -145,63 +202,35 @@ func _build_environment() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
-	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.16, 0.38, 0.62)
-	sky_mat.sky_horizon_color = Color(0.72, 0.83, 0.90)
-	sky_mat.ground_bottom_color = Color(0.22, 0.26, 0.22)
-	sky_mat.ground_horizon_color = Color(0.55, 0.62, 0.55)
-	sky.sky_material = sky_mat
+	var sky_material := ShaderMaterial.new()
+	sky_material.shader = SKY_SHADER
+	sky_material.set_shader_parameter("sun_direction", _sun_direction())
+	sky.sky_material = sky_material
+	sky.radiance_size = Sky.RADIANCE_SIZE_128
 	env.sky = sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.55
-	env.ssao_enabled = true
-	env.ssao_intensity = 1.6
-	env.ssao_radius = 1.2
-	env.glow_enabled = true
-	env.glow_intensity = 0.35
-	env.glow_bloom = 0.12
-	env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	env.tonemap_exposure = 0.90
+	env.background_energy_multiplier = 0.90
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.79, 0.85, 0.94)
+	env.ambient_light_energy = 0.54
+	env.ambient_light_sky_contribution = 0.0
+	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_exposure = 0.88
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.72, 0.82, 0.90)
-	env.fog_density = 0.0008
-	env.fog_sky_affect = 0.3
-	if FileAccess.file_exists("res://assets/environment.hdr"):
-		var panorama := PanoramaSkyMaterial.new()
-		panorama.panorama = load("res://assets/environment.hdr")
-		panorama.energy_multiplier = 0.18
-		# Keep the HDR only for reflections; show a clean campus sky.
-		env.background_energy_multiplier = 0.22
-	var we := WorldEnvironment.new()
-	we.environment = env
-	add_child(we)
+	env.fog_light_color = Color(0.73, 0.79, 0.82)
+	env.fog_density = 0.00013
+	env.fog_sky_affect = 0.0
+	var world := WorldEnvironment.new()
+	world.environment = env
+	add_child(world)
 
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-48, -32, 0)
-	sun.light_energy = 1.35
-	if OS.has_feature("web"):
-		sun.light_energy = 0.72
-		env.ambient_light_energy = 0.28
-		env.tonemap_exposure = 0.65
-		env.background_energy_multiplier = 0.22
-		env.fog_density = 0.00012
-		env.fog_sky_affect = 0.0
-		sky.sky_material = sky_mat
-		sky_mat.sky_top_color = Color(0.30, 0.52, 0.76)
-		sky_mat.sky_horizon_color = Color(0.70, 0.80, 0.88)
-		sky_mat.ground_horizon_color = Color(0.46, 0.54, 0.42)
-		env.background_energy_multiplier = 0.75
-	sun.light_color = Color(1.0, 0.95, 0.87)
+	sun.rotation_degrees = SUN_ANGLE
+	sun.light_energy = 0.81
+	sun.light_color = Color(1.0, 0.89, 0.74)
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 420.0
+	sun.directional_shadow_max_distance = 310.0
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 	add_child(sun)
-	var fill := DirectionalLight3D.new()
-	fill.rotation_degrees = Vector3(-35, 150, 0)
-	fill.light_energy = 0.5
-	fill.light_color = Color(0.72, 0.82, 0.95)
-	fill.shadow_enabled = false
-	add_child(fill)
 
 func _build_ground() -> void:
 	var far_ground := MeshInstance3D.new()
@@ -209,10 +238,10 @@ func _build_ground() -> void:
 	far_plane.size = Vector2(12000, 12000)
 	far_ground.mesh = far_plane
 	var far_mat := StandardMaterial3D.new()
-	far_mat.albedo_color = Color(0.28, 0.35, 0.22)
+	far_mat.albedo_color = Color(0.29, 0.38, 0.26)
 	far_mat.roughness = 0.95
 	far_ground.material_override = far_mat
-	far_ground.position = Vector3(190, -0.08, -190)
+	far_ground.position = Vector3(190, -0.32, -190)
 	add_child(far_ground)
 	var floor_body := StaticBody3D.new()
 	var floor_shape := CollisionShape3D.new()
@@ -238,15 +267,10 @@ func _build_ground() -> void:
 	add_child(mi)
 
 func _build_water() -> void:
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.13, 0.34, 0.44)
-	mat.metallic = 0.45
-	mat.roughness = 0.08
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color.a = 0.92
 	for ring in camp.get("water", []):
-		var mesh := _polygon_mesh(ring, 0.06, mat)
+		var mesh := _polygon_mesh(ring, 0.06, _make_water())
 		if mesh:
+			mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			add_child(mesh)
 
 func _build_roads() -> void:
@@ -473,14 +497,16 @@ func _build_player() -> void:
 		player.add_child(model)
 		body.visible = false
 	cam = Camera3D.new()
-	cam.position = Vector3(0.45, 1.65, 3.4)
+	cam.position = Vector3(0.45, 1.94, FOLLOW_DISTANCE)
 	cam.fov = 64
-	cam.rotation.x = -0.06
+	cam.near = 0.12
+	cam.far = 2700.0
+	cam.rotation.x = pitch
 	player.add_child(cam)
 	add_child(player)
 	if model:
 		_normalize_player_model(model)
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	_start_walk_view()
 
 func _normalize_player_model(model: Node3D) -> void:
 	var ymin := INF
@@ -553,8 +579,6 @@ func _toggle_free_cam() -> void:
 		if free_cam == null:
 			free_cam = Camera3D.new()
 			free_cam.fov = 55
-			free_cam.near = 1.0
-			free_cam.far = 6000.0
 			add_child(free_cam)
 		free_cam.current = true
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -563,34 +587,130 @@ func _toggle_free_cam() -> void:
 		if free_cam:
 			free_cam.current = false
 		cam.current = true
+		_start_walk_view()
+
+func _start_walk_view() -> void:
+	# Browsers require a direct canvas gesture before locking the pointer.
+	if OS.has_feature("web"):
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		hud.text = WALK_KEYS + "   Click to look"
+	else:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-		hud.text = "WASD Move   Shift Run   Space Jump   M Free Camera   Mouse Look"
+		hud.text = WALK_KEYS + "   Mouse Look"
 
 func _build_hud() -> void:
 	var layer := CanvasLayer.new()
 	add_child(layer)
+	var panel := PanelContainer.new()
+	panel.position = Vector2(18, 16)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var surface := StyleBoxFlat.new()
+	surface.bg_color = Color(0.035, 0.07, 0.087, 0.86)
+	surface.border_color = Color(0.51, 0.70, 0.64, 0.60)
+	surface.set_border_width_all(1)
+	surface.set_corner_radius_all(8)
+	surface.content_margin_left = 13
+	surface.content_margin_right = 13
+	surface.content_margin_top = 8
+	surface.content_margin_bottom = 8
+	panel.add_theme_stylebox_override("panel", surface)
+	layer.add_child(panel)
+	var rows := VBoxContainer.new()
+	rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rows.add_theme_constant_override("separation", 2)
+	panel.add_child(rows)
+	var title := Label.new()
+	title.text = "GUC  /  CAMPUS"
+	title.add_theme_font_size_override("font_size", 13)
+	title.add_theme_color_override("font_color", Color("#aad5bd"))
+	rows.add_child(title)
 	hud = Label.new()
-	hud.text = "WASD Move   Shift Run   Space Jump   M Map   Mouse Look"
-	hud.position = Vector2(24, 18)
-	hud.add_theme_font_size_override("font_size", 18)
-	hud.add_theme_color_override("font_color", Color(1, 1, 1, 0.92))
-	hud.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
-	hud.add_theme_constant_override("shadow_offset_x", 1)
-	hud.add_theme_constant_override("shadow_offset_y", 1)
-	layer.add_child(hud)
+	hud.add_theme_font_size_override("font_size", 14)
+	hud.add_theme_color_override("font_color", Color("#eff6f4"))
+	hud.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rows.add_child(hud)
+	var fit_hud := func() -> void:
+		var available := get_viewport().get_visible_rect().size.x - panel.position.x * 2.0
+		var font := hud.get_theme_font("font")
+		var font_size := hud.get_theme_font_size("font_size")
+		var text_width := font.get_string_size(hud.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		var padding := surface.content_margin_left + surface.content_margin_right
+		var preferred := maxf(128.0, ceilf(text_width) + padding + 1.0)
+		panel.size = Vector2(minf(preferred, available), panel.get_combined_minimum_size().y)
+	get_viewport().size_changed.connect(fit_hud, CONNECT_DEFERRED)
+	hud.minimum_size_changed.connect(fit_hud, CONNECT_DEFERRED)
+	fit_hud.call()
 
-func _build_surfaces() -> void:
-	var path := "res://data/campus-surfaces.json"
-	if not FileAccess.file_exists(path):
-		return
-	var txt := FileAccess.get_file_as_string(path)
-	var data = JSON.parse_string(txt)
-	if typeof(data) != TYPE_DICTIONARY:
-		return
+func _refine_sports_infields() -> void:
+	var infields: Array[Dictionary] = []
+	for feature in camp.get("sports", []):
+		if feature.get("cat") != "secondary":
+			continue
+		for ring in feature.get("r", []):
+			if ring.size() < 4:
+				continue
+			var outline := PackedVector2Array()
+			var center := Vector2.ZERO
+			for vertex in ring:
+				var position := Vector2(vertex[0], vertex[1])
+				outline.append(position)
+				center += position
+			center /= float(ring.size())
+			var area := 0.0
+			for i in outline.size():
+				area += outline[i].cross(outline[(i + 1) % outline.size()])
+			infields.append({"ring": ring, "outline": outline, "center": center, "area": absf(area)})
+	infields.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.area < b.area)
+	var centers: Array[Vector2] = []
+	var field := StandardMaterial3D.new()
+	field.albedo_color = Color("#49643b")
+	field.metallic_specular = 0.15
+	field.roughness = 0.95
+	field.cull_mode = BaseMaterial3D.CULL_DISABLED
+	for entry in infields:
+		# Each facility has nested secondary rings. Its smallest ring is the infield.
+		var has_infield := false
+		for center in centers:
+			if Geometry2D.is_point_in_polygon(center, entry.outline):
+				has_infield = true
+				break
+		if has_infield:
+			continue
+		var ring: Array = entry.ring.duplicate()
+		if ring[0] == ring[-1]:
+			ring.pop_back()
+		var mesh := _polygon_mesh(ring, 0.187, field)
+		if mesh:
+			mesh.name = "Sports infield"
+			mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			add_child(mesh)
+			centers.append(entry.center)
+
+func _build_scenery() -> void:
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://data/campus-surfaces.json"))
+	var surfaces: Dictionary = data if data is Dictionary else {}
+	if use_glb:
+		_refine_sports_infields()
+	var shore := SHORE_SCENERY.new()
+	shore.name = "Lakeshores"
+	add_child(shore)
+	shore.build(camp)
+	var streets := STREET_SCENERY.new()
+	streets.name = "Walkways and street furniture"
+	add_child(streets)
+	streets.build(camp, surfaces)
+	var landscape := LANDSCAPE_SCENERY.new()
+	landscape.name = "Campus planting"
+	add_child(landscape)
+	landscape.build(camp, surfaces)
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and event.keycode == KEY_M:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_M:
 		_toggle_free_cam()
+	if not free_on and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+			hud.text = WALK_KEYS + "   Mouse Look"
 	if free_on and event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_RIGHT):
 		free_yaw -= event.relative.x * 0.005
 		free_pitch = clamp(free_pitch - event.relative.y * 0.005, 0.12, 1.5)
@@ -617,6 +737,9 @@ func _physics_process(delta: float) -> void:
 		if Input.is_key_pressed(KEY_E): free_target.y += spd
 		if Input.is_key_pressed(KEY_Q): free_target.y -= spd
 		var off := Vector3(cos(free_pitch) * sin(free_yaw), sin(free_pitch), cos(free_pitch) * cos(free_yaw)) * free_dist
+		free_cam.set_cull_mask_value(DETAIL_LAYER, free_dist < 675.0)
+		free_cam.near = maxf(1.0, free_dist * 0.033)
+		free_cam.far = maxf(2300.0, free_dist + 1950.0)
 		free_cam.global_position = free_target + off
 		free_cam.look_at(free_target, Vector3.UP)
 		return
@@ -649,9 +772,9 @@ func _update_camera_collision() -> void:
 	if cam == null or player == null:
 		return
 	var space := get_world_3d().direct_space_state
-	var from := player.global_position + Vector3(0, 1.55, 0)
+	var from := player.global_position + Vector3(0, 1.88, 0)
 	var back := player.global_transform.basis.z.normalized()
-	var want := 3.4
+	var want := FOLLOW_DISTANCE
 	var to := from + back * want
 	var query := PhysicsRayQueryParameters3D.create(from, to, 1, [player.get_rid()])
 	var hit := space.intersect_ray(query)
