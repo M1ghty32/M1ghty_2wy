@@ -406,6 +406,11 @@ window.addEventListener('beforeunload', (event) => {
 });
 
 async function initialize() {
+  const siteHosts = ['wangweiye.top', 'www.wangweiye.top', 'm1ghty32.github.io'];
+  if (siteHosts.includes(window.location.hostname)) {
+    window.location.replace('https://m1ghty-workbench.artisticstarfish3.chatgpt.site/admin/');
+    return;
+  }
   try {
     const session = await api('session');
     if (session.authenticated) {

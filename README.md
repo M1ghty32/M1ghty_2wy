@@ -164,6 +164,8 @@ m1ghty_2wy_draft_v2_library
 
 ### 站主管理工作台
 
+公网站的「管理工作台」链接已接入 [私有线上工作台](https://m1ghty-workbench.artisticstarfish3.chatgpt.site/admin/)。线上版本使用工作台所有者的 ChatGPT 账号登录。保存内容后，发布需要仅限本仓库且具有 Contents 读写权限的 GitHub 细粒度令牌。线上页面会在发布时单独请求令牌。以下步骤用于在本机运行 Node 工作台。
+
 工作台可以编辑主页的个人简介、关注方向、技能、经历和联系方式，也可以新建、修改、移除帖子。开启 Node 服务后，从个人空间的「管理工作台」入口登录。首次使用请在网站目录运行下列命令。运行环境需要 Node.js 22 或更新版本。
 
 ```powershell
