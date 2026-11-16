@@ -2,7 +2,7 @@
 
 一座可以走进去的 3D 个人空间：暖色低多边形庭院、可进入的极客工作室、第三人称角色、统一物件交互，以及项目 / 文章 / 工具 / 素材 / 随记 / 留言的静态内容系统。
 
-入口仍是 `index.html`，不依赖应用框架或打包器；Three.js 以本地 ES module vendored 到 `vendor/three.module.js`（v0.160.1，MIT），UI 样式已编译到 `assets/styles.css`。运行时不需要 npm，也不需要构建步骤。
+入口仍是 `index.html`，不依赖应用框架或打包器；Three.js 以本地 ES module vendored 到 `vendor/three.module.js`（v0.160.1，MIT），UI 样式已编译到 `assets/styles.css`。公开站点可直接静态部署。管理工作台使用 Node.js，无需安装 npm 依赖或构建。
 
 ## 配套项目：校园数字孪生 Demo
 
@@ -38,8 +38,7 @@
 ## 快速开始
 
 ```bash
-# 任选一个静态服务器
-python -m http.server 4173
+npm start
 # 打开 http://127.0.0.1:4173/
 ```
 
@@ -141,7 +140,7 @@ python -m http.server 4173
 
 ### 本机草稿
 
-网页中的新增、修改、删除只写入当前浏览器 `localStorage`，键名为：
+个人空间「本机草稿」中的新增、修改、删除写入当前浏览器 `localStorage`，键名为：
 
 ```
 m1ghty_2wy_draft_v2_projects
@@ -154,7 +153,7 @@ m1ghty_2wy_draft_v2_library
 
 每个键保存 `{ items, deletedIds }`，按 `id` 合并公共数据。保存某一集合不会覆盖其他集合。旧版整组键（`m1ghty_2wy_room_*_v1`）会被读取为兼容草稿，不会删除你的旧数据。
 
-内容控制台支持：
+「本机草稿」支持：
 
 - 导出完整内容 JSON（并可直接复制到剪贴板）；
 - 导入导出对象或仅含部分集合的 JSON；
@@ -163,34 +162,46 @@ m1ghty_2wy_draft_v2_library
 - 字段校验、错误反馈、导出 / 导入结果提示；
 - 安全渲染：所有动态文本使用 `textContent` / DOM API，不使用用户数据拼接 `innerHTML`。
 
-### 静态站边界
+### 站主管理工作台
 
-留言板采用静态站可行方案，不假装有跨访客实时能力：
+工作台可以编辑主页的个人简介、关注方向、技能、经历和联系方式，也可以新建、修改、移除帖子。开启 Node 服务后，从个人空间的「管理工作台」入口登录。首次使用请在网站目录运行下列命令。运行环境需要 Node.js 22 或更新版本。
 
-- 访客写入只保存在自己的浏览器；
-- 公开留言必须由站主导出 JSON、写回 `data/guestbook.json` 并提交仓库；
-- 没有账号体系、权限管理或服务端写入；如果未来需要公开留言 / 审核 / 登录，再独立接入后端。
-
-### 发布新内容的流程
-
-1. 打开站内「个人空间 → 控制台」。
-2. 新增 / 编辑内容，或导入 `content-export.json`。
-3. 点击「导出内容 JSON」。
-4. 把对应数组复制到 `data/projects.json` / `articles.json` / `notes.json` / `guestbook.json` / `tools.json` / `library.json`。
-5. 本地刷新确认，然后：
-
-```bash
-git add data/
-git commit -m "content: publish notes and project updates"
-git push
+```powershell
+npm run setup
+npm start
 ```
 
-GitHub Pages 会自动更新静态站点。
+1. 按终端提示设置账号和至少 12 位的密码。密码输入不会回显。
+2. 打开 [管理工作台](http://127.0.0.1:4173/admin/)，用刚设置的账号和密码登录。
+3. 点击「保存修改」，再刷新 [个人空间](http://127.0.0.1:4173/#/space/about) 即可查看当前服务上的公开内容。
+
+在 Windows 上，工作台内容及密码哈希默认保存在用户的 `%LOCALAPPDATA%\M1ghty_2wy\site-admin`。其他系统默认放在用户的状态目录。重启后保留已保存内容。可用 `SITE_STATE_DIR` 指定服务的持久数据目录，请将它设在网站目录之外。修改密码后要重启服务，新登录会话才会使用更新后的账号配置。发布前可以在本地核对内容。
+
+### 发布到 GitHub Pages
+
+仓库公开站点仍运行在 GitHub Pages。第一次上线工作台入口、作品卡和下载文件时，需要把本次代码和资源提交部署，仓库原有的 `main` 分支和自定义域名可继续使用。GitHub Pages 负责提供静态页面，工作台服务负责账号验证和保存。
+
+站主如果希望从工作台同步简历和帖子，可以在 GitHub 为 `M1ghty32/M1ghty_2wy` 创建只限该仓库、具有 Contents 读写权限的细粒度令牌。在启动服务的 PowerShell 会话中设置该令牌。不要把令牌写进仓库或发到聊天里。
+
+```powershell
+$env:SITE_GITHUB_TOKEN = Read-Host -MaskInput 'GitHub 发布令牌'
+npm start
+```
+
+再登录工作台，保存确认后点「发布到 GitHub Pages」。该按钮用同一次提交更新 `main` 的 `data/site.json` 和 `data/articles.json`。发布时以当前服务里的内容为准，页面在 Pages 部署完成后更新。开发时如果本地分支落后，先拉取并整合 Pages 发布产生的提交。
+
+需要在别的设备登录时，可把这个 Node 服务放在提供 HTTPS 的主机上。设置 `SITE_ORIGIN` 为工作台的 HTTPS 来源，使用持久的 `SITE_STATE_DIR`。`SITE_HOST` 和 `SITE_PORT` 控制监听位置和端口。反代应保留外部主机名，应用端口只向反代开放。若主页继续放在 GitHub Pages，等工作台 HTTPS 地址可用后，把 `index.html` 的「管理工作台」链接指向该地址下的 `/admin/`。单独备份持久数据目录。
+
+### 访客草稿和留言
+
+访客的本机草稿与留言保存在自己的浏览器。站主仍可从「本机草稿」导出 JSON，按需要更新对应的 `data/*.json` 并提交仓库。公开简历和帖子可以直接由工作台维护。
 
 ## 架构
 
 ```
 index.html                     HTML 外壳、HUD、IDE、内容面板结构
+admin/                         登录与内容编辑页面
+server.mjs / server/           账号验证、内容持久化和 Pages 发布
 assets/styles.css              编译后的 UI 样式
 assets/favicon.svg
 src/app.js                     启动、场景路由、模块组合、游戏循环
@@ -281,33 +292,7 @@ npx --yes tailwindcss@3.4.17 \
 
 ## GitHub Pages 部署
 
-站点是纯静态文件，`data/`、`src/`、`vendor/`、`assets/` 都使用相对路径，适合部署到仓库根目录：
-
-1. 在 GitHub 创建空仓库（例如 `m1ghty-space`）。
-2. 本地设置安全的提交身份：
-
-```bash
-git config user.name "M1ghty32"
-git config user.email "3409564761@qq.com"
-git add .
-git commit -m "feat: explorable Three.js personal space v3"
-git branch -M main
-git remote add origin git@github.com:M1ghty32/m1ghty-space.git
-git push -u origin main
-```
-
-3. 仓库 **Settings → Pages**：`Deploy from a branch`，分支 `main`，目录 `/ (root)`。
-4. 仓库根目录的 `.nojekyll` 已保留；无需 GitHub Actions。
-
-### 认证安全边界
-
-- 本仓库当前没有配置远程地址，也没有可用的 `gh` CLI；完成本地提交后需要你提供仓库地址或自行在已认证环境推送。
-- Git 推送不应使用账号密码。请使用：
-  - 已登录的 `gh auth login` / GitHub CLI；
-  - SSH key（推荐，`ssh -T git@github.com` 验证）；
-  - 细粒度 personal access token（仅授予目标仓库 Contents 写权限）。
-- 不要把 token、密码写进 `README`、脚本、`.git/config` 或任何提交文件；本项目的运行不需要任何凭证。
-- `data/site.json` 的 `links.github` / `links.email` 默认为空，请自行决定是否公开联系方式。
+当前远程仓库为 `M1ghty32/M1ghty_2wy`。仓库使用 `main` 分支根目录与 `.nojekyll` 部署静态页面，自定义域名记录由 `CNAME` 管理。变更部署前检查 `git status`，只暂存拟发布的文件。请通过已认证的 Git CLI、SSH 或细粒度令牌向现有远程仓库推送。
 
 ## 说明
 

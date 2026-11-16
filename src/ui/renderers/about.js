@@ -51,10 +51,8 @@ export function createAboutRenderer({ store, registry, getEggState, onGuideSelec
       const rows = [
         ['$', 'whoami'],
         ['', `${site.name} · ${site.tagline}`],
-        ['$', 'cat motto.txt'],
-        ['', `“${site.motto}”`],
-        ['$', 'status --now'],
-        ['', site.status]
+        ...(site.motto ? [['$', 'cat motto.txt'], ['', `“${site.motto}”`]] : []),
+        ...(site.status ? [['$', 'status --now'], ['', site.status]] : [])
       ];
       rows.forEach(([prompt, text]) => {
         const row = h('div', 'hero-terminal-row');
@@ -101,13 +99,16 @@ export function createAboutRenderer({ store, registry, getEggState, onGuideSelec
     const location = document.getElementById('about-location');
     const status = document.getElementById('about-status');
     const motto = document.getElementById('about-motto');
+    document.title = site.title;
     if (name) name.textContent = `${site.name} · 个人网站`;
     if (tagline) tagline.textContent = `${site.tagline} · 欢迎浏览`;
     if (heading) heading.textContent = `你好，我是 ${site.name} 👋`;
     if (bio) bio.textContent = site.bio;
-    if (location) location.textContent = site.location;
-    if (status) status.textContent = site.status;
-    if (motto) motto.textContent = `“${site.motto}”`;
+    for (const [field, text] of [[location, site.location], [status, site.status], [motto, site.motto && `“${site.motto}”`]]) {
+      if (!field) continue;
+      field.textContent = text;
+      field.parentElement.hidden = !text;
+    }
     renderLinks(site);
     renderHero(site);
 

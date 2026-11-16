@@ -1,5 +1,14 @@
 [
   {
+    "id": "night-ops-headphone-mount",
+    "ver": "3D 打印 · PLA",
+    "name": "M1 夜战装甲 · T10 耳机壁挂",
+    "desc": "为西伯利亚 T10 无线耳机设计的免打孔壁挂。切角背板带 M1 浮雕与 M1ghty_2wy 刻字，弧面托座前端上翘，右侧留有充电理线槽。A1 mini 的通用 PLA 配置已通过切片检查，预估耗材约 79.5 克、耗时约 3 小时 3 分钟，无需支撑。",
+    "date": "2026-11",
+    "image": "assets/projects/night-ops/preview.webp",
+    "download": "assets/projects/night-ops/M1ghty_2wy_T10_NightOps_A1_mini_PLA.3mf"
+  },
+  {
     "id": "p1",
     "ver": "v3.1.0 · LIVE",
     "name": "M1ghty_2wy · 可探索的 3D 个人网站",

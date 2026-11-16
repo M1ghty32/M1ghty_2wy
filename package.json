@@ -1,0 +1,12 @@
+{
+  "name": "m1ghty-personal-site",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "setup": "node server.mjs setup"
+  }
+}

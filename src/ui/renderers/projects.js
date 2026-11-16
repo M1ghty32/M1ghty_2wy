@@ -1,7 +1,7 @@
 /**
  * 项目面板。新增项目写入本机草稿，删除公共项目只是本机隐藏。
  */
-import { h, clear, emptyState, badge } from '../dom.js';
+import { h, clear, emptyState, badge, link } from '../dom.js';
 
 export function createProjectsRenderer({ store, feedback }) {
   const form = document.getElementById('form-new-project');
@@ -76,6 +76,27 @@ export function createProjectsRenderer({ store, feedback }) {
       top.append(badge(project.ver || 'NEW', 'sky'), h('span', 'project-date', project.date || ''));
       const title = h('h4', 'project-title', project.name);
       const desc = h('p', 'project-desc', project.desc || '这个项目还没有写下描述。');
+      const copy = h('div', 'project-copy');
+      copy.append(top, title);
+      if (project.image) {
+        card.classList.add('project-card-has-preview');
+        const preview = link('project-preview', '', project.image);
+        preview.setAttribute('aria-label', `查看 ${project.name} 的大图（新标签页）`);
+        const image = h('img');
+        image.src = project.image;
+        image.alt = `${project.name} 作品预览`;
+        image.loading = 'lazy';
+        image.decoding = 'async';
+        preview.appendChild(image);
+        card.appendChild(preview);
+      }
+      copy.appendChild(desc);
+      if (project.download) {
+        const download = h('a', 'btn btn-ghost btn-sm project-download', '下载打印工程（3MF）');
+        download.href = project.download;
+        download.download = '';
+        copy.appendChild(download);
+      }
       const footer = h('div', 'project-footer');
       if (store.isLocal('projects', project.id)) {
         footer.appendChild(h('span', 'local-tag', store.isPublicItem('projects', project.id) ? '本机修改' : '本机新增'));
@@ -86,7 +107,8 @@ export function createProjectsRenderer({ store, feedback }) {
       remove.type = 'button';
       remove.dataset.removeProject = project.id;
       footer.appendChild(remove);
-      card.append(top, title, desc, footer);
+      copy.appendChild(footer);
+      card.appendChild(copy);
       container.appendChild(card);
     }
   }

@@ -93,6 +93,12 @@ function cleanUrl(value) {
   }
 }
 
+function cleanProjectAsset(value, extensions) {
+  const path = cleanText(value, 240);
+  const match = /^assets\/projects\/(?:[\w-]+\/)*[\w-][\w.-]*\.([a-z0-9]+)$/.exec(path);
+  return match && extensions.includes(match[1]) ? path : '';
+}
+
 function asTags(value) {
   if (!Array.isArray(value)) return [];
   return value.map((tag) => cleanText(tag, 24)).filter(Boolean).slice(0, 12);
@@ -116,12 +122,16 @@ export function normalizeItem(collection, raw, options = {}) {
   const base = { id };
 
   if (collection === 'projects') {
+    const image = cleanProjectAsset(raw.image, ['avif', 'jpg', 'jpeg', 'png', 'webp']);
+    const download = cleanProjectAsset(raw.download, ['3mf']);
     return {
       ...base,
       ver: requireText(raw.ver, '版本标签', { required: false, max: 80 }) || 'NEW',
       name: requireText(raw.name, '项目名称', { max: 120 }),
       desc: requireText(raw.desc, '项目描述', { max: 800 }),
-      date: requireText(raw.date, '日期', { required: false, max: 40 }) || 'JUST NOW'
+      date: requireText(raw.date, '日期', { required: false, max: 40 }) || 'JUST NOW',
+      ...(image && { image }),
+      ...(download && { download })
     };
   }
 
@@ -203,9 +213,9 @@ function validateSite(raw) {
   result.title = cleanText(raw.title, 160) || result.title;
   result.tagline = cleanText(raw.tagline, 200) || result.tagline;
   result.bio = cleanText(raw.bio, 1200) || result.bio;
-  result.motto = cleanText(raw.motto, 200) || result.motto;
-  result.location = cleanText(raw.location, 100) || result.location;
-  result.status = cleanText(raw.status, 200) || result.status;
+  if (Object.hasOwn(raw, 'motto')) result.motto = cleanText(raw.motto, 200);
+  if (Object.hasOwn(raw, 'location')) result.location = cleanText(raw.location, 100);
+  if (Object.hasOwn(raw, 'status')) result.status = cleanText(raw.status, 200);
   if (Array.isArray(raw.focus)) result.focus = raw.focus.map((x) => cleanText(x, 80)).filter(Boolean).slice(0, 8);
   if (Array.isArray(raw.skills)) {
     result.skills = raw.skills
@@ -387,7 +397,7 @@ export function createContentStore(options = {}) {
           if (normalized.errors.length) {
             loadError = `${file} 中有 ${normalized.errors.length} 条内容字段不完整，已跳过。`;
           }
-          return [collection, normalized.items];
+          return [collection, normalized.errors.length && !normalized.items.length ? null : normalized.items];
         } catch (error) {
           return [collection, null];
         }
@@ -402,7 +412,7 @@ export function createContentStore(options = {}) {
     }
 
     for (const [collection, items] of entries) {
-      if (items && items.length) {
+      if (items !== null) {
         publicData[collection] = items;
       } else {
         publicData[collection] = COLLECTION_META[collection].fallback.map((item) => normalizeItem(collection, item));

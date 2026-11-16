@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>管理工作台 · M1ghty_2wy</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./admin.css">
+  <script type="module" src="./admin.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="../" aria-label="返回 M1ghty_2wy 主页">
+        <span class="brand-mark" aria-hidden="true">M1</span>
+        <span><strong>M1ghty_2wy</strong><small>管理工作台</small></span>
+      </a>
+      <div class="top-actions">
+        <a class="control subtle" href="../#/space/about">查看主页 ↗</a>
+        <button class="control subtle" id="logout" type="button" hidden>退出登录</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="login-shell" id="login-view" aria-labelledby="login-title">
+      <div class="login-panel">
+        <div class="section-marker" aria-hidden="true"></div>
+        <h1 id="login-title">登录工作台</h1>
+        <p class="lede">编辑主页简历，管理你的网站帖子。</p>
+        <p id="login-status" class="notice" role="status">正在检查管理服务…</p>
+        <form id="login-form" hidden>
+          <label class="field">账号
+            <input name="username" required maxlength="80" autocomplete="username" autocapitalize="none">
+          </label>
+          <label class="field">密码
+            <input name="password" type="password" required maxlength="128" autocomplete="current-password">
+          </label>
+          <button class="control primary full" type="submit">登录</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="workspace" class="workspace" aria-labelledby="workspace-title" hidden>
+      <aside class="sidebar">
+        <nav aria-label="管理栏目">
+          <button id="tab-profile" class="nav-button" data-view="profile" type="button">个人简历</button>
+          <button id="tab-posts" class="nav-button" data-view="posts" type="button">帖子</button>
+        </nav>
+        <div class="sidebar-foot" id="publish-mode"></div>
+      </aside>
+      <div class="workspace-content">
+        <header class="section-header">
+          <div>
+            <h1 id="workspace-title">个人简历</h1>
+            <p class="lede" id="workspace-summary"></p>
+          </div>
+          <div class="editor-actions">
+            <button id="publish" class="control subtle" type="button" hidden>发布到 GitHub Pages</button>
+            <button id="save" class="control primary" type="button" disabled>保存修改</button>
+          </div>
+        </header>
+        <p id="workspace-status" class="notice" role="status">所有修改已保存。</p>
+        <section id="profile-view" aria-label="简历编辑">
+          <form id="profile-form"></form>
+        </section>
+        <section id="posts-view" class="posts-grid" aria-label="帖子编辑" hidden>
+          <div class="panel post-index">
+            <div class="panel-heading">
+              <h2>帖子 <span id="post-count" class="post-count"></span></h2>
+              <button class="control subtle compact" id="new-post" type="button">＋ 新建</button>
+            </div>
+            <div id="post-list"></div>
+          </div>
+          <div class="panel post-editor">
+            <p id="post-empty" class="empty">选择一篇帖子，或者新建一篇。</p>
+            <form id="post-form" hidden></form>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -71,7 +71,9 @@
         "ver": { "type": "string", "maxLength": 80 },
         "name": { "type": "string", "minLength": 1, "maxLength": 120 },
         "desc": { "type": "string", "minLength": 1, "maxLength": 800 },
-        "date": { "type": "string", "maxLength": 40 }
+        "date": { "type": "string", "maxLength": 40 },
+        "image": { "type": "string", "maxLength": 240, "pattern": "^assets/projects/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*\\.(?:avif|jpe?g|png|webp)$" },
+        "download": { "type": "string", "maxLength": 240, "pattern": "^assets/projects/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*\\.3mf$" }
       },
       "additionalProperties": false
     },

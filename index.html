@@ -252,7 +252,7 @@
             </div>
           </div>
           <div class="space-header-actions">
-            <span class="space-boundary-pill">本机草稿 · 静态发布</span>
+            <a class="btn btn-ghost btn-sm" href="./admin/">管理工作台</a>
             <button id="btn-back-to-room" type="button" class="btn btn-ghost">← 返回 3D 场景</button>
             <button id="btn-close-space" type="button" class="icon-btn space-close" aria-label="关闭个人空间">×</button>
           </div>
@@ -265,7 +265,7 @@
           <button type="button" data-space-tab="notes" class="space-tab-btn">📌 随记 · 留言</button>
           <button type="button" data-space-tab="toolbox" class="space-tab-btn">🧰 工具箱</button>
           <button type="button" data-space-tab="library" class="space-tab-btn">📚 素材库</button>
-          <button type="button" data-space-tab="studio" class="space-tab-btn">🗂️ 控制台</button>
+          <button type="button" data-space-tab="studio" class="space-tab-btn">🗂️ 本机草稿</button>
         </nav>
 
         <div class="space-body custom-scroll">
@@ -315,7 +315,7 @@
           <div id="space-tab-projects" class="space-tab-panel" hidden>
             <div class="panel-toolbar">
               <div><div class="eyebrow sky">PROJECTS // LAB NOTES</div><h3>项目更新与实验室动态</h3><p>近期作品、开源仓库与版本迭代日志。电脑屏幕里展示的就是它们。</p></div>
-              <button id="btn-toggle-new-project" type="button" class="btn btn-primary btn-sm">+ 发布项目更新</button>
+              <button id="btn-toggle-new-project" type="button" class="btn btn-primary btn-sm">+ 新建项目草稿</button>
             </div>
             <form id="form-new-project" class="inline-form" hidden>
               <div class="form-grid-3">
@@ -332,7 +332,7 @@
           <div id="space-tab-articles" class="space-tab-panel" hidden>
             <div class="panel-toolbar">
               <div><div class="eyebrow amber">ARTICLES // FIELD NOTES</div><h3>技术文章与工程笔记</h3><p>点击文章卡片展开全文。留言板则留给路过的朋友。</p></div>
-              <button id="btn-toggle-new-article" type="button" class="btn btn-amber btn-sm">+ 撰写新文章</button>
+              <button id="btn-toggle-new-article" type="button" class="btn btn-amber btn-sm">+ 新建本机草稿</button>
             </div>
             <form id="form-new-article" class="inline-form" hidden>
               <div class="form-grid-3">
@@ -373,7 +373,7 @@
                     <label><span>状态标签</span><input id="inp-public-note-mood" type="text" maxlength="32" placeholder="BUILD MODE" /></label>
                   </div>
                   <label><span>内容 *</span><textarea id="inp-public-note-body" rows="3" maxlength="1200" required placeholder="记录一点今天的想法…"></textarea></label>
-                  <div class="form-actions"><span class="form-note">保存后可通过控制台导出并发布到 data/notes.json</span><button type="submit" class="btn btn-amber btn-sm">保存到本机随记</button></div>
+                  <div class="form-actions"><span class="form-note">保存后可通过「本机草稿」导出并发布到 data/notes.json</span><button type="submit" class="btn btn-amber btn-sm">保存到本机随记</button></div>
                 </form>
               </section>
 
@@ -434,13 +434,13 @@
               <button type="button" data-goto-tab="toolbox">🧰 工具</button>
             </div>
             <div id="library-container" class="card-grid library-grid"></div>
-            <div class="permission-note">新增素材与书签在「控制台」中保存为本机草稿，也可以导入 JSON 后发布到 <code>data/library.json</code>。</div>
+            <div class="permission-note">新增素材与书签在「本机草稿」中保存，也可以导入 JSON 后发布到 <code>data/library.json</code>。</div>
           </div>
 
           <!-- STUDIO -->
           <div id="space-tab-studio" class="space-tab-panel" hidden>
             <div class="panel-toolbar">
-              <div><div class="eyebrow sky">CONTENT STUDIO // 本机控制台</div><h3>管理我的内容</h3><p>网页编辑只写入当前浏览器。导出 JSON、写回 <code>data/</code> 并提交仓库后，访客才能看到更新。</p></div>
+              <div><div class="eyebrow sky">LOCAL DRAFTS // 本机草稿</div><h3>预览本机草稿</h3><p>这里的改动保存在当前浏览器。站主可从上方「管理工作台」编辑公开简历和帖子。</p></div>
               <div class="toolbar-actions">
                 <button id="btn-export-content" type="button" class="btn btn-emerald btn-sm">导出内容 JSON</button>
                 <button id="btn-reset-drafts" type="button" class="btn btn-ghost btn-sm">重置本机草稿</button>
@@ -452,12 +452,12 @@
 
             <div class="studio-grid">
               <article class="panel-card">
-                <div class="panel-heading"><div><div class="eyebrow emerald">PUBLISHING BOUNDARY // 发布边界</div><h4>这是一个静态站</h4></div></div>
+                <div class="panel-heading"><div><div class="eyebrow emerald">PUBLISHING BOUNDARY // 发布边界</div><h4>本机草稿说明</h4></div></div>
                 <ul class="boundary-list">
                   <li><strong>只读公共数据</strong><span>访客看到的是仓库里的 <code>data/*.json</code>，网页不会自动改仓库。</span></li>
                   <li><strong>集合级草稿</strong><span>每个集合单独保存在 localStorage，不会因为保存项目而覆盖文章或素材。</span></li>
                   <li><strong>发布流程</strong><span>导出 → 对照数组写入 <code>data/</code> → 本地检查 → 提交并推送 → GitHub Pages 自动更新。</span></li>
-                  <li><strong>权限边界</strong><span>没有账号系统，也没有跨访客实时留言；需要公开留言或后台时再独立接入服务端。</span></li>
+                  <li><strong>站主管理</strong><span>登录管理工作台可编辑公开简历和帖子。留言仍保存在访客自己的浏览器。</span></li>
                 </ul>
                 <div class="import-zone">
                   <label class="btn btn-ghost btn-sm file-label">导入内容 JSON<input id="content-import-input" type="file" accept="application/json,.json" /></label>
