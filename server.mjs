@@ -290,7 +290,7 @@ const MIME_TYPES = {
   '.woff': 'font/woff', '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8'
 };
 const PUBLIC_DIRS = new Set(['assets', 'vendor', 'src', 'data', 'admin']);
-const CAMPUS_DIRS = new Set(['data', 'game', 'legacy-three', 'vendor']);
+const CAMPUS_DIRS = new Set(['data', 'game', 'legacy-three', 'vendor', 'street', 'atlas.html']);
 
 function within(parent, child) {
   const rel = relative(parent, child);
