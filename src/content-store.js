@@ -206,7 +206,7 @@ export function normalizeCollection(collection, rawList) {
   return { items, errors };
 }
 
-function validateSite(raw) {
+export function validateSite(raw) {
   if (!raw || typeof raw !== 'object') return { ...FALLBACK_SITE };
   const result = { ...FALLBACK_SITE };
   result.name = cleanText(raw.name, 80) || result.name;

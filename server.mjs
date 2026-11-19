@@ -319,7 +319,7 @@ async function serveStatic(request, response, pathname) {
   }
 
   const [first, second] = parts;
-  const isRoot = requested === '/index.html';
+  const isRoot = requested === '/index.html' || requested === '/world.html';
   const campus = first === 'city-twin';
   if (!isRoot && !PUBLIC_DIRS.has(first) && !(campus && (second === 'index.html' || CAMPUS_DIRS.has(second)))) {
     throw new RequestError(404, '页面未找到。');

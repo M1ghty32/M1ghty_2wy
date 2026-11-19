@@ -2,7 +2,7 @@
 
 一座可以走进去的 3D 个人空间：暖色低多边形庭院、可进入的极客工作室、第三人称角色、统一物件交互，以及项目 / 文章 / 工具 / 素材 / 随记 / 留言的静态内容系统。
 
-入口仍是 `index.html`，不依赖应用框架或打包器；Three.js 以本地 ES module vendored 到 `vendor/three.module.js`（v0.160.1，MIT），UI 样式已编译到 `assets/styles.css`。公开站点可直接静态部署。管理工作台使用 Node.js，无需安装 npm 依赖或构建。
+首页是公开作品集。访客可以浏览项目、按分类阅读文章和通过 Ctrl/⌘ K 搜索入口。首页读取公开的 data/site.json、data/projects.json 和 data/articles.json，3D 体验从 world.html 独立加载。旧的场景链接会自动转到对应面板。公开站点可部署到 GitHub Pages，管理工作台可通过 Node.js 在本地运行。
 
 ## 配套项目：校园数字孪生 Demo
 
@@ -175,7 +175,7 @@ npm start
 
 1. 按终端提示设置账号和至少 12 位的密码。密码输入不会回显。
 2. 打开 [管理工作台](http://127.0.0.1:4173/admin/)，用刚设置的账号和密码登录。
-3. 点击「保存修改」，再刷新 [个人空间](http://127.0.0.1:4173/#/space/about) 即可查看当前服务上的公开内容。
+3. 点击「保存修改」，再刷新 [个人空间](http://127.0.0.1:4173/#about) 即可查看当前服务上的公开内容。
 
 在 Windows 上，工作台内容及密码哈希默认保存在用户的 `%LOCALAPPDATA%\M1ghty_2wy\site-admin`。其他系统默认放在用户的状态目录。重启后保留已保存内容。可用 `SITE_STATE_DIR` 指定服务的持久数据目录，请将它设在网站目录之外。修改密码后要重启服务，新登录会话才会使用更新后的账号配置。发布前可以在本地核对内容。
 
@@ -275,8 +275,8 @@ node -e "const fs=require('fs');for(const f of fs.readdirSync('data'))if(f.endsW
 ESM 语法已通过 Node 解析检查；如果继续修改 `src/**/*.js`，推荐用浏览器控制台确认无 `pageerror`，或在支持 ESM 的开发环境里运行模块解析器。浏览器验收可使用：
 
 ```text
-http://127.0.0.1:4173/?skipintro=1&quality=low&zone=studio
-http://127.0.0.1:4173/?skipintro=1&nomarkers=1&reduced=1
+http://127.0.0.1:4173/world.html?skipintro=1&quality=low&zone=studio
+http://127.0.0.1:4173/world.html?skipintro=1&nomarkers=1&reduced=1
 ```
 
 ## 样式构建

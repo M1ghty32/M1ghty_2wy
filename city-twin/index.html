@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>四川吉利学院 · 真实校园底图 v2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>四川吉利学院 · 校园数字孪生</title>
 <style>
   :root {
     --bg: #f5f3ed;
@@ -18,30 +18,26 @@
   #scene { position: fixed; inset: 0; }
   canvas { display: block; }
 
-  #head {
-    position: fixed; top: 18px; left: 20px; z-index: 5;
-    display: flex; flex-direction: column; gap: 4px;
-    pointer-events: none;
+  .map-header {
+    position: fixed; top: 14px; left: 14px; right: 14px; z-index: 8;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px 16px;
+    padding: 10px 13px; border: 1px solid var(--line); border-radius: 13px;
+    background: rgba(250,249,245,.94); box-shadow: 0 8px 30px #2a47341c; backdrop-filter: blur(12px);
   }
-  #head b { font-size: 15px; letter-spacing: .08em; color: #31443a; text-shadow: 0 1px 0 rgba(255,255,255,.8); }
-  #head span { color: #586a60; font-family: var(--mono); font-size: 9px; letter-spacing: .08em; }
-  #head em { color: var(--cyan); font-style: normal; }
-
-  #dock {
-    position: fixed; top: 18px; right: 20px; z-index: 6;
-    display: flex; gap: 6px;
+  #head { display: grid; gap: 1px; }
+  #head b { color: #213b2e; font-size: 15px; }
+  #head span { color: #566b60; font-size: 11px; }
+  #dock { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  #dock a, #dock button {
+    min-height: 37px; display: inline-flex; align-items: center; padding: 5px 10px;
+    border: 1px solid var(--line); border-radius: 7px; background: #fffdf8;
+    color: #244a38; font: inherit; font-size: 12px; font-weight: 650; line-height: 1.25; text-decoration: none; cursor: pointer;
   }
-  #dock .dock-link {
-    display: inline-flex; align-items: center; padding: 7px 11px; border: 1px solid rgba(47,142,169,.35); border-radius: 8px;
-    background: rgba(255,255,255,.82); color: #326a74; font-size: 11px; text-decoration: none;
-  }
-  #dock .dock-link:hover { background: #fff; }
-  #dock button {
-    padding: 7px 11px; border: 1px solid var(--line); border-radius: 8px;
-    background: rgba(255,255,255,.86); color: #42544a; font-size: 11px; cursor: pointer;
-    backdrop-filter: blur(8px);
-  }
-  #dock button:hover { border-color: rgba(47, 142, 169, .5); color: #1f4f58; }
+  #dock a:hover, #dock button:enabled:hover { background: #e5eee3; }
+  #dock button:disabled { color: var(--muted); cursor: wait; }
+  #dock .dock-game { background: #15543f; color: white; border-color: #15543f; }
+  #dock .dock-game:hover { background: #0d4231; }
+  #dock :focus-visible { outline: 2px solid #15543f; outline-offset: 3px; }
 
   #info {
     position: fixed; left: 20px; bottom: 20px; z-index: 5;
@@ -51,6 +47,7 @@
   }
   #info b { color: #40544a; font-weight: 500; }
   #info i { color: #277b91; font-style: normal; }
+  .touch-hint { display: none; }
 
   .label {
     padding: 3px 7px; border: 1px solid rgba(115, 126, 112, .34); border-radius: 5px;
@@ -62,7 +59,7 @@
   .label.water { color: #327fac; border-color: rgba(82, 155, 194, .48); }
 
   #loading {
-    position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
+    position: fixed; inset: 0; z-index: 7; display: grid; place-items: center;
     background: #f5f3ed; transition: opacity .5s ease;
   }
   #loading.hide { opacity: 0; pointer-events: none; }
@@ -71,6 +68,18 @@
   #loading i { display: block; width: 180px; height: 2px; background: rgba(86,117,99,.18); }
   #loading i em { display: block; width: 40%; height: 100%; background: var(--cyan); animation: slide 1.2s ease-in-out infinite; }
   @keyframes slide { 0% { transform: translateX(0); } 50% { transform: translateX(150%); } 100% { transform: translateX(0); } }
+  @media (max-width: 565px) {
+    .map-header { top: 8px; left: 8px; right: 8px; gap: 6px; padding: 8px; }
+    #dock { width: 100%; }
+    #dock a, #dock button { min-height: 35px; padding-inline: 7px; }
+    #head b { font-size: 14px; }
+    #info { left: 8px; bottom: 8px; max-width: calc(100% - 16px); }
+    .label-layer:not(.zoomed) .label:not(.landmark) { display: none; }
+  }
+  @media (pointer: coarse) {
+    .mouse-hint { display: none; }
+    .touch-hint { display: block; }
+  }
 </style>
 <script type="importmap">
 {
@@ -84,22 +93,25 @@
 <body>
 <div id="scene"></div>
 
-<div id="head">
-  <b>四川吉利学院 · 真实校园底图</b>
-  <span>BUILD <em>v2</em> · OFFICIAL VECTOR TILES · 60 BUILDINGS / 210 ROADS / 8 WATER</span>
-</div>
-
-<div id="dock">
-  <a class="dock-link" href="./game/">进入游戏 ↗</a>
-  <button id="btn-time" type="button">☾ 夜间</button>
-  <button id="btn-reset" type="button">⟲ 复位</button>
-</div>
+<header class="map-header">
+  <div id="head">
+    <b>四川吉利学院 · 校园数字孪生</b>
+    <span>基于官方矢量地图</span>
+  </div>
+  <nav id="dock" aria-label="地图操作">
+    <a href="../#explore">← 作品集</a>
+    <button id="btn-time" type="button" disabled>☾ 夜间</button>
+    <button id="btn-reset" type="button" disabled>复位视角</button>
+    <a class="dock-game" href="./game/">校园漫游 ↗</a>
+  </nav>
+</header>
 
 <div id="info">
   <div>数据源 <b>map.guc.edu.cn</b> MVT 矢量瓦片</div>
   <div>建筑 <i id="stat-b">0</i> · 道路 <i id="stat-r">0</i> · 水系 <i id="stat-w">0</i></div>
   <div>停车区 <i id="stat-pa">0</i> · 泊位 <i id="stat-pb">0</i> · 运动面 <i id="stat-s">0</i></div>
-  <div>拖拽旋转 · 滚轮缩放 · 右键平移</div>
+  <div class="mouse-hint">拖拽旋转 · 滚轮缩放 · 右键平移</div>
+  <div class="touch-hint">单指旋转 · 双指缩放和平移</div>
 </div>
 
 <div id="loading"><div class="box"><b>正在载入真实校园矢量</b><i><em></em></i></div></div>
@@ -120,6 +132,7 @@ renderer.toneMappingExposure = 1.05;
 container.appendChild(renderer.domElement);
 
 const labelRenderer = new CSS2DRenderer();
+labelRenderer.domElement.className = 'label-layer';
 labelRenderer.setSize(innerWidth, innerHeight);
 labelRenderer.domElement.style.position = 'fixed';
 labelRenderer.domElement.style.inset = '0';
@@ -740,6 +753,7 @@ for (const label of ROAD_LABELS) {
 }
 
 /* ---------------- 标签 ---------------- */
+const LANDMARKS = /图书馆|体育馆|行政楼|学生活动中心|主运动场/;
 const MAJOR = /图书馆|行政楼|体育馆|游泳馆|运动场|双创|食堂|医院|国际交流|学生活动中心|南门|北门|东门|西南门/;
 for (const b of data.buildings) {
   if (!b.n) continue;
@@ -748,6 +762,7 @@ for (const b of data.buildings) {
   if (b.h < 18 && !MAJOR.test(b.n)) continue;
   const el = document.createElement('div');
   el.className = 'label';
+  el.classList.toggle('landmark', LANDMARKS.test(b.n));
   el.textContent = b.n;
   const center = polygonCenter(b.r[0]);
   const obj = new CSS2DObject(el);
@@ -789,9 +804,16 @@ function applyTime() {
   document.getElementById('btn-time').textContent = isNight ? '☀ 日间' : '☾ 夜间';
 }
 applyTime();
-document.getElementById('btn-time').addEventListener('click', () => { night = !night; applyTime(); });
-document.getElementById('btn-reset').addEventListener('click', resetView);
+const timeButton = document.getElementById('btn-time');
+const resetButton = document.getElementById('btn-reset');
+timeButton.addEventListener('click', () => { night = !night; applyTime(); });
+resetButton.addEventListener('click', resetView);
+timeButton.disabled = false;
+resetButton.disabled = false;
 controls.addEventListener('start', () => { controls.autoRotate = false; });
+controls.addEventListener('change', () => {
+  labelRenderer.domElement.classList.toggle('zoomed', camera.zoom >= 1.6);
+});
 
 /* ---------------- 渲染 ---------------- */
 function mergeGeos(list) {
@@ -817,7 +839,10 @@ function mergeGeos(list) {
 }
 
 addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
+  camera.left = -innerWidth / 2;
+  camera.right = innerWidth / 2;
+  camera.top = innerHeight / 2;
+  camera.bottom = -innerHeight / 2;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
   labelRenderer.setSize(innerWidth, innerHeight);
@@ -833,7 +858,7 @@ function animate() {
 }
 animate();
 document.getElementById('loading').classList.add('hide');
-window.__CAMPUS_V2__ = { scene, camera, renderer, controls, data, bounds, mid, span };
+window.__CAMPUS_V2__ = { scene, camera, renderer, controls, data, bounds, mid: siteMid, span: siteSpan };
 </script>
 </body>
 </html>
