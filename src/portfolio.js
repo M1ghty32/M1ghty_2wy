@@ -12,9 +12,9 @@ const dialog = $('search-dialog');
 const searchInput = $('search-input');
 const searchResults = $('search-results');
 const quickLinks = [
-  { kind: '作品', title: '潮汐书街 · 校园夜游', words: '地图 数字孪生 WebGL 微缩街区 3D 校园', url: '#project-campus' },
+  { kind: '作品', title: '暮光校园 · 微缩漫游', words: '地图 数字孪生 WebGL 微缩街区 3D 校园', url: '#project-campus' },
   { kind: '体验', title: '进入 3D 庭院', words: 'Three.js 工作室 游戏', url: './world.html?skipintro=1' },
-  { kind: '体验', title: '校园漫游', words: '校园游戏 第一人称 步行 街景 拍摄', url: './city-twin/game/' },
+  { kind: '体验', title: '校园漫游', words: '校园游戏 第一人称 步行 道路 地标', url: './city-twin/game/' },
   { kind: '入口', title: '效率工具箱', words: '工具 文本 编码 JSON', url: './world.html?skipintro=1#/space/toolbox' },
   { kind: '入口', title: '随记与留言板', words: '笔记 留言', url: './world.html?skipintro=1#/space/notes' },
   { kind: '入口', title: '素材库', words: '素材 书签 资源', url: './world.html?skipintro=1#/space/library' },

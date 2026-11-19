@@ -1,4 +1,131 @@
-<!doctype html><html lang="zh-CN"><head><base href="../"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>潮汐书街 · 校园夜游</title><link rel="stylesheet" href="./street/street.css"><script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script></head>
-<body data-walk><main id="stage" aria-label="潮汐书街三维场景"></main><header><a href="../#work">← 作品集</a><nav><a href="./atlas.html">校园地图</a><a href="./game/classic.html">原版漫游</a></nav></header>
-<section class="caption"><h1>潮汐书街</h1><p id="hint">拖动旋转 · 滚轮或双指缩放</p></section>
-<div class="controls"><button id="shot">切换镜头</button><a id="mode" href="./game/">进入夜游 ↗</a></div><div id="pad" hidden><button data-dir="forward" aria-label="前进">▲</button><div><button data-dir="left" aria-label="向左">◀</button><button data-dir="back" aria-label="后退">▼</button><button data-dir="right" aria-label="向右">▶</button></div></div><p id="status" role="status">正在布置街景…</p><script type="module" src="./street/street.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><base href="../">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>吉利学院 · 暮光校园</title>
+<style>
+  :root {
+    --bg: #f5f3ed;
+    --cyan: #2f8ea9;
+    --muted: #68736f;
+    --line: rgba(85, 104, 96, .22);
+    --mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
+  body { font-family: "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; color: #33413b; }
+  #scene { position: fixed; inset: 0; }
+  canvas { display: block; }
+
+  .map-header {
+    position: fixed; top: 14px; left: 14px; right: 14px; z-index: 8;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px 16px;
+    padding: 10px 13px; border: 1px solid var(--line); border-radius: 13px;
+    background: rgba(250,249,245,.94); box-shadow: 0 8px 30px #2a47341c; backdrop-filter: blur(12px);
+  }
+  #head { display: grid; gap: 1px; }
+  #head b { color: #213b2e; font-size: 15px; }
+  #head span { color: #566b60; font-size: 11px; }
+  #dock { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  #dock a, #dock button {
+    min-height: 37px; display: inline-flex; align-items: center; padding: 5px 10px;
+    border: 1px solid var(--line); border-radius: 7px; background: #fffdf8;
+    color: #244a38; font: inherit; font-size: 12px; font-weight: 650; line-height: 1.25; text-decoration: none; cursor: pointer;
+  }
+  #viewpoint { max-width: 125px; padding: 8px; border-radius: 7px; border: 1px solid var(--line); background: #e4ede4; color: #204335; font: inherit; font-size: 12px; }
+  #dock a:hover, #dock button:enabled:hover { background: #e5eee3; }
+  #dock button:disabled { color: var(--muted); cursor: wait; }
+  #dock .dock-game { background: #15543f; color: white; border-color: #15543f; }
+  #dock .dock-game:hover { background: #0d4231; }
+  #dock :focus-visible { outline: 2px solid #15543f; outline-offset: 3px; }
+
+  #info {
+    position: fixed; left: 20px; bottom: 20px; z-index: 5;
+    padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+    background: rgba(250, 249, 245, .9); backdrop-filter: blur(8px);
+    font-family: var(--mono); font-size: 9px; line-height: 1.9; color: var(--muted);
+  }
+  #info b { color: #40544a; font-weight: 500; }
+  #info i { color: #277b91; font-style: normal; }
+  .touch-hint { display: none; }
+
+  .label {
+    padding: 3px 7px; border: 1px solid rgba(115, 126, 112, .34); border-radius: 5px;
+    background: rgba(250, 249, 245, .9); color: #4a554c;
+    box-shadow: 0 1px 3px rgba(51, 60, 48, .12);
+    font-size: 10px; white-space: nowrap; letter-spacing: .02em;
+    pointer-events: none;
+  }
+  .label.water { color: #327fac; border-color: rgba(82, 155, 194, .48); }
+
+  #loading {
+    position: fixed; inset: 0; z-index: 7; display: grid; place-items: center;
+    background: #f5f3ed; transition: opacity .5s ease;
+  }
+  #loading.hide { opacity: 0; pointer-events: none; }
+  #loading .box { text-align: center; color: #4d5c50; }
+  #loading b { display: block; font-size: 13px; letter-spacing: .12em; margin-bottom: 10px; }
+  #loading i { display: block; width: 180px; height: 2px; background: rgba(86,117,99,.18); }
+  #loading i em { display: block; width: 40%; height: 100%; background: var(--cyan); animation: slide 1.2s ease-in-out infinite; }
+  @keyframes slide { 0% { transform: translateX(0); } 50% { transform: translateX(150%); } 100% { transform: translateX(0); } }
+  @media (max-width: 565px) {
+    .map-header { top: 8px; left: 8px; right: 8px; gap: 6px; padding: 8px; }
+    #dock { width: 100%; }
+    #dock a, #dock button { min-height: 35px; padding-inline: 7px; }
+    #head b { font-size: 14px; }
+    #info { left: 8px; bottom: 8px; max-width: calc(100% - 16px); }
+    .label-layer:not(.zoomed) .label:not(.landmark) { display: none; }
+  }
+  @media (pointer: coarse) {
+    .mouse-hint { display: none; }
+    .touch-hint { display: block; }
+  }
+
+.map-header { background:#192e36ee; border-color:#83a2a063; color:#ffe2af; }
+#head b { color:#ffdfab; } #head span { color:#d0dad6; }
+#info { background:#18303be8; color:#c4d1d0; border-color:#77958e; } #info b,#info i { color:#ffe0a1; }
+body:not(.show-labels) .label-layer {visibility:hidden}
+#walkpad {position:fixed;bottom:12px;right:10px;z-index:6;text-align:center;touch-action:none}
+#walkpad button {padding:12px;border-radius:7px;background:#223b43;color:white;border:1px solid #8ba39e;touch-action:none}
+#walkpad[hidden]{display:none}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/": "./vendor/three-addons/"
+  }
+}
+</script>
+</head>
+<body data-walk>
+<div id="scene"></div>
+
+<header class="map-header">
+  <div id="head">
+    <b>吉利学院 · 暮光校园</b>
+    <span>校园微缩实景 · 建筑与道路据地图建模</span>
+  </div>
+  <nav id="dock" aria-label="地图操作">
+    <a href="../#explore">← 作品集</a>
+    <select id="viewpoint" aria-label="校园观景点" disabled><option value="">全景总览</option></select>
+    <button id="btn-time" type="button" disabled>☾ 夜间</button>
+    <button id="btn-reset" type="button" disabled>复位视角</button>
+    <button id="labels" aria-pressed="false">地名</button>
+    <a class="dock-game" href="./">校园全景 ↗</a>
+  </nav>
+</header>
+
+<div id="info">
+  <div class="map-data">数据源 <b>map.guc.edu.cn</b> MVT 矢量瓦片</div>
+  <div>建筑 <i id="stat-b">0</i> · 道路 <i id="stat-r">0</i> · 水系 <i id="stat-w">0</i></div>
+  <div>停车区 <i id="stat-pa">0</i> · 泊位 <i id="stat-pb">0</i> · 运动面 <i id="stat-s">0</i></div>
+  <div class="mouse-hint">WASD 移动 · 拖动环顾 · 下拉菜单切换地标</div>
+  <div class="touch-hint">方向键移动 · 单指环顾</div>
+</div>
+
+<div id="loading"><div class="box"><b>正在载入真实校园矢量</b><i><em></em></i></div></div>
+
+<div id="walkpad" hidden><button data-key="KeyW">▲</button><div><button data-key="KeyA">◀</button><button data-key="KeyS">▼</button><button data-key="KeyD">▶</button></div></div>
+<script type="module" src="./street/campus.js"></script></body></html>
