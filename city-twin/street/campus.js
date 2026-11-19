@@ -1,3 +1,4 @@
+import { addArchitecture } from './architecture.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
@@ -337,36 +338,6 @@ if (treeData.length) {
 }
 
 /* ---------------- 建筑 ---------------- */
-const WINDOW_UNIFORMS = { uNight: { value: 0 } };
-function makeBuildingMaterial(baseColor) {
-  const mat = new THREE.MeshStandardMaterial({ color: baseColor, roughness: 0.72, metalness: 0.12 });
-  mat.onBeforeCompile = (shader) => {
-    shader.uniforms.uNight = WINDOW_UNIFORMS.uNight;
-    shader.vertexShader = 'varying vec3 vWPos;\nvarying vec3 vWN;\n' + shader.vertexShader.replace(
-      '#include <worldpos_vertex>',
-      `#include <worldpos_vertex>
-       vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
-       vWN = normalize(mat3(modelMatrix) * objectNormal);`
-    );
-    shader.fragmentShader = 'varying vec3 vWPos;\nvarying vec3 vWN;\nuniform float uNight;\n' + shader.fragmentShader.replace(
-      '#include <dithering_fragment>',
-      `#include <dithering_fragment>
-       float wall = 1.0 - smoothstep(0.45, 0.62, abs(vWN.y));
-       float fy = fract((vWPos.y - 1.2) / 3.6);
-       float fx = fract((vWPos.x + vWPos.z) / 4.2);
-       float win = step(0.52, fx) * step(fx, 0.88) * step(0.30, fy) * step(fy, 0.78);
-       float bay = floor((vWPos.x + vWPos.z) / 4.2);
-       float storey = floor((vWPos.y - 1.2) / 3.6);
-       float lit = step(0.39, fract(sin(bay * 7.31 + storey * 13.17) * 4375.18));
-       vec3 reflectedSky = mix(vec3(0.19, 0.32, 0.36), vec3(0.45, 0.59, 0.61), fy);
-       vec3 winCol = mix(reflectedSky, mix(vec3(0.13, 0.19, 0.24), vec3(1.0, 0.8, 0.5), lit), uNight);
-       gl_FragColor.rgb = mix(gl_FragColor.rgb, winCol, win * wall * (0.88 - 0.52 * (1.0 - smoothstep(0.009,0.025,abs(fx-0.70)))));
-       float band = smoothstep(0.86, 1.0, fract(vWPos.y / 3.6));
-       gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.86, 0.88, 0.9), band * wall * 0.55);`
-    );
-  };
-  return mat;
-}
 const palette = [0xe3e4df, 0xe8e7e1, 0xd9ddd8, 0xf0eee8, 0xd1d8d4];
 const KIND_COLOR = { library: 0xf0eee7, teaching: 0xe7e7e1, student_bedroom: 0xe4dfd3, gymnasium: 0xe6e9e4, canteen: 0xe5ded1, experiment_building: 0xe0e6e3, administration: 0xe8e3d8, service_building: 0xe2ded5, hospital: 0xe9eae5 };
 function ringArea(ring) {
@@ -453,12 +424,13 @@ for (const b of data.buildings) {
   }
   idx++;
 }
-const bMat = makeBuildingMaterial(0xffffff);
+const bMat = new THREE.MeshStandardMaterial({color:0xffffff,roughness:.9});
 bMat.vertexColors = true;
 const buildingMesh = new THREE.Mesh(mergeGeos(buildingGeoms), bMat);
 buildingMesh.castShadow = true;
 buildingMesh.receiveShadow = true;
 scene.add(buildingMesh);
+addArchitecture(scene,data.buildings,pointInRing);
 
 /* 屋顶（深色薄板） */
 const roofGeos = [];
@@ -478,10 +450,17 @@ for (const b of data.buildings) {
     }
   }
 }
-const roofMesh = new THREE.Mesh(mergeGeos(roofGeos), new THREE.MeshStandardMaterial({ color: 0x7c9992, roughness: 0.92 }));
+const roofMesh = new THREE.Mesh(mergeGeos(roofGeos), new THREE.MeshStandardMaterial({ color: 0x94a19a, roughness: 0.92 }));
+roofMesh.material.onBeforeCompile = shader => {
+  shader.vertexShader='varying vec2 roofCoord;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nroofCoord=position.xz;');
+  shader.fragmentShader='varying vec2 roofCoord;\n'+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+    vec2 grid=abs(fract(roofCoord/vec2(1.2,8.)+.5)-.5);
+    vec2 fade=smoothstep(vec2(.008),max(vec2(.025),fwidth(roofCoord)),grid);
+    diffuseColor.rgb *= .85 + .15 * min(fade.x,fade.y);`);
+};
 scene.add(roofMesh);
 const inkLines = new THREE.EdgesGeometry(buildingMesh.geometry, 35);
-scene.add(new THREE.LineSegments(inkLines, new THREE.LineBasicMaterial({color:0x343e42, transparent:true,opacity:.74})));
+scene.add(new THREE.LineSegments(inkLines, new THREE.LineBasicMaterial({color:0x343e42, transparent:true,opacity:.28})));
 
 const roofOutline = new THREE.BufferGeometry();
 roofOutline.setAttribute('position', new THREE.Float32BufferAttribute(parapetEdges, 3));
@@ -647,7 +626,7 @@ for (const name of ['体育馆', '游泳馆']) {
   const r = Math.min((Math.max(...xs) - Math.min(...xs)) / 2, (Math.max(...zs) - Math.min(...zs)) / 2) * 0.55;
   const dome = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xe5e3dc, roughness: 0.72, metalness: 0.06 }));
   dome.scale.y = 0.3;
-  dome.position.set(cx, b.h * 0.8, cz);
+  dome.position.set(cx, b.h + .12, cz);
   dome.castShadow = true;
   scene.add(dome);
 }
@@ -829,11 +808,11 @@ let night = true;
 function applyTime() {
   const isNight = night;
   pools.visible = isNight;
-  WINDOW_UNIFORMS.uNight.value = isNight ? 1 : 0.15;
+
   scene.background = new THREE.Color(isNight ? 0x4d526a : 0xf5f3ed);
   if(walking && isNight)scene.background=eveningSky;
   scene.fog.color = new THREE.Color(isNight ? 0x4d526a : 0xf5f3ed);
-  scene.fog.density = isNight ? 0.00034 : 0.00012;
+  scene.fog.density = walking ? (isNight ? .00065 : .0004) : .000075;
   hemi.intensity = isNight ? 0.8 : 1.25;
   sun.intensity = isNight ? 1.6 : 1.55;
   sun.color = new THREE.Color(isNight ? 0xffc598 : 0xfff2d8);
