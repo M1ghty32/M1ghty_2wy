@@ -3,6 +3,7 @@ import { FALLBACK_ARTICLES, FALLBACK_PROJECTS, FALLBACK_SITE } from './content/d
 import { h } from './ui/dom.js';
 
 const $ = (id) => document.getElementById(id);
+$('print-resume').addEventListener('click', () => window.print());
 const filters = $('article-filters');
 const articleList = $('article-list');
 const directory = $('project-directory');
@@ -51,7 +52,7 @@ async function readData(name, fallback) {
 function renderProfile(site) {
   document.title = site.title;
   document.querySelectorAll('[data-profile-name]').forEach((element) => { element.textContent = site.name; });
-  document.querySelector('[data-profile-tagline]').textContent = site.tagline;
+  for (const tagline of document.querySelectorAll('[data-profile-tagline]')) tagline.textContent = site.tagline;
   $('about-bio').textContent = site.bio;
   for (const field of ['motto', 'location', 'status']) {
     const element = $('about-' + field);
@@ -67,7 +68,7 @@ function renderProfile(site) {
   if (site.links?.email) links.append(anchor('联系我 ↗', 'mailto:' + site.links.email));
   $('about-skills').replaceChildren(...site.skills.map((skill) => {
     const item = h('li', '', skill.name);
-    if (skill.level) item.title = skill.level;
+    if (skill.level) item.append(h('small', '', skill.level));
     return item;
   }));
   $('about-timeline').replaceChildren(...site.timeline.map((step) => {

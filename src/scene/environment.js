@@ -75,7 +75,14 @@ function makeSkyMaterial() {
       void main() {
         float h = normalize(vWorldPosition + vec3(0.0, offset, 0.0)).y;
         float t = pow(max(h, 0.0), 0.48);
-        gl_FragColor = vec4(mix(bottomColor, topColor, t), 1.0);
+        vec3 direction = normalize(vWorldPosition);
+        float angle = atan(direction.z, direction.x);
+        float ridge = 0.05 + 0.032 * sin(angle * 5.0) + 0.018 * cos(angle * 11.0);
+        float silhouette = 1.0 - smoothstep(ridge, ridge + 0.009, h);
+        float foothill = 1.0 - smoothstep(0.002, 0.012, h - 0.018 * cos(angle * 8.0));
+        vec3 sky = mix(bottomColor, topColor, t);
+        sky = mix(sky, mix(bottomColor, topColor, 0.52), silhouette);
+        gl_FragColor = vec4(mix(sky, topColor, foothill * 0.67), 1.0);
       }
     `,
     side: THREE.BackSide,

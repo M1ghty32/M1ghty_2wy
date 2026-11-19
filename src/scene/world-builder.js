@@ -526,6 +526,41 @@ function buildCourtyard({ scene, f, quality, hotspots }) {
     count: quality.tier === 'low' ? 11 : 15
   });
   root.add(path.root);
+  const lanternWood = f.material(0x614337, { roughness: 0.85 });
+  const lanternGlass = new THREE.MeshStandardMaterial({ color: 0xffd39c, emissive: 0xffad51, emissiveIntensity: 1.35 });
+  const wireMaterial = new THREE.LineBasicMaterial({ color: 0x584947 });
+  for (const z of [3.4, 6.5]) {
+    for (const x of [-1.65, 1.65]) {
+      root.add(f.box(0.13, 3.05, 0.13, lanternWood, [x, 1.525, z]));
+      root.add(f.box(0.3, 0.32, 0.3, stone, [x, 0.16, z]));
+    }
+    const strand = new THREE.QuadraticBezierCurve3(
+      new THREE.Vector3(-1.65, 3, z), new THREE.Vector3(0, 2.48, z), new THREE.Vector3(1.65, 3, z)
+    );
+    root.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(strand.getPoints(18)), wireMaterial));
+    for (const fraction of [0.15, 0.38, 0.62, 0.85]) {
+      const point = strand.getPoint(fraction);
+      const lamp = f.sphere(0.105, lanternGlass, [point.x, point.y - 0.11, z], 8);
+      lamp.scale.y = 1.28;
+      root.add(lamp);
+    }
+  }
+  // Planted borders leave the central walking route clear.
+  const leafMaterial = f.material(0x526f51, { roughness: 0.96 });
+  const flowerMaterial = f.material(0xdca99b, { roughness: 0.81 });
+  for (const side of [-1, 1]) {
+    for (const z of [3.35, 6.55]) {
+      const x = side * 1.95;
+      root.add(f.rounded(0.59, 0.25, 1.2, 0.09, stone, [x, 0.125, z]));
+      for (let i = 0; i < 3; i++) {
+        const offset = (i - 1) * 0.32;
+        const plant = f.sphere(0.28, leafMaterial, [x, 0.33, z + offset], 7);
+        plant.scale.y = 0.75;
+        root.add(plant);
+        root.add(f.sphere(0.082, flowerMaterial, [x + Math.cos(i) * 0.1, 0.52, z + offset], 6));
+      }
+    }
+  }
   const sidePath = createSteppingPath(f, {
     points: [[-0.1, 5.2], [-1.8, 5.4], [-3.6, 6.1], [-4.9, 6.25]],
     count: quality.tier === 'low' ? 6 : 9

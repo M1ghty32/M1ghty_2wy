@@ -33,6 +33,7 @@
     border: 1px solid var(--line); border-radius: 7px; background: #fffdf8;
     color: #244a38; font: inherit; font-size: 12px; font-weight: 650; line-height: 1.25; text-decoration: none; cursor: pointer;
   }
+  #viewpoint { max-width: 125px; padding: 8px; border-radius: 7px; border: 1px solid var(--line); background: #e4ede4; color: #204335; font: inherit; font-size: 12px; }
   #dock a:hover, #dock button:enabled:hover { background: #e5eee3; }
   #dock button:disabled { color: var(--muted); cursor: wait; }
   #dock .dock-game { background: #15543f; color: white; border-color: #15543f; }
@@ -100,6 +101,7 @@
   </div>
   <nav id="dock" aria-label="地图操作">
     <a href="../#explore">← 作品集</a>
+    <select id="viewpoint" aria-label="校园观景点" disabled><option value="">全景总览</option></select>
     <button id="btn-time" type="button" disabled>☾ 夜间</button>
     <button id="btn-reset" type="button" disabled>复位视角</button>
     <a class="dock-game" href="./game/">校园漫游 ↗</a>
@@ -125,7 +127,9 @@ const container = document.getElementById('scene');
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.8));
 renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = false;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.autoUpdate = false;
+renderer.shadowMap.needsUpdate = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
@@ -232,8 +236,8 @@ const mapCenter = new THREE.Vector3(
   0,
   -Math.sin(MAP_BEARING) * mapProjectedCenterX + Math.cos(MAP_BEARING) * horizontalDepth
 );
-const mapHomeHeight = Math.max(mapBounds.maxY - mapBounds.minY, (mapBounds.maxX - mapBounds.minX) / (innerWidth / innerHeight)) * 1.12;
-let mapViewHeight = mapHomeHeight;
+const homeHeight = () => Math.max(mapBounds.maxY - mapBounds.minY, (mapBounds.maxX - mapBounds.minX) / (innerWidth / innerHeight)) * 1.12;
+let mapViewHeight = homeHeight();
 function applyMapProjection() {
   const aspect = innerWidth / innerHeight;
   camera.left = -mapViewHeight * aspect / 2;
@@ -247,11 +251,15 @@ applyMapProjection();
 /* ---------------- 地面 ---------------- */
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(siteBounds.maxX - siteBounds.minX + 80, siteBounds.maxZ - siteBounds.minZ + 80),
-  new THREE.MeshBasicMaterial({ color: 0xf5f3ed })
+  new THREE.MeshStandardMaterial({ color: 0xb4bba7, roughness: 1 })
 );
 ground.rotation.x = -Math.PI / 2;
 ground.position.set(siteMid.x, -0.12, siteMid.z);
+ground.receiveShadow = true;
 scene.add(ground);
+const plinth = new THREE.Mesh(new THREE.BoxGeometry(siteBounds.maxX - siteBounds.minX + 80, 9, siteBounds.maxZ - siteBounds.minZ + 80), new THREE.MeshStandardMaterial({ color: 0x526c61, roughness: 0.86 }));
+plinth.position.set(siteMid.x, -4.7, siteMid.z);
+scene.add(plinth);
 
 function polygonGeometries(features) {
   return features.flatMap((feature) => ringShapes(feature.r).map((shape) => {
@@ -263,7 +271,8 @@ function polygonGeometries(features) {
 function flatSurface(features, color, height) {
   const geos = polygonGeometries(features);
   if (!geos.length) return null;
-  const mesh = new THREE.Mesh(mergeGeos(geos), new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }));
+  const mesh = new THREE.Mesh(mergeGeos(geos), new THREE.MeshStandardMaterial({ color, roughness: 0.96, side: THREE.DoubleSide }));
+  mesh.receiveShadow = true;
   mesh.position.y = height;
   scene.add(mesh);
   return mesh;
@@ -448,8 +457,12 @@ function makeBuildingMaterial(baseColor) {
        float fy = fract((vWPos.y - 1.2) / 3.6);
        float fx = fract((vWPos.x + vWPos.z) / 4.2);
        float win = step(0.52, fx) * step(fx, 0.88) * step(0.30, fy) * step(fy, 0.78);
-       vec3 winCol = vec3(1.0, 0.82, 0.55) * (0.35 + 0.65 * uNight);
-       gl_FragColor.rgb = mix(gl_FragColor.rgb, winCol, win * wall * 0.85 * uNight);
+       float bay = floor((vWPos.x + vWPos.z) / 4.2);
+       float storey = floor((vWPos.y - 1.2) / 3.6);
+       float lit = step(0.39, fract(sin(bay * 7.31 + storey * 13.17) * 4375.18));
+       vec3 reflectedSky = mix(vec3(0.19, 0.32, 0.36), vec3(0.45, 0.59, 0.61), fy);
+       vec3 winCol = mix(reflectedSky, mix(vec3(0.13, 0.19, 0.24), vec3(1.0, 0.8, 0.5), lit), uNight);
+       gl_FragColor.rgb = mix(gl_FragColor.rgb, winCol, win * wall * 0.88);
        float band = smoothstep(0.86, 1.0, fract(vWPos.y / 3.6));
        gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.86, 0.88, 0.9), band * wall * 0.55);`
     );
@@ -551,6 +564,7 @@ scene.add(buildingMesh);
 
 /* 屋顶（深色薄板） */
 const roofGeos = [];
+const parapetEdges = [];
 for (const b of data.buildings) {
   if (b.n === '运动场') continue;
   const shape = ringShape(b.r);
@@ -559,9 +573,18 @@ for (const b of data.buildings) {
   geo.rotateX(-Math.PI / 2);
   geo.translate(0, Math.max(4, b.h || 12) + 0.06, 0);
   roofGeos.push(geo);
+  const elevation = Math.max(4, b.h || 12) + 0.18;
+  for (const ring of b.r) {
+    for (let i = 1; i < ring.length; i++) {
+      parapetEdges.push(ring[i - 1][0], elevation, ring[i - 1][1], ring[i][0], elevation, ring[i][1]);
+    }
+  }
 }
 const roofMesh = new THREE.Mesh(mergeGeos(roofGeos), new THREE.MeshStandardMaterial({ color: 0xd2d2c9, roughness: 0.92 }));
 scene.add(roofMesh);
+const roofOutline = new THREE.BufferGeometry();
+roofOutline.setAttribute('position', new THREE.Float32BufferAttribute(parapetEdges, 3));
+scene.add(new THREE.LineSegments(roofOutline, new THREE.LineBasicMaterial({ color: 0x88968c })));
 
 /* ---------------- 官方运动、停车设施 ---------------- */
 const sportsByCategory = (category) => data.sports.filter((feature) => feature.cat === category);
@@ -780,13 +803,35 @@ sun.shadow.camera.top = siteSpan * 0.9;
 sun.shadow.camera.bottom = -siteSpan * 0.9;
 sun.shadow.camera.updateProjectionMatrix();
 
-const startPos = new THREE.Vector3(siteMid.x + siteSpan * 0.12, siteSpan * 0.76, siteMid.z + siteSpan * 1.02);
-const startTarget = new THREE.Vector3(siteMid.x, 0, siteMid.z);
-function resetView() {
-  camera.position.copy(startPos);
-  controls.target.copy(startTarget);
+const viewpoint = document.getElementById('viewpoint');
+const landmarks = new Map();
+for (const name of ['图书馆', '体育馆', '学生活动中心', '明德楼']) {
+  const building = data.buildings.find(item => item.n === name);
+  if (!building) continue;
+  const center = polygonCenter(building.r[0]);
+  const radius = Math.max(...building.r[0].map(([x, z]) => Math.hypot(x - center[0], z - center[1])));
+  landmarks.set(name, {
+    target: new THREE.Vector3(center[0], buildingHeight(building) * 0.35, center[1]),
+    width: Math.max(130, radius * 2.6)
+  });
+  viewpoint.add(new Option(name, name));
+}
+function frameView() {
+  const landmark = landmarks.get(viewpoint.value);
+  const target = landmark?.target || mapCenter;
+  controls.target.copy(target);
+  camera.position.copy(target).addScaledVector(mapDirection, siteSpan * 1.45);
+  camera.zoom = landmark ? homeHeight() * Math.min(1, innerWidth / innerHeight) / landmark.width : 1;
+  mapViewHeight = homeHeight();
+  applyMapProjection();
   controls.update();
 }
+function resetView() {
+  viewpoint.value = '';
+  frameView();
+}
+viewpoint.addEventListener('change', frameView);
+viewpoint.disabled = false;
 resetView();
 
 /* ---------------- 交互 ---------------- */
@@ -800,7 +845,8 @@ function applyTime() {
   hemi.intensity = isNight ? 0.8 : 1.25;
   sun.intensity = isNight ? 0.65 : 1.55;
   sun.color = new THREE.Color(isNight ? 0x92b2ce : 0xfff2d8);
-  waterMat.emissiveIntensity = isNight ? 0.42 : 0.16;
+  waterMat.color.setHex(isNight ? 0x345979 : 0x72afa9);
+  ground.material.color.setHex(isNight ? 0x405952 : 0xb4bba7);
   document.getElementById('btn-time').textContent = isNight ? '☀ 日间' : '☾ 夜间';
 }
 applyTime();
@@ -839,11 +885,8 @@ function mergeGeos(list) {
 }
 
 addEventListener('resize', () => {
-  camera.left = -innerWidth / 2;
-  camera.right = innerWidth / 2;
-  camera.top = innerHeight / 2;
-  camera.bottom = -innerHeight / 2;
-  camera.updateProjectionMatrix();
+  mapViewHeight = homeHeight();
+  applyMapProjection();
   renderer.setSize(innerWidth, innerHeight);
   labelRenderer.setSize(innerWidth, innerHeight);
 });

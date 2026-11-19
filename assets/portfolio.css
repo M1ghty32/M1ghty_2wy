@@ -149,3 +149,18 @@ dialog::backdrop { background: #0a211da8; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0s !important; }
 }
+
+.about { border-top: 5px solid var(--green); background: linear-gradient(118deg,#e7efe6 0%,#fafaf4 62%); }
+.resume-name { display: block; margin-top: 6px; font-size: .72em; color: var(--green); }
+.resume-print { margin-top: 18px; padding: 9px 13px; border-radius: 8px; background: var(--green); color: white; border: 0; cursor: pointer; }
+.skills li { display: grid; padding: 7px 11px; background: #fffdf8; border: 1px solid var(--line); font-weight: 700; }
+.skills small { color: var(--muted); font-weight: 450; }
+.timeline { border-left: 2px solid #98b6a5; padding-left: 12px; }
+@media print {
+  body { background: white; }
+  body > :not(main), main > :not(#about), .resume-print { display: none !important; }
+  main.shell { width: 100%; }
+  #about { display: block; background: white; border: 0; margin: 0; padding: 0; }
+  .about-details { margin-top: 24px; }
+  .timeline li, .skills li { break-inside: avoid; }
+}
